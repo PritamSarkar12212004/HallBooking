@@ -2,8 +2,12 @@ import React from 'react';
 import Wrapper from '../../layouts/wraper/Wraper';
 import { Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
 import { Theme } from '../../const/theme/Theme';
+import { route } from '../../const/routes/route';
 
-const OneBoardScreen = () => {
+const OneBoardScreen = ({ navigation }: any) => {
+    const onpress = () => {
+        navigation.navigate(route.login)
+    }
     return (
         <Wrapper paddingHorizontal={0}>
             <View style={{ flex: 1 }}>
@@ -12,7 +16,9 @@ const OneBoardScreen = () => {
                         flex: 1,
                         width: '100%',
                     }}
-                />
+                >
+
+                </View>
                 <View
                     className="w-full h-[45%] px-4  pt-10 flex items-center justify-between rounded-t-[40px]"
                     style={{
@@ -42,6 +48,7 @@ const OneBoardScreen = () => {
                         <TouchableOpacity activeOpacity={0.9} style={{
                             backgroundColor: Theme.button.primary
                         }}
+                            onPress={onpress}
                             className="h-12 w-24 rounded-[25px] flex items-center justify-center"
                         >
                             <Text className="font-semibold">NEXT</Text>
