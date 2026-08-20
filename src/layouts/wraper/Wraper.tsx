@@ -2,6 +2,7 @@ import React, { PropsWithChildren } from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
+import { Theme } from '../../const/theme/Theme';
 
 interface WrapperProps extends PropsWithChildren {
     style?: StyleProp<ViewStyle>;
@@ -17,7 +18,7 @@ interface WrapperProps extends PropsWithChildren {
 const Wrapper = ({
     children,
     style,
-    backgroundColor = '#F8FAFC',
+    backgroundColor = Theme.background.primary,
     safeTop = true,
     safeBottom = false,
     safeHorizontal = false,
