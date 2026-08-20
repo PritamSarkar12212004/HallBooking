@@ -1,4 +1,6 @@
 import React from 'react';
+import 'react-native-reanimated'
+import 'react-native-gesture-handler'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
