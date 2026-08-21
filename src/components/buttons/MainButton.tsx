@@ -10,7 +10,7 @@ type MainButtonProps = {
     title: string;
     actionFunc?: () => void;
     disabled?: boolean;
-    loader: boolean
+    loader?: boolean
 };
 
 const MainButton = ({

@@ -9,6 +9,7 @@ import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
 import DatePickerModal from '../../components/picker/DatePickerModal';
+import { Building2, UserRound } from 'lucide-react-native';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -162,8 +163,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     title="Event / Hall Name *"
                     value={bookingName}
                     setvalue={setBookingName}
-                    placeholder="Enter booking name"
+                    placeholder="Enter event / hall name"
                     keyType="default"
+                    Icon={Building2}
                 />
 
                 <InputField
@@ -172,8 +174,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     setvalue={setBookingTakenBy}
                     placeholder="Enter staff name"
                     keyType="default"
+                    Icon={UserRound}
                 />
-
                 <MultiSelector
                     list={staffMembers}
                     value={selectedStaff}

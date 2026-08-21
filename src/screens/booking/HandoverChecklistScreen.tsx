@@ -10,7 +10,6 @@ const HandoverChecklistScreen = () => {
 
     return (
         <Wrapper safeBottom>
-            {/* Header */}
             <View className="flex-row items-center gap-3 mb-6">
                 <TouchableOpacity
                     onPress={() => navigation.goBack()}

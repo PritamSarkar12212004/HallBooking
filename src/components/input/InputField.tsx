@@ -1,24 +1,53 @@
-import React from 'react'
-import { Text, TextInput, View } from '../../lib/style/withTailwind';
-import { CalendarDays } from 'lucide-react-native';
+import React from 'react';
+import {
+    Text,
+    TextInput,
+    View,
+} from '../../lib/style/withTailwind';
+
 import { Theme } from '../../const/theme/Theme';
+
 import { KeyboardTypeOptions } from 'react-native';
 
-const InputField = React.memo(({ value, setvalue, placeholder, keyType, title }: {
+type InputFieldProps = {
     value: string;
-    setvalue: any;
+    setvalue: (value: string) => void;
     placeholder: string;
     keyType: KeyboardTypeOptions;
-    title: string
-}) => {
+    title: string;
+    Icon?: React.ElementType;
+};
+
+const InputField = React.memo(({
+    value,
+    setvalue,
+    placeholder,
+    keyType,
+    title,
+    Icon: Icon,
+}: InputFieldProps) => {
+
     return (
         <View className="mb-4">
-            <Text className="text-[#8F8B91] text-sm font-medium mb-2">{title}</Text>
+
+            <Text className="text-[#8F8B91] text-sm font-medium mb-2">
+                {title}
+            </Text>
+
             <View
                 className="flex-row items-center rounded-xl px-4"
-                style={{ backgroundColor: Theme.background.secondary }}
+                style={{
+                    backgroundColor: Theme.background.secondary,
+                }}
             >
-                <CalendarDays size={18} color="#8F8B91" />
+
+                {Icon && (
+                    <Icon
+                        size={18}
+                        color="#8F8B91"
+                    />
+                )}
+
                 <TextInput
                     className="flex-1 py-3 px-3 text-white"
                     placeholder={placeholder}
@@ -26,10 +55,17 @@ const InputField = React.memo(({ value, setvalue, placeholder, keyType, title }:
                     value={value}
                     onChangeText={setvalue}
                     keyboardType={keyType}
+                    autoCapitalize={
+                        keyType === 'email-address'
+                            ? 'none'
+                            : 'sentences'
+                    }
                 />
-            </View>
-        </View>
-    )
-})
 
-export default InputField
+            </View>
+
+        </View>
+    );
+});
+
+export default InputField;
