@@ -36,6 +36,7 @@ const TabUiNavi = React.memo(
 
                         return (
                             <TouchableOpacity
+                                activeOpacity={0.9}
                                 key={route.key}
                                 accessibilityRole="tab"
                                 accessibilityState={isFocused ? { selected: true } : {}}
