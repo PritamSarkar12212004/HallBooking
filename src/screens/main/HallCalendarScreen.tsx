@@ -47,6 +47,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const [viewMonthIndex, setViewMonthIndex] = useState(currentMonthIndex);
     const [viewYear, setViewYear] = useState(currentYear);
 
+    const [loader, setLoader] = useState<boolean>(false)
+
     const toggleStaff = (name: string) => {
         setSelectedStaff(prev =>
             prev.includes(name)
@@ -109,6 +111,13 @@ const HallCalendarScreen = ({ navigation }: any) => {
         }
     };
 
+    const actionPress = () => {
+        setLoader(true)
+        setTimeout(() => {
+            setLoader(false)
+            navigation.navigate("Step1Applicant")
+        }, 200);
+    }
     const isCurrentMonth = viewMonthIndex === currentMonthIndex && viewYear === currentYear;
 
     const monthName = `${monthNames[viewMonthIndex]} ${viewYear}`;
@@ -175,8 +184,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
             <MainButton
                 title="Next"
-                navigation={navigation}
-                route="Step1Applicant"
+                loader={loader}
+                actionFunc={actionPress}
             />
 
             <DatePickerModal

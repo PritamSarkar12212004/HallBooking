@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, TouchableOpacity } from '../../lib/style/withTailwind';
 import { ChevronRight } from 'lucide-react-native';
 import { Theme } from '../../const/theme/Theme';
+import { ActivityIndicator } from 'react-native';
 
 type MainButtonProps = {
     navigation?: any;
@@ -9,6 +10,7 @@ type MainButtonProps = {
     title: string;
     actionFunc?: () => void;
     disabled?: boolean;
+    loader: boolean
 };
 
 const MainButton = ({
@@ -17,6 +19,7 @@ const MainButton = ({
     title,
     actionFunc,
     disabled = false,
+    loader
 }: MainButtonProps) => {
     const handlePress = () => {
         if (actionFunc) {
@@ -33,24 +36,27 @@ const MainButton = ({
         <TouchableOpacity
             disabled={disabled}
             activeOpacity={0.9}
-            className="flex-row items-center justify-center gap-2 rounded-xl py-4 mb-4"
+            className="flex-row items-center justify-center gap-2 rounded-xl h-13 mb-4"
             style={{
                 backgroundColor: Theme.button.primary,
                 opacity: disabled ? 0.5 : 1,
             }}
             onPress={handlePress}
         >
-            <Text
-                className="font-bold"
-                style={{ color: Theme.background.primary }}
-            >
-                {title}
-            </Text>
+            {
+                loader ? <ActivityIndicator color={"black"} /> : <><Text
+                    className="font-bold"
+                    style={{ color: Theme.background.primary }}
+                >
+                    {title}
+                </Text>
+                    <ChevronRight
+                        size={20}
+                        color={Theme.background.primary}
+                    />
+                </>
+            }
 
-            <ChevronRight
-                size={20}
-                color={Theme.background.primary}
-            />
         </TouchableOpacity>
     );
 };
