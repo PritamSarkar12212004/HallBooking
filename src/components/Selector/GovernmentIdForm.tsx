@@ -5,10 +5,15 @@ import {
     CreditCard,
     FileText,
     IdCard,
+    Image as ImageIcon,
+    Trash2,
     UserRound,
 } from 'lucide-react-native';
 
+import { Image } from 'react-native';
+
 import { Theme } from '../../const/theme/Theme';
+
 import {
     Text,
     TouchableOpacity,
@@ -24,7 +29,11 @@ type GovernmentIdType =
 type GovernmentIdFormProps = {
     selectedId: GovernmentIdType | null;
     onSelectId: (id: GovernmentIdType) => void;
+
+    photo: any | null;
     onCapturePhoto: () => void;
+    onSelectPhoto: () => void;
+    onRemovePhoto: () => void;
 };
 
 const idOptions: {
@@ -52,21 +61,25 @@ const idOptions: {
 const GovernmentIdForm = ({
     selectedId,
     onSelectId,
+    photo,
     onCapturePhoto,
+    onSelectPhoto,
+    onRemovePhoto,
 }: GovernmentIdFormProps) => {
+
     return (
         <View className="mb-6">
 
             {/* Header */}
-            <Text className="text-white text-base font-semibold mb-3">
+            <Text className="text-white text-base font-semibold mb-1">
                 Government ID Proof *
             </Text>
 
-            <Text className="text-[#8F8B91] text-xs mb-3">
+            <Text className="text-[#8F8B91] text-xs mb-4">
                 Select any one valid government ID
             </Text>
 
-            {/* ID Options */}
+            {/* Government IDs */}
             <View className="gap-2">
 
                 {idOptions.map(({ label, icon: Icon }) => {
@@ -76,10 +89,11 @@ const GovernmentIdForm = ({
                     return (
                         <TouchableOpacity
                             key={label}
-                            activeOpacity={0.9}
+                            activeOpacity={0.8}
                             onPress={() => onSelectId(label)}
-                            className="flex-row items-center rounded-xl px-4 h-13"
+                            className="flex-row items-center rounded-xl px-4"
                             style={{
+                                minHeight: 54,
                                 backgroundColor:
                                     Theme.background.secondary,
                                 borderWidth: 1,
@@ -132,33 +146,132 @@ const GovernmentIdForm = ({
 
             </View>
 
-            {/* Capture Photo */}
-            <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={onCapturePhoto}
-                className="flex-row items-center justify-center rounded-xl py-4 mt-4"
-                style={{
-                    backgroundColor: Theme.background.secondary,
-                    borderWidth: 1,
-                    borderColor: Theme.button.primary,
-                }}
-            >
+            {/* Photo */}
+            <Text className="text-white text-sm font-semibold mt-5 mb-3">
+                ID Photo *
+            </Text>
 
-                <Camera
-                    size={20}
-                    color={Theme.button.primary}
-                />
+            {photo?.uri ? (
 
-                <Text
-                    className="font-semibold ml-2"
+                /* Preview */
+                <View
+                    className="rounded-xl overflow-hidden"
                     style={{
-                        color: Theme.button.primary,
+                        backgroundColor:
+                            Theme.background.secondary,
+                        borderWidth: 1,
+                        borderColor: Theme.button.primary,
                     }}
                 >
-                    Capture Photo
-                </Text>
 
-            </TouchableOpacity>
+                    <Image
+                        source={{ uri: photo.uri }}
+                        style={{
+                            width: '100%',
+                            height: 190,
+                        }}
+                        resizeMode="cover"
+                    />
+
+                    <View className="flex-row gap-2 p-3">
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={onCapturePhoto}
+                            className="flex-1 flex-row items-center justify-center rounded-lg py-3"
+                            style={{
+                                backgroundColor:
+                                    Theme.button.primary,
+                            }}
+                        >
+                            <Camera
+                                size={17}
+                                color="#000"
+                            />
+
+                            <Text className="ml-2 font-semibold text-black">
+                                Retake
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={onRemovePhoto}
+                            className="flex-row items-center justify-center rounded-lg px-4 py-3"
+                            style={{
+                                backgroundColor: '#3A2020',
+                            }}
+                        >
+                            <Trash2
+                                size={17}
+                                color="#FF6B6B"
+                            />
+                        </TouchableOpacity>
+
+                    </View>
+
+                </View>
+
+            ) : (
+
+                /* Camera / Gallery */
+                <View className="flex-row gap-3">
+
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={onCapturePhoto}
+                        className="flex-1 items-center justify-center rounded-xl py-5"
+                        style={{
+                            backgroundColor:
+                                Theme.background.secondary,
+                            borderWidth: 1,
+                            borderColor:
+                                Theme.button.primary,
+                        }}
+                    >
+
+                        <Camera
+                            size={24}
+                            color={Theme.button.primary}
+                        />
+
+                        <Text
+                            className="font-semibold mt-2"
+                            style={{
+                                color: Theme.button.primary,
+                            }}
+                        >
+                            Camera
+                        </Text>
+
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={onSelectPhoto}
+                        className="flex-1 items-center justify-center rounded-xl py-5"
+                        style={{
+                            backgroundColor:
+                                Theme.background.secondary,
+                            borderWidth: 1,
+                            borderColor: '#4D5564',
+                        }}
+                    >
+
+                        <ImageIcon
+                            size={24}
+                            color="#8F8B91"
+                        />
+
+                        <Text className="text-[#8F8B91] font-semibold mt-2">
+                            Gallery
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
+
+            )}
 
         </View>
     );

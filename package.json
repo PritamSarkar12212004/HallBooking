@@ -31,6 +31,7 @@
     "react-native": "0.87.0",
     "react-native-drawer-layout": "^4.2.10",
     "react-native-gesture-handler": "^3.2.1",
+    "react-native-image-picker": "^8.2.1",
     "react-native-mmkv": "^4.3.2",
     "react-native-nitro-modules": "^0.36.5",
     "react-native-paper": "^5.15.3",

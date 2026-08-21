@@ -4,41 +4,93 @@ import Wrapper from '../../../layouts/wraper/Wraper';
 import SubHeader from '../../../components/header/SubHeader';
 import InputField from '../../../components/input/InputField';
 import MainButton from '../../../components/buttons/MainButton';
-
-import { ScrollView } from '../../../lib/style/withTailwind';
-import { Building2, Home, Mail, Phone } from 'lucide-react-native';
-import { User } from 'lucide-react-native/icons';
 import GovernmentIdForm from '../../../components/Selector/GovernmentIdForm';
 
+import {
+    ScrollView,
+} from '../../../lib/style/withTailwind';
+
+import {
+    Building2,
+    Home,
+    Mail,
+    Phone,
+    User,
+} from 'lucide-react-native';
+
+import {
+    capturePhoto,
+    pickFromGallery,
+} from '../../../module/ImagePickerModule';
 
 const Step1ApplicantScreen = ({ navigation }: any) => {
 
     const [applicantName, setApplicantName] = useState('');
     const [organization, setOrganization] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
+    const [address, setAddress] = useState('');
     const [email, setEmail] = useState('');
+
+    const [img, setImg] = useState<any>(null);
+
     const [selectedId, setSelectedId] =
         useState<any | null>(null);
 
-    const handleCapturePhoto = () => {
-        console.log('Open Camera');
-    };
+    // Camera
+    const handleCapturePhoto = useCallback(async () => {
+
+        const photo = await capturePhoto();
+
+        if (photo) {
+            setImg(photo);
+        }
+
+    }, []);
+
+    const handleGalleryPhoto = useCallback(async () => {
+        const photo = await pickFromGallery();
+        if (photo) {
+            setImg(photo);
+        }
+
+    }, []);
+
+    // Remove
+    const handleRemovePhoto = useCallback(() => {
+        setImg(null);
+    }, []);
+
     const handleNext = useCallback(() => {
+
         const applicantData = {
             applicantName,
             organization,
             mobileNumber,
+            address,
             email,
+
+            governmentId: selectedId,
+
+            governmentIdPhoto: img?.uri ?? null,
         };
 
-        console.log('Applicant Data:', applicantData);
+        console.log(
+            'Applicant Data:',
+            applicantData
+        );
 
-        navigation.navigate('Step2');
+        navigation.navigate('Step2', {
+            applicantData,
+        });
+
     }, [
         applicantName,
         organization,
         mobileNumber,
+        address,
         email,
+        selectedId,
+        img,
         navigation,
     ]);
 
@@ -65,7 +117,7 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                 />
 
                 <InputField
-                    title="Organization / Company (if any) *"
+                    title="Organization / Company (if any)"
                     value={organization}
                     setvalue={setOrganization}
                     placeholder="Enter organization or company name"
@@ -84,10 +136,10 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
 
                 <InputField
                     title="Address *"
-                    value={mobileNumber}
-                    setvalue={setMobileNumber}
-                    placeholder="Enter Address"
-                    keyType="phone-pad"
+                    value={address}
+                    setvalue={setAddress}
+                    placeholder="Enter address"
+                    keyType="default"
                     Icon={Home}
                 />
 
@@ -99,10 +151,24 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="email-address"
                     Icon={Mail}
                 />
+
                 <GovernmentIdForm
                     selectedId={selectedId}
                     onSelectId={setSelectedId}
-                    onCapturePhoto={handleCapturePhoto}
+
+                    photo={img}
+
+                    onCapturePhoto={
+                        handleCapturePhoto
+                    }
+
+                    onSelectPhoto={
+                        handleGalleryPhoto
+                    }
+
+                    onRemovePhoto={
+                        handleRemovePhoto
+                    }
                 />
 
             </ScrollView>
