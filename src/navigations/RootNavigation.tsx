@@ -5,6 +5,7 @@ import OneBoardScreen from '../screens/onboard/OneBoardScreen';
 import { route } from '../const/routes/route';
 import AuthScreen from '../screens/auth/AuthScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
+import SplashScreen from '../screens/loder/SplashScreen';
 import MainStack from './mainStack/MainStack';
 
 export type RootStackParamList = {
@@ -12,7 +13,7 @@ export type RootStackParamList = {
     [route.login]: undefined;
     [route.home]: undefined;
     [route.otp]: undefined;
-
+    [route.splash]: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -20,12 +21,16 @@ const Stack = createStackNavigator<RootStackParamList>();
 const RootNavigation = () => {
     return (
         <Stack.Navigator
-            initialRouteName={route.otp}
+            initialRouteName={route.splash}
             screenOptions={{
                 headerShown: false,
                 animation: "slide_from_right"
             }}
         >
+            <Stack.Screen
+                name={route.splash}
+                component={SplashScreen}
+            />
             <Stack.Screen
                 name={route.onboard}
                 component={OneBoardScreen}

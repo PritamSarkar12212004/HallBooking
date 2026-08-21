@@ -1,32 +1,36 @@
 import {
-    MD3LightTheme,
+    MD3DarkTheme,
     MD3Theme,
 } from 'react-native-paper';
 
 export const PaperTheme: MD3Theme = {
-    ...MD3LightTheme,
+    ...MD3DarkTheme,
 
     colors: {
-        ...MD3LightTheme.colors,
+        ...MD3DarkTheme.colors,
 
-        primary: '#2563EB',
-        onPrimary: '#FFFFFF',
+        primary: '#F8EFCB',
+        onPrimary: '#1A1A1E',
 
-        primaryContainer: '#DBEAFE',
-        onPrimaryContainer: '#1E3A8A',
+        primaryContainer: '#3A3A40',
+        onPrimaryContainer: '#F8EFCB',
 
         secondary: '#64748B',
-        secondaryContainer: '#E2E8F0',
+        secondaryContainer: '#242428',
 
-        background: '#F8FAFC',
-        surface: '#FFFFFF',
+        background: '#1A1A1E',
+        onBackground: '#FFFFFF',
 
-        surfaceVariant: '#E2E8F0',
+        surface: '#242428',
+        onSurface: '#FFFFFF',
 
-        error: '#DC2626',
-        errorContainer: '#FEE2E2',
+        surfaceVariant: '#2E2E34',
+        onSurfaceVariant: '#8F8B91',
 
-        outline: '#CBD5E1',
+        error: '#EF4444',
+        errorContainer: '#3F1D1D',
+
+        outline: '#4D5564',
     },
 
     roundness: 12,
