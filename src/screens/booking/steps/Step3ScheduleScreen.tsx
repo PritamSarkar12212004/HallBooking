@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
 import MultiSelector from '../../../components/Selector/MultiSelector';
+import { BookingStepRoute } from '../../../const/routes/route';
 
 const Step3ScheduleScreen = () => {
     const navigation = useNavigation();
@@ -28,20 +29,7 @@ const Step3ScheduleScreen = () => {
     const [catererContact, setCatererContact] = useState('');
 
     const handleNext = () => {
-        const data = {
-            decoration: {
-                decoratorName,
-                contactNumber: decoratorContact,
-                timing: decorationTiming,
-            },
-            catering: {
-                catererName,
-                contactNumber: catererContact,
-            },
-        };
-
-
-        navigation.navigate('Step4');
+        navigation.navigate(BookingStepRoute.Step4Attendance);
     };
     const [selectedEventType, setSelectedEventType] =
         useState<string[]>([]);
@@ -70,7 +58,6 @@ const Step3ScheduleScreen = () => {
                 className="flex-1"
             >
                 <View className="mb-5">
-
                     <View className="flex-row items-center gap-2 mb-4">
                         <UserRound
                             size={20}

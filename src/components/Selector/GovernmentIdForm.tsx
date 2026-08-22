@@ -4,8 +4,8 @@ import {
     Check,
     CreditCard,
     FileText,
+    GalleryHorizontal,
     IdCard,
-    Image as ImageIcon,
     Trash2,
     UserRound,
 } from 'lucide-react-native';
@@ -19,6 +19,7 @@ import {
     TouchableOpacity,
     View,
 } from '../../lib/style/withTailwind';
+import CamGalPickerButton from '../buttons/CamGalPickerButton';
 
 type GovernmentIdType =
     | 'Aadhaar Card'
@@ -213,64 +214,19 @@ const GovernmentIdForm = ({
                 </View>
 
             ) : (
-
-                /* Camera / Gallery */
                 <View className="flex-row gap-3">
+                    <CamGalPickerButton
+                        title="Camera"
+                        actionFun={onCapturePhoto}
+                        Icon={Camera}
+                    />
 
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={onCapturePhoto}
-                        className="flex-1 items-center justify-center rounded-xl py-5"
-                        style={{
-                            backgroundColor:
-                                Theme.background.secondary,
-                            borderWidth: 1,
-                            borderColor:
-                                Theme.button.primary,
-                        }}
-                    >
-
-                        <Camera
-                            size={24}
-                            color={Theme.button.primary}
-                        />
-
-                        <Text
-                            className="font-semibold mt-2"
-                            style={{
-                                color: Theme.button.primary,
-                            }}
-                        >
-                            Camera
-                        </Text>
-
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={onSelectPhoto}
-                        className="flex-1 items-center justify-center rounded-xl py-5"
-                        style={{
-                            backgroundColor:
-                                Theme.background.secondary,
-                            borderWidth: 1,
-                            borderColor: '#4D5564',
-                        }}
-                    >
-
-                        <ImageIcon
-                            size={24}
-                            color="#8F8B91"
-                        />
-
-                        <Text className="text-[#8F8B91] font-semibold mt-2">
-                            Gallery
-                        </Text>
-
-                    </TouchableOpacity>
-
+                    <CamGalPickerButton
+                        title="Gallery"
+                        actionFun={onSelectPhoto}
+                        Icon={GalleryHorizontal}
+                    />
                 </View>
-
             )}
 
         </View>
