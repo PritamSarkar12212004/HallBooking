@@ -3,11 +3,11 @@ import React, { useState, useCallback } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
 import SubHeader from '../../../components/header/SubHeader';
 import InputField from '../../../components/input/InputField';
-import MainButton from '../../../components/buttons/MainButton';
 import GovernmentIdForm from '../../../components/Selector/GovernmentIdForm';
 
 import {
     ScrollView,
+    View,
 } from '../../../lib/style/withTailwind';
 
 import {
@@ -22,6 +22,9 @@ import {
     capturePhoto,
     pickFromGallery,
 } from '../../../module/ImagePickerModule';
+import { BookingStepRoute } from '../../../const/routes/route';
+import MainButton from '../../../components/buttons/MainButton';
+import { Divider } from 'react-native-paper';
 
 const Step1ApplicantScreen = ({ navigation }: any) => {
 
@@ -30,13 +33,13 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
     const [mobileNumber, setMobileNumber] = useState('');
     const [address, setAddress] = useState('');
     const [email, setEmail] = useState('');
+    const [loader, setloader] = useState<boolean>(false)
 
     const [img, setImg] = useState<any>(null);
 
     const [selectedId, setSelectedId] =
         useState<any | null>(null);
 
-    // Camera
     const handleCapturePhoto = useCallback(async () => {
 
         const photo = await capturePhoto();
@@ -55,33 +58,27 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
 
     }, []);
 
-    // Remove
     const handleRemovePhoto = useCallback(() => {
         setImg(null);
     }, []);
 
     const handleNext = useCallback(() => {
-
         const applicantData = {
             applicantName,
             organization,
             mobileNumber,
             address,
             email,
-
             governmentId: selectedId,
-
             governmentIdPhoto: img?.uri ?? null,
         };
-
-        console.log(
-            'Applicant Data:',
-            applicantData
-        );
-
-        navigation.navigate('Step2', {
-            applicantData,
-        });
+        setloader(true)
+        setTimeout(() => {
+            setloader(false)
+            navigation.navigate(BookingStepRoute.Step2Event, {
+                applicantData,
+            });
+        }, 200);
 
     }, [
         applicantName,
@@ -115,7 +112,9 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={User}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Organization / Company (if any)"
                     value={organization}
@@ -124,7 +123,9 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={Building2}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Mobile Number *"
                     value={mobileNumber}
@@ -133,7 +134,9 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="phone-pad"
                     Icon={Phone}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Address *"
                     value={address}
@@ -142,7 +145,9 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={Home}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Email ID *"
                     value={email}
@@ -151,7 +156,9 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                     keyType="email-address"
                     Icon={Mail}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <GovernmentIdForm
                     selectedId={selectedId}
                     onSelectId={setSelectedId}
@@ -172,12 +179,7 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
                 />
 
             </ScrollView>
-
-            <MainButton
-                title="Next"
-                actionFunc={handleNext}
-            />
-
+            <MainButton title="Next" actionFunc={handleNext} loader={loader} />
         </Wrapper>
     );
 };

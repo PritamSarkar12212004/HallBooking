@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView } from '../../lib/style/withTailwind';
+import { ScrollView, View } from '../../lib/style/withTailwind';
 
 import Wrapper from '../../layouts/wraper/Wraper';
 import MainDerder from '../../components/header/MainDerder';
@@ -9,7 +9,9 @@ import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
 import DatePickerModal from '../../components/picker/DatePickerModal';
-import { Building2, UserRound } from 'lucide-react-native';
+import { Building2, PanelsTopLeft, UserRound } from 'lucide-react-native';
+import { Divider } from 'react-native-paper';
+import { DrawerRoute } from '../../const/routes/route';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -116,7 +118,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
         setLoader(true)
         setTimeout(() => {
             setLoader(false)
-            navigation.navigate("Step1Applicant")
+            navigation.navigate(DrawerRoute.NewBooking)
         }, 200);
     }
     const isCurrentMonth = viewMonthIndex === currentMonthIndex && viewYear === currentYear;
@@ -150,7 +152,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                         openCalendar('start')
                     }
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <DateButton
                     title="End Date *"
                     subTitle={endDate}
@@ -158,7 +162,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                         openCalendar('end')
                     }
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Event / Hall Name *"
                     value={bookingName}
@@ -167,7 +173,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={Building2}
                 />
-
+                <View className="mb-2">
+                    <Divider />
+                </View>
                 <InputField
                     title="Booking Taken By *"
                     value={bookingTakenBy}
@@ -176,12 +184,17 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={UserRound}
                 />
+                <View className="mb-3">
+                    <Divider />
+                </View>
                 <MultiSelector
+                    title="Allocate Team"
                     list={staffMembers}
                     value={selectedStaff}
                     actionFunc={toggleStaff}
+                    selection="Multiple select"
+                    Icon={PanelsTopLeft}
                 />
-
             </ScrollView>
 
             <MainButton

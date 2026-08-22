@@ -39,3 +39,13 @@ export const BookingStepRoute = {
     Step6Decoration: "Step6Decoration",
     Step7Payment: "Step7Payment",
 } as const;
+
+export type BookingStepParamList = {
+    [BookingStepRoute.Step1Applicant]: undefined;
+    [BookingStepRoute.Step2Event]: { applicantData?: any };
+    [BookingStepRoute.Step3Schedule]: undefined;
+    [BookingStepRoute.Step4Attendance]: undefined;
+    [BookingStepRoute.Step5Requirements]: undefined;
+    [BookingStepRoute.Step6Decoration]: undefined;
+    [BookingStepRoute.Step7Payment]: undefined;
+};

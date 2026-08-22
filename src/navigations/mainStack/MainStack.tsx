@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Theme } from '../../const/theme/Theme';
-import { TabRoute, DrawerRoute, BookingStepRoute } from '../../const/routes/route';
+import { TabRoute, DrawerRoute } from '../../const/routes/route';
 import TabUiNavi from '../../ui/navigation/TabUiNavi';
 import DrawerUiNavi from '../../ui/navigation/DrawerUiNavi';
 
@@ -23,14 +23,8 @@ import AddPaymentScreen from '../../screens/booking/AddPaymentScreen';
 import HandoverChecklistScreen from '../../screens/booking/HandoverChecklistScreen';
 import OfficeApprovalScreen from '../../screens/booking/OfficeApprovalScreen';
 
-// New booking multi-step screens
-import Step1ApplicantScreen from '../../screens/booking/steps/Step1ApplicantScreen';
-import Step2EventScreen from '../../screens/booking/steps/Step2EventScreen';
-import Step3ScheduleScreen from '../../screens/booking/steps/Step3ScheduleScreen';
-import Step4AttendanceScreen from '../../screens/booking/steps/Step4AttendanceScreen';
-import Step5RequirementsScreen from '../../screens/booking/steps/Step5RequirementsScreen';
-import Step6DecorationScreen from '../../screens/booking/steps/Step6DecorationScreen';
-import Step7PaymentScreen from '../../screens/booking/steps/Step7PaymentScreen';
+// New booking multi-step stack navigator
+import BookingStepStack from './BookingStepStack';
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -110,7 +104,7 @@ const MainStack = ({ userRole = 'staff', userName = 'Rahul Kumar' }: MainStackPr
             />
             <Drawer.Screen
                 name={DrawerRoute.NewBooking}
-                component={Step1ApplicantScreen}
+                component={BookingStepStack}
                 options={{ drawerLabel: 'New Booking' }}
             />
             <Drawer.Screen
@@ -147,43 +141,6 @@ const MainStack = ({ userRole = 'staff', userName = 'Rahul Kumar' }: MainStackPr
                 name={DrawerRoute.Profile}
                 component={ProfileScreen}
                 options={{ drawerLabel: 'Profile' }}
-            />
-
-            {/* Booking step screens */}
-            <Drawer.Screen
-                name={BookingStepRoute.Step1Applicant}
-                component={Step1ApplicantScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step2Event}
-                component={Step2EventScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step3Schedule}
-                component={Step3ScheduleScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step4Attendance}
-                component={Step4AttendanceScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step5Requirements}
-                component={Step5RequirementsScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step6Decoration}
-                component={Step6DecorationScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
-                name={BookingStepRoute.Step7Payment}
-                component={Step7PaymentScreen}
-                options={{ drawerItemStyle: { display: 'none' } }}
             />
         </Drawer.Navigator>
     );

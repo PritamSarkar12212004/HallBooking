@@ -10,7 +10,6 @@ const Step4AttendanceScreen = () => {
 
     return (
         <Wrapper safeBottom>
-            {/* Header */}
             <View className="flex-row items-center gap-3 mb-4">
                 <TouchableOpacity
                     onPress={() => navigation.goBack()}
