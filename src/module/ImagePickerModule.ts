@@ -30,7 +30,7 @@ const handleImageResult = (
     return photo;
 };
 
-export const capturePhoto = async ({ cameraType }: { cameraType?: "back" | "back" | "front" }): Promise<any | null> => {
+export const capturePhoto = async ({ cameraType }: { cameraType: "back" | "back" | "front" }): Promise<any | null> => {
 
     const result = await launchCamera({
         mediaType: 'photo',

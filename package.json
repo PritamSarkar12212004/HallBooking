@@ -32,6 +32,7 @@
     "react-native-drawer-layout": "^4.2.10",
     "react-native-gesture-handler": "^3.2.1",
     "react-native-image-picker": "^8.2.1",
+    "react-native-linear-gradient": "^2.8.3",
     "react-native-mmkv": "^4.3.2",
     "react-native-nitro-modules": "^0.36.5",
     "react-native-paper": "^5.15.3",
@@ -39,6 +40,7 @@
     "react-native-safe-area-context": "^5.9.1",
     "react-native-screens": "^4.27.0",
     "react-native-svg": "^15.15.5",
+    "react-native-timer-picker": "^2.6.3",
     "react-native-worklets": "^0.13.0-nightly-20260819-d5d828f89",
     "react-redux": "^9.3.0",
     "twrnc": "^4.16.0"

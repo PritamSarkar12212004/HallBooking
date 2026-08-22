@@ -219,6 +219,7 @@ const GovernmentIdForm = ({
                         title="Camera"
                         actionFun={onCapturePhoto}
                         Icon={Camera}
+                        
                     />
 
                     <CamGalPickerButton

@@ -42,7 +42,7 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
 
     const handleCapturePhoto = useCallback(async () => {
 
-        const photo = await capturePhoto();
+        const photo = await capturePhoto({ cameraType: "back" });
 
         if (photo) {
             setImg(photo);

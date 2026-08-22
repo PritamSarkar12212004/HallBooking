@@ -12,6 +12,7 @@ import DatePickerModal from '../../components/picker/DatePickerModal';
 import { Building2, PanelsTopLeft, UserRound } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
 import { DrawerRoute } from '../../const/routes/route';
+import TimePicker from '../../components/picker/TimePicker';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -127,10 +128,19 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const daysInMonth = daysInMonths[viewMonthIndex];
 
     const startDayNum = Number(startDate.split(' ')[0]);
-
-
     const liveStartDay = activeField === 'end' ? startDayNum : null;
     const liveEndDay = activeField === 'end' ? selectedDay : null;
+    const [selectedDayType, setSelectedDayType] =
+        useState<string[]>([]);
+    const selectDayType = (name: string) => {
+        setSelectedDayType([name]);
+    };
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('18:00');
+    const dayType = [
+        "1 Day",
+        "More Day"
+    ]
 
     return (
         <Wrapper safeBottom>
@@ -144,27 +154,84 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
             >
+                <MultiSelector
+                    title="Booking Taken By"
+                    list={dayType}
+                    value={selectedDayType}
+                    actionFunc={selectDayType}
+                    selection="Single select"
+                    Icon={UserRound}
+                />
+                {selectedDayType.includes('More Day') ? (
+                    <>
+                        <DateButton
+                            title="Start Date *"
+                            subTitle={startDate}
+                            actionFunc={() => openCalendar('start')}
+                        />
 
-                <DateButton
-                    title="Start Date *"
-                    subTitle={startDate}
-                    actionFunc={() =>
-                        openCalendar('start')
-                    }
-                />
-                <View className="mb-2">
-                    <Divider />
-                </View>
-                <DateButton
-                    title="End Date *"
-                    subTitle={endDate}
-                    actionFunc={() =>
-                        openCalendar('end')
-                    }
-                />
-                <View className="mb-2">
-                    <Divider />
-                </View>
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+
+                        <TimePicker
+                            title="Start Time *"
+                            value={startTime}
+                            onChange={setStartTime}
+                        />
+
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+
+                        <DateButton
+                            title="End Date *"
+                            subTitle={endDate}
+                            actionFunc={() => openCalendar('end')}
+                        />
+
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+
+                        <TimePicker
+                            title="End Time *"
+                            value={endTime}
+                            onChange={setEndTime}
+                        />
+
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        <DateButton
+                            title="Date"
+                            subTitle={startDate}
+                            actionFunc={() => openCalendar('start')}
+                        />
+
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+
+                        <TimePicker
+                            title="Time *"
+                            value={startTime}
+                            onChange={setStartTime}
+                        />
+                        <TimePicker
+                            title="End Time *"
+                            value={endTime}
+                            onChange={setEndTime}
+                        />
+                        <View className="mb-2">
+                            <Divider />
+                        </View>
+                    </>
+                )}
+
                 <InputField
                     title="Event / Hall Name *"
                     value={bookingName}
