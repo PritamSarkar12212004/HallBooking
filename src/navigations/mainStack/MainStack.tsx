@@ -1,10 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { Theme } from '../../const/theme/Theme';
-import { TabRoute, DrawerRoute } from '../../const/routes/route';
+import { createStackNavigator } from '@react-navigation/stack';
+import { TabRoute, MainRoute } from '../../const/routes/route';
 import TabUiNavi from '../../ui/navigation/TabUiNavi';
-import DrawerUiNavi from '../../ui/navigation/DrawerUiNavi';
 
 // Main tab screens
 import HomeScreen from '../../screens/main/HomeScreen';
@@ -27,7 +25,7 @@ import OfficeApprovalScreen from '../../screens/booking/OfficeApprovalScreen';
 import BookingStepStack from './BookingStepStack';
 
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
+const Stack = createStackNavigator();
 
 // Staff Tabs
 const StaffTabs = () => {
@@ -71,78 +69,54 @@ interface MainStackProps {
     userName?: string;
 }
 
-const MainStack = ({ userRole = 'staff', userName = 'Rahul Kumar' }: MainStackProps) => {
+const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
     const isCEO = userRole === 'ceo';
     const MainTabs = isCEO ? CEOTabs : StaffTabs;
 
     return (
-        <Drawer.Navigator
+        <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-                drawerStyle: {
-                    backgroundColor: '#000000',
-                    width: 300,
-                },
-                drawerActiveTintColor: Theme.button.primary,
-                drawerInactiveTintColor: '#8F8B91',
-                drawerActiveBackgroundColor: `${Theme.button.primary}15`,
-                drawerLabelStyle: {
-                    fontSize: 15,
-                    fontWeight: '500',
-                },
-                swipeEdgeWidth: 60,
+                animation: "slide_from_right"
             }}
-            drawerContent={(props) => <DrawerUiNavi {...props} userRole={userRole} userName={userName} />}
         >
-            <Drawer.Screen
-                name={DrawerRoute.MainTabs}
+            <Stack.Screen
+                name={MainRoute.MainTabs}
                 component={MainTabs}
-                options={{
-                    drawerLabel: 'Home',
-                    title: 'Home',
-                }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.NewBooking}
+            <Stack.Screen
+                name={MainRoute.NewBooking}
                 component={BookingStepStack}
-                options={{ drawerLabel: 'New Booking' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.BookingDetail}
+            <Stack.Screen
+                name={MainRoute.BookingDetail}
                 component={BookingDetailScreen}
-                options={{ drawerLabel: 'Booking Detail' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.AddPayment}
+            <Stack.Screen
+                name={MainRoute.AddPayment}
                 component={AddPaymentScreen}
-                options={{ drawerLabel: 'Add Payment' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.HandoverChecklist}
+            <Stack.Screen
+                name={MainRoute.HandoverChecklist}
                 component={HandoverChecklistScreen}
-                options={{ drawerLabel: 'Handover Checklist' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.OfficeApproval}
+            <Stack.Screen
+                name={MainRoute.OfficeApproval}
                 component={OfficeApprovalScreen}
-                options={{ drawerLabel: 'Office Approval' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.StaffActivity}
+            <Stack.Screen
+                name={MainRoute.StaffActivity}
                 component={StaffActivityScreen}
-                options={{ drawerLabel: 'Staff Activity' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.Reports}
+            <Stack.Screen
+                name={MainRoute.Reports}
                 component={ReportsScreen}
-                options={{ drawerLabel: 'Reports' }}
             />
-            <Drawer.Screen
-                name={DrawerRoute.Profile}
+            <Stack.Screen
+                name={MainRoute.Profile}
                 component={ProfileScreen}
-                options={{ drawerLabel: 'Profile' }}
             />
-        </Drawer.Navigator>
+        </Stack.Navigator>
     );
 };
 

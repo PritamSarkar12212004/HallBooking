@@ -17,7 +17,7 @@ export const TabRoute = {
     Reports: "Reports",
 } as const;
 
-export const DrawerRoute = {
+export const MainRoute = {
     MainTabs: "MainTabs",
     NewBooking: "NewBooking",
     BookingDetail: "BookingDetail",
@@ -27,7 +27,6 @@ export const DrawerRoute = {
     StaffActivity: "StaffActivity",
     Reports: "Reports",
     Profile: "Profile",
-    Logout: "Logout",
 } as const;
 
 export const BookingStepRoute = {

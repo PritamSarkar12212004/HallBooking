@@ -11,7 +11,7 @@ import MainButton from '../../components/buttons/MainButton';
 import DatePickerModal from '../../components/picker/DatePickerModal';
 import { Building2, PanelsTopLeft, UserRound } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
-import { DrawerRoute } from '../../const/routes/route';
+import { MainRoute } from '../../const/routes/route';
 import TimePicker from '../../components/picker/TimePicker';
 
 const staffMembers = [
@@ -119,7 +119,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
         setLoader(true)
         setTimeout(() => {
             setLoader(false)
-            navigation.navigate(DrawerRoute.NewBooking)
+            navigation.navigate(MainRoute.NewBooking)
         }, 200);
     }
     const isCurrentMonth = viewMonthIndex === currentMonthIndex && viewYear === currentYear;
