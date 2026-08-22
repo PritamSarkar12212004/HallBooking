@@ -10,7 +10,8 @@ type MainButtonProps = {
     title: string;
     actionFunc?: () => void;
     disabled?: boolean;
-    loader?: boolean
+    loader?: boolean;
+    Icon?: any
 };
 
 const MainButton = ({
@@ -19,7 +20,8 @@ const MainButton = ({
     title,
     actionFunc,
     disabled = false,
-    loader
+    loader,
+    Icon
 }: MainButtonProps) => {
     const handlePress = () => {
         if (actionFunc) {
@@ -50,10 +52,15 @@ const MainButton = ({
                 >
                     {title}
                 </Text>
-                    <ChevronRight
-                        size={20}
-                        color={Theme.background.primary}
-                    />
+                    {
+                        Icon ? <Icon
+                            size={20}
+                            color={Theme.background.primary}
+                        /> : <ChevronRight
+                            size={20}
+                            color={Theme.background.primary}
+                        />
+                    }
                 </>
             }
 

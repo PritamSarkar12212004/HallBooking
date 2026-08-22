@@ -16,6 +16,7 @@ type InputFieldProps = {
     keyType: KeyboardTypeOptions;
     title: string;
     Icon?: React.ElementType;
+    edit?: boolean
 };
 
 const InputField = React.memo(({
@@ -25,29 +26,26 @@ const InputField = React.memo(({
     keyType,
     title,
     Icon: Icon,
+    edit = true
 }: InputFieldProps) => {
 
     return (
         <View className="mb-4">
-
             <Text className="text-[#8F8B91] text-sm font-medium mb-2">
                 {title}
             </Text>
-
             <View
                 className="flex-row items-center rounded-xl px-4"
                 style={{
                     backgroundColor: Theme.background.secondary,
                 }}
             >
-
                 {Icon && (
                     <Icon
                         size={18}
                         color="#8F8B91"
                     />
                 )}
-
                 <TextInput
                     className="flex-1 py-3 px-3 text-white"
                     placeholder={placeholder}
@@ -60,10 +58,9 @@ const InputField = React.memo(({
                             ? 'none'
                             : 'sentences'
                     }
+                    editable={edit}
                 />
-
             </View>
-
         </View>
     );
 });
