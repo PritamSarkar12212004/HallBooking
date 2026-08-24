@@ -130,7 +130,7 @@ const AuthScreen = ({ navigation }: any) => {
                         }
                     />
                 </View>
-                <View className="px-5 pb-6">
+                <View className=" pb-6">
                     <AuthButton
                         title="Continue"
 

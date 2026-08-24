@@ -12,6 +12,8 @@ import { queryClient } from './src/lib/tanstack/queryClient';
 import { PaperTheme } from './src/const/theme/PaperTheme';
 import RootNavigation from './src/navigations/RootNavigation';
 import FlashMessage from 'react-native-flash-message';
+import { store } from './src/store';
+import { Provider } from 'react-redux';
 
 const App = () => {
   return (
@@ -19,18 +21,20 @@ const App = () => {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <PaperProvider theme={PaperTheme}>
-            <NavigationContainer theme={NavigationDarkTheme}>
-              <StatusBar barStyle={"light-content"} />
-              <FlashMessage
-                position="top"
-                floating={false}
-                duration={2500}
-                statusBarHeight={
-                  StatusBar.currentHeight ?? 0
-                }
-              />
-              <RootNavigation />
-            </NavigationContainer>
+            <Provider store={store}>
+              <NavigationContainer theme={NavigationDarkTheme}>
+                <StatusBar barStyle={"light-content"} />
+                <FlashMessage
+                  position="top"
+                  floating={false}
+                  duration={2500}
+                  statusBarHeight={
+                    StatusBar.currentHeight ?? 0
+                  }
+                />
+                <RootNavigation />
+              </NavigationContainer>
+            </Provider>
           </PaperProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

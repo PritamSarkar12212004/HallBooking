@@ -17,6 +17,10 @@ import AuthButton from '../../components/auth/buttons/AuthButton';
 import { route as appRoute } from '../../const/routes/route';
 import useVerifyOtpApi from '../../api/auth/hooks/useVerifyOtpApi';
 import { showMessage } from 'react-native-flash-message';
+import { useAppDispatch } from '../../hooks/redux/redux';
+import { setUser } from '../../store/slices/userSlice';
+import { writeStorage } from '../../manager/storage/storageManager';
+import { storageToken } from '../../const/token/storageToken';
 
 const OTP_LENGTH = 6;
 
@@ -29,16 +33,15 @@ const OtpScreen = ({ route, navigation }: any) => {
     const [otp, setOtp] = useState<string[]>(
         () => Array(OTP_LENGTH).fill('')
     );
+
     const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
     const inputRefs = useRef<any[]>([]);
     const isValid = otp.every(Boolean);
-
+    const dispatch = useAppDispatch()
     const handleChange = useCallback(
         (value: string, index: number) => {
-
             const numericValue = value.replace(/[^0-9]/g, '');
             if (numericValue.length > 1) {
-
                 const pasted = numericValue
                     .slice(0, OTP_LENGTH)
                     .split('');
@@ -56,7 +59,6 @@ const OtpScreen = ({ route, navigation }: any) => {
                     });
                     return newOtp;
                 });
-
                 const nextIndex = Math.min(
                     index + pasted.length,
                     OTP_LENGTH - 1
@@ -95,6 +97,17 @@ const OtpScreen = ({ route, navigation }: any) => {
                 type: 'success',
             });
             if (response.data?.isNewUser) {
+                dispatch(setUser({
+                    token: response.data?.token,
+                    _id: response.data?.user._id,
+                    phone: response.data?.user.phone,
+                    photo: response.data?.user.photo,
+                    name: response.data?.user.name,
+                    gender: response.data?.user.gender,
+                    email: response.data?.user.email,
+                    city: response.data?.user.city,
+                }))
+                writeStorage({ key: storageToken, data: response.data?.token })
                 navigation.replace(appRoute.setUp);
             } else {
                 navigation.replace(appRoute.setUp);
@@ -120,6 +133,7 @@ const OtpScreen = ({ route, navigation }: any) => {
         phoneNumber,
         verifyOtpAsync,
         navigation,
+        dispatch
     ]);
 
     const handleFocus = useCallback(
@@ -172,7 +186,7 @@ const OtpScreen = ({ route, navigation }: any) => {
                         </View>
                     </View>
                 </View>
-                <View className="px-5 pb-6">
+                <View className=" pb-6">
                     <AuthButton
                         title="Verify"
                         handleContinue={handleVerify}
