@@ -21,7 +21,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 const RootNavigation = () => {
     return (
         <Stack.Navigator
-            initialRouteName={route.splash}
+            initialRouteName={route.login}
             screenOptions={{
                 headerShown: false,
                 animation: "slide_from_right"

@@ -1,7 +1,8 @@
 import axios from 'axios'
+import envApi from '../const/api/envApi';
 
-const api = axios.create({
-    baseURL: ""
+export const apiAuth = axios.create({
+    baseURL: `${envApi.baseUri}${envApi.Auth.root}`
 })
 
-export default api
+

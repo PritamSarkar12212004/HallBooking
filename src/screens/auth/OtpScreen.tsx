@@ -89,11 +89,9 @@ const OtpScreen = ({ route, navigation }: any) => {
         navigation.navigate(appRoute.home);
     };
     return (
-        <Wrapper
-            paddingTop={20}
-            paddingBottom={20}
-        >
-            <View className="flex-1 bg-black gap-4">
+        <Wrapper paddingHorizontal={0} paddingTop={0} >
+
+            <View className="flex-1 px-4 gap-4">
                 <AuthNavigation
                     need={true}
                     navigation={navigation}

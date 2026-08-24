@@ -7,11 +7,11 @@ const AuthButton = React.memo(
         isValid: boolean;
         handleContinue: () => void;
         loading: boolean;
-        title: string
+        title: string;
     }) => {
         return (
             <TouchableOpacity
-                disabled={!isValid}
+                disabled={!isValid || loading}
                 activeOpacity={0.9}
                 onPress={handleContinue}
                 className="w-full items-center justify-center rounded-xl"

@@ -11,6 +11,7 @@ import { StatusBar } from 'react-native';
 import { queryClient } from './src/lib/tanstack/queryClient';
 import { PaperTheme } from './src/const/theme/PaperTheme';
 import RootNavigation from './src/navigations/RootNavigation';
+import FlashMessage from 'react-native-flash-message';
 
 const App = () => {
   return (
@@ -20,6 +21,11 @@ const App = () => {
           <PaperProvider theme={PaperTheme}>
             <NavigationContainer theme={NavigationDarkTheme}>
               <StatusBar barStyle={"light-content"} />
+              <FlashMessage
+                position="top"
+                floating={true}
+                duration={2500}
+              />
               <RootNavigation />
             </NavigationContainer>
           </PaperProvider>
