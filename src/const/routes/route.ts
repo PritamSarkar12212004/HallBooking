@@ -2,6 +2,7 @@ export const route = {
     onboard: 'onboardScreen',
     login: 'loginScreen',
     otp: "otpscreen",
+    setUp: "setup",
     home: 'homeScreen',
     modal: 'modal',
     splash: 'splashScreen',

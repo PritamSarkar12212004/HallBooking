@@ -46,7 +46,6 @@ const AuthScreen = ({ navigation }: any) => {
             const response = await sendOtpAsync({
                 phone,
             });
-            console.log('OTP Response:', response);
             if (response?.success) {
                 showMessage({
                     message: 'OTP Sent',

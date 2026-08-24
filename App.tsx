@@ -23,8 +23,11 @@ const App = () => {
               <StatusBar barStyle={"light-content"} />
               <FlashMessage
                 position="top"
-                floating={true}
+                floating={false}
                 duration={2500}
+                statusBarHeight={
+                  StatusBar.currentHeight ?? 0
+                }
               />
               <RootNavigation />
             </NavigationContainer>

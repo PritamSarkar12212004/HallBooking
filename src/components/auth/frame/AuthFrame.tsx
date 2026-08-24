@@ -2,7 +2,7 @@ import React, { ReactNode } from "react";
 import { Theme } from "../../../const/theme/Theme";
 import { Text, TextInput, View } from "../../../lib/style/withTailwind";
 
-export const AuthTopFrame = ({ title, dis }: {
+export const AuthTopFrame = React.memo(({ title, dis }: {
     title: string;
     dis: string
 }) => {
@@ -15,7 +15,8 @@ export const AuthTopFrame = ({ title, dis }: {
         </Text>
     </View>
 }
-export const MainFrame = ({ title, isFocused, dis, input }: {
+)
+export const MainFrame = React.memo(({ title, isFocused, dis, input }: {
     title: string;
     isFocused: boolean;
     dis: string;
@@ -53,7 +54,7 @@ export const MainFrame = ({ title, isFocused, dis, input }: {
         </Text>
     </View>
 }
-
+)
 interface OtpInputProps {
     value: string;
     isFocused: boolean;
@@ -70,8 +71,6 @@ export const OtpInput = React.memo(
         onFocus,
         onBlur,
     }: OtpInputProps) => {
-        console.log('OtpInput render:', value);
-
         return (
             <TextInput
                 className="text-white text-xl font-bold text-center rounded-xl"
@@ -95,6 +94,13 @@ export const OtpInput = React.memo(
                 selectTextOnFocus
             />
         );
-    }
+    },
+    // Only re-render when a value/focus state actually changes. The callback
+    // props (onChangeText/onFocus/onBlur) are recreated as new inline functions
+    // on every parent render, which would otherwise defeat React.memo and cause
+    // every OTP box to re-render on each screen re-render (e.g. every timer tick).
+    (prev, next) =>
+        prev.value === next.value &&
+        prev.isFocused === next.isFocused
 );
 

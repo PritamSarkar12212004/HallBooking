@@ -1,96 +1,143 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useRef,
+    useState,
+} from 'react';
 
 import Wrapper from '../../layouts/wraper/Wraper';
 import {
-    Text,
-    TouchableOpacity,
     View,
 } from '../../lib/style/withTailwind';
-
 import AuthNavigation from '../../components/navigation/AuthNavigation';
-import { AuthTopFrame, OtpInput } from '../../components/auth/frame/AuthFrame';
+import {
+    AuthTopFrame,
+    OtpInput,
+} from '../../components/auth/frame/AuthFrame';
 import AuthButton from '../../components/auth/buttons/AuthButton';
 import { route as appRoute } from '../../const/routes/route';
+import useVerifyOtpApi from '../../api/auth/hooks/useVerifyOtpApi';
+import { showMessage } from 'react-native-flash-message';
+
 const OTP_LENGTH = 6;
-const RESEND_TIMER = 30;
 
 const OtpScreen = ({ route, navigation }: any) => {
-    const phoneNumber = route?.params?.phonenumber || '';
-
+    const phoneNumber = route?.params?.phonenumber ?? '';
+    const {
+        verifyOtpAsync,
+        isLoading,
+    } = useVerifyOtpApi();
     const [otp, setOtp] = useState<string[]>(
-        Array(OTP_LENGTH).fill('')
+        () => Array(OTP_LENGTH).fill('')
     );
     const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
-    const [timer, setTimer] = useState(RESEND_TIMER);
     const inputRefs = useRef<any[]>([]);
-    const isValid = otp.every((digit) => digit !== '');
+    const isValid = otp.every(Boolean);
 
-    useEffect(() => {
-        if (timer <= 0) return;
+    const handleChange = useCallback(
+        (value: string, index: number) => {
 
-        const interval = setInterval(() => {
-            setTimer((t) => t - 1);
-        }, 1000);
+            const numericValue = value.replace(/[^0-9]/g, '');
+            if (numericValue.length > 1) {
 
-        return () => clearInterval(interval);
-    }, [timer]);
+                const pasted = numericValue
+                    .slice(0, OTP_LENGTH)
+                    .split('');
 
-    const handleChange = (value: string, index: number) => {
+                setOtp(prevOtp => {
+                    const newOtp = [...prevOtp];
+                    pasted.forEach((char, i) => {
 
-        if (value.length > 1) {
-            const pasted = value
-                .slice(0, OTP_LENGTH)
-                .split('');
+                        const position = index + i;
 
-            const newOtp = [...otp];
+                        if (position < OTP_LENGTH) {
+                            newOtp[position] = char;
+                        }
 
-            pasted.forEach((char, i) => {
-                if (index + i < OTP_LENGTH) {
-                    newOtp[index + i] = char;
-                }
+                    });
+                    return newOtp;
+                });
+
+                const nextIndex = Math.min(
+                    index + pasted.length,
+                    OTP_LENGTH - 1
+                );
+                inputRefs.current[nextIndex]?.focus();
+                return;
+            }
+            setOtp(prevOtp => {
+                const newOtp = [...prevOtp];
+                newOtp[index] = numericValue;
+                return newOtp;
             });
+            if (
+                numericValue &&
+                index < OTP_LENGTH - 1
+            ) {
+                inputRefs.current[index + 1]?.focus();
+            }
+        },
+        []
+    );
 
-            setOtp(newOtp);
-
-            const nextIndex = Math.min(
-                index + pasted.length,
-                OTP_LENGTH - 1
-            );
-
-            inputRefs.current[nextIndex]?.focus();
-
+    const handleVerify = useCallback(async () => {
+        if (!isValid || isLoading) {
             return;
         }
-
-        const newOtp = [...otp];
-        newOtp[index] = value;
-        setOtp(newOtp);
-        if (
-            value &&
-            index < OTP_LENGTH - 1
-        ) {
-            inputRefs.current[index + 1]?.focus();
-        }
-    };
-
-
-    const handleResend = () => {
-        if (timer > 0) return;
-        setTimer(RESEND_TIMER);
-        console.log('Resend OTP');
-    };
-    const handleVerify = () => {
-        if (!isValid) return;
-
         const code = otp.join('');
+        try {
+            const response = await verifyOtpAsync({
+                phone: phoneNumber,
+                otp: code,
+            });
+            showMessage({
+                message: 'OTP Verified',
+                description: 'Your phone number has been verified successfully.',
+                type: 'success',
+            });
+            if (response.data?.isNewUser) {
+                navigation.replace(appRoute.setUp);
+            } else {
+                navigation.replace(appRoute.setUp);
+            }
 
-        console.log('OTP:', code);
+        } catch (error) {
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                'Invalid OTP. Please try again.';
+            showMessage({
+                message: 'Verification Failed',
+                description: message,
+                type: 'danger',
+                duration: 3000,
+            });
+        }
 
-        navigation.navigate(appRoute.home);
-    };
+    }, [
+        isValid,
+        isLoading,
+        otp,
+        phoneNumber,
+        verifyOtpAsync,
+        navigation,
+    ]);
+
+    const handleFocus = useCallback(
+        (index: number) => {
+            setFocusedIndex(index);
+        },
+        []
+    );
+
+    const handleBlur = useCallback(() => {
+        setFocusedIndex(null);
+    }, []);
+
     return (
-        <Wrapper paddingHorizontal={0} paddingTop={0} >
-
+        <Wrapper
+            paddingHorizontal={0}
+            paddingTop={0}
+        >
             <View className="flex-1 px-4 gap-4">
                 <AuthNavigation
                     need={true}
@@ -110,48 +157,28 @@ const OtpScreen = ({ route, navigation }: any) => {
                                     isFocused={
                                         focusedIndex === index
                                     }
-                                    onChangeText={(value) =>
+                                    onChangeText={(value: string) =>
                                         handleChange(
                                             value,
                                             index
                                         )
                                     }
                                     onFocus={() =>
-                                        setFocusedIndex(index)
+                                        handleFocus(index)
                                     }
-                                    onBlur={() =>
-                                        setFocusedIndex(null)
-                                    }
+                                    onBlur={handleBlur}
                                 />
                             ))}
-                        </View>
-                        <View className="w-full flex-row items-center justify-center mt-6 gap-1">
-                            <Text className="text-white/50 text-sm">
-                                Didn't receive the code?
-                            </Text>
-                            <TouchableOpacity
-                                onPress={handleResend}
-                                disabled={timer > 0}
-                            >
-                                <Text
-                                    className="text-sm font-bold"
-                                    style={{
-                                        color:
-                                            timer > 0
-                                                ? 'rgba(255,255,255,0.3)'
-                                                : '#ffffff',
-                                    }}
-                                >
-                                    {timer > 0
-                                        ? `Resend in ${timer}s`
-                                        : 'Resend Code'}
-                                </Text>
-                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
                 <View className="px-5 pb-6">
-                    <AuthButton handleContinue={handleVerify} title={"Verify"} isValid={isValid} loading={false} />
+                    <AuthButton
+                        title="Verify"
+                        handleContinue={handleVerify}
+                        isValid={isValid}
+                        loading={isLoading}
+                    />
                 </View>
             </View>
         </Wrapper>

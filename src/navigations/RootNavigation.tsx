@@ -7,12 +7,14 @@ import AuthScreen from '../screens/auth/AuthScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
 import SplashScreen from '../screens/loder/SplashScreen';
 import MainStack from './mainStack/MainStack';
+import SetupScreen from '../screens/auth/SetupScreen';
 
 export type RootStackParamList = {
     [route.onboard]: undefined;
     [route.login]: undefined;
     [route.home]: undefined;
     [route.otp]: undefined;
+    [route.setUp]: undefined;
     [route.splash]: undefined;
 };
 
@@ -42,6 +44,10 @@ const RootNavigation = () => {
             <Stack.Screen
                 name={route.otp}
                 component={OtpScreen}
+            />
+            <Stack.Screen
+                name={route.setUp}
+                component={SetupScreen}
             />
             <Stack.Screen
                 name={route.home}
