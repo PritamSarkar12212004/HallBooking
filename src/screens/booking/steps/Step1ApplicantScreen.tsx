@@ -25,9 +25,15 @@ import {
 import { BookingStepRoute } from '../../../const/routes/route';
 import MainButton from '../../../components/buttons/MainButton';
 import { Divider } from 'react-native-paper';
+import uploadImage from '../../../services/Cloudinary/uploadImg';
+import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import { useAppSelector } from '../../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 const Step1ApplicantScreen = ({ navigation, route }: any) => {
     const bookingId = route?.params?.bookingId as string | undefined;
+    const user = useAppSelector((state) => state.user.user);
+    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
 
     const [applicantName, setApplicantName] = useState('');
     const [organization, setOrganization] = useState('');
@@ -63,26 +69,84 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
         setImg(null);
     }, []);
 
-    const handleNext = useCallback(() => {
-        const applicantData = {
-            applicantName,
-            organization,
-            mobileNumber,
-            address,
-            email,
-            governmentId: selectedId,
-            governmentIdPhoto: img?.uri ?? null,
-        };
+    const handleNext = useCallback(async () => {
+        if (saving || loader) {
+            return;
+        }
+
+        if (!bookingId) {
+            showMessage({
+                message: 'Booking Error',
+                description: 'Booking id is missing. Please restart from Halls screen.',
+                type: 'danger',
+            });
+            return;
+        }
+
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing.',
+                type: 'danger',
+            });
+            return;
+        }
+
         setloader(true)
-        setTimeout(() => {
-            setloader(false)
+        try {
+            // Upload government ID photo to Cloudinary if a new image was chosen.
+            let governmentIdPhoto = '';
+            if (img?.uri) {
+                const uploaded = await uploadImage(img.uri);
+                governmentIdPhoto = uploaded.secure_url;
+            }
+
+            await updateSectionAsync({
+                id: bookingId,
+                section: 'applicant',
+                token: user.token,
+                data: {
+                    name: applicantName,
+                    organization,
+                    mobile: mobileNumber,
+                    address,
+                    email,
+                    governmentIdType: selectedId ?? undefined,
+                    governmentIdPhoto,
+                },
+            });
+
             navigation.navigate(BookingStepRoute.Step2Event, {
-                applicantData,
+                applicantData: {
+                    applicantName,
+                    organization,
+                    mobileNumber,
+                    address,
+                    email,
+                    governmentId: selectedId,
+                    governmentIdPhoto,
+                },
                 bookingId,
             });
-        }, 200);
+        } catch (error: any) {
+            showMessage({
+                message: 'Save Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
+            setloader(false)
+        }
 
     }, [
+        saving,
+        loader,
+        bookingId,
+        user,
         applicantName,
         organization,
         mobileNumber,
@@ -90,7 +154,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
         email,
         selectedId,
         img,
-        bookingId,
+        updateSectionAsync,
         navigation,
     ]);
 
@@ -182,7 +246,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
                 />
 
             </ScrollView>
-            <MainButton title="Next" actionFunc={handleNext} loader={loader} />
+            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving} />
         </Wrapper>
     );
 };
