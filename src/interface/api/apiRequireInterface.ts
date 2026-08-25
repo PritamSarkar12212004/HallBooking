@@ -20,3 +20,22 @@ export interface profileUpdateInterface {
     photo?: string;
     token: string;
 }
+
+export interface createDraftBookingInterface {
+    bookingType: string;
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    eventName: string;
+    bookedByStaff: string;
+    allocatedTeam?: string[];
+    token: string;
+}
+
+export interface updateBookingSectionInterface {
+    id: string;
+    section: 'applicant' | 'event' | 'arrangements' | 'payment' | 'declaration';
+    data: Record<string, any>;
+    token: string;
+}

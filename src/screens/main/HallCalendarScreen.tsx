@@ -13,6 +13,9 @@ import { Building2, PanelsTopLeft, UserRound } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
 import { MainRoute } from '../../const/routes/route';
 import TimePicker from '../../components/picker/TimePicker';
+import useCreateBooking from '../../api/booking/hooks/useCreateBooking';
+import { useAppSelector } from '../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -33,9 +36,17 @@ const currentYear = today.getFullYear();
 const currentMonthIndex = today.getMonth();
 const todayDay = today.getDate();
 
+const formatDate = (date: Date) =>
+    `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} ${date.getFullYear()}`;
+
+const todayString = formatDate(today);
+
 const HallCalendarScreen = ({ navigation }: any) => {
-    const [startDate, setStartDate] = useState('21 Aug 2026');
-    const [endDate, setEndDate] = useState('21 Aug 2026');
+    const user = useAppSelector((state) => state.user.user);
+    const { createBookingAsync, isLoading: creatingBooking } = useCreateBooking();
+
+    const [startDate, setStartDate] = useState(todayString);
+    const [endDate, setEndDate] = useState(todayString);
 
     const [bookingName, setBookingName] = useState('');
     const [bookingTakenBy, setBookingTakenBy] = useState('');
@@ -115,13 +126,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
         }
     };
 
-    const actionPress = () => {
-        setLoader(true)
-        setTimeout(() => {
-            setLoader(false)
-            navigation.navigate(MainRoute.NewBooking)
-        }, 200);
-    }
     const isCurrentMonth = viewMonthIndex === currentMonthIndex && viewYear === currentYear;
 
     const monthName = `${monthNames[viewMonthIndex]} ${viewYear}`;
@@ -131,16 +135,78 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const liveStartDay = activeField === 'end' ? startDayNum : null;
     const liveEndDay = activeField === 'end' ? selectedDay : null;
     const [selectedDayType, setSelectedDayType] =
-        useState<string[]>([]);
+        useState<string[]>(['1 Day']);
     const selectDayType = (name: string) => {
         setSelectedDayType([name]);
     };
-    const [startTime, setStartTime] = useState('09:00');
-    const [endTime, setEndTime] = useState('18:00');
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
     const dayType = [
         "1 Day",
         "More Day"
     ]
+
+    const isFormValid =
+        selectedDayType.length > 0 &&
+        startDate.trim().length > 0 &&
+        endDate.trim().length > 0 &&
+        startTime.trim().length > 0 &&
+        endTime.trim().length > 0 &&
+        bookingName.trim().length > 0 &&
+        bookingTakenBy.trim().length > 0;
+
+    const actionPress = async () => {
+        if (!isFormValid || loader || creatingBooking) {
+            return;
+        }
+
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing. Please login again.',
+                type: 'danger',
+            });
+            return;
+        }
+
+        setLoader(true)
+        try {
+            const res = await createBookingAsync({
+                bookingType: selectedDayType[0] || '1 Day',
+                startDate,
+                endDate,
+                startTime,
+                endTime,
+                eventName: bookingName,
+                bookedByStaff: bookingTakenBy,
+                allocatedTeam: selectedStaff,
+                token: user.token,
+            });
+
+            // res.data = { booking, nextSteps }
+            const booking = res?.booking;
+            if (!booking?._id) {
+                throw new Error('Booking id missing in response');
+            }
+
+            navigation.navigate(MainRoute.NewBooking, {
+                bookingId: booking._id,
+                bookingNumber: booking.bookingNumber,
+            });
+        } catch (error: any) {
+            showMessage({
+                message: 'Booking Create Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
+            setLoader(false)
+        }
+    }
 
     return (
         <Wrapper safeBottom>
@@ -196,6 +262,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             title="End Time *"
                             value={endTime}
                             onChange={setEndTime}
+                            disabled={!startTime}
+                            minTime={startTime}
                         />
 
                         <View className="mb-2">
@@ -205,7 +273,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 ) : (
                     <>
                         <DateButton
-                            title="Date"
+                            title="Date *"
                             subTitle={startDate}
                             actionFunc={() => openCalendar('start')}
                         />
@@ -213,18 +281,22 @@ const HallCalendarScreen = ({ navigation }: any) => {
                         <View className="mb-2">
                             <Divider />
                         </View>
+                        <View className="w-full flex gap-4">
+                            <TimePicker
+                                title="Start Time *"
+                                value={startTime}
+                                onChange={setStartTime}
+                            />
+                            <TimePicker
+                                title="End Time *"
+                                value={endTime}
+                                onChange={setEndTime}
+                                disabled={!startTime}
+                                minTime={startTime}
+                            />
 
-                        <TimePicker
-                            title="Time *"
-                            value={startTime}
-                            onChange={setStartTime}
-                        />
-                        <TimePicker
-                            title="End Time *"
-                            value={endTime}
-                            onChange={setEndTime}
-                        />
-                        <View className="mb-2">
+                        </View>
+                        <View className="mb-2 mt-2">
                             <Divider />
                         </View>
                     </>
@@ -265,6 +337,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
             <MainButton
                 title="Next"
                 loader={loader}
+                disabled={!isFormValid}
                 actionFunc={actionPress}
             />
 

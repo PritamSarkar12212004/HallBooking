@@ -26,7 +26,8 @@ import { BookingStepRoute } from '../../../const/routes/route';
 import MainButton from '../../../components/buttons/MainButton';
 import { Divider } from 'react-native-paper';
 
-const Step1ApplicantScreen = ({ navigation }: any) => {
+const Step1ApplicantScreen = ({ navigation, route }: any) => {
+    const bookingId = route?.params?.bookingId as string | undefined;
 
     const [applicantName, setApplicantName] = useState('');
     const [organization, setOrganization] = useState('');
@@ -77,6 +78,7 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
             setloader(false)
             navigation.navigate(BookingStepRoute.Step2Event, {
                 applicantData,
+                bookingId,
             });
         }, 200);
 
@@ -88,6 +90,7 @@ const Step1ApplicantScreen = ({ navigation }: any) => {
         email,
         selectedId,
         img,
+        bookingId,
         navigation,
     ]);
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useRoute } from '@react-navigation/native';
 import { BookingStepRoute, BookingStepParamList } from '../../const/routes/route';
 
 // Booking step screens
@@ -14,6 +15,10 @@ import Step7PaymentScreen from '../../screens/booking/steps/Step7PaymentScreen';
 const Stack = createStackNavigator<BookingStepParamList>();
 
 const BookingStepStack = () => {
+    const route = useRoute<any>();
+    const bookingId = route?.params?.bookingId as string | undefined;
+    const bookingNumber = route?.params?.bookingNumber as string | undefined;
+
     return (
         <Stack.Navigator
             initialRouteName={BookingStepRoute.Step1Applicant}
@@ -25,6 +30,7 @@ const BookingStepStack = () => {
             <Stack.Screen
                 name={BookingStepRoute.Step1Applicant}
                 component={Step1ApplicantScreen}
+                initialParams={{ bookingId, bookingNumber }}
             />
             <Stack.Screen
                 name={BookingStepRoute.Step2Event}

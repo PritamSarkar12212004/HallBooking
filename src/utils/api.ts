@@ -5,4 +5,8 @@ export const apiAuth = axios.create({
     baseURL: `${envApi.baseUri}${envApi.Auth.root}`
 })
 
+export const apiBooking = axios.create({
+    baseURL: `${envApi.baseUri}${envApi.Booking.root}`
+})
+
 

@@ -41,11 +41,11 @@ export const BookingStepRoute = {
 } as const;
 
 export type BookingStepParamList = {
-    [BookingStepRoute.Step1Applicant]: undefined;
+    [BookingStepRoute.Step1Applicant]: { bookingId?: string; bookingNumber?: string } | undefined;
     [BookingStepRoute.Step2Event]: { applicantData?: any };
-    [BookingStepRoute.Step3Schedule]: undefined;
-    [BookingStepRoute.Step4Attendance]: undefined;
-    [BookingStepRoute.Step5Requirements]: undefined;
-    [BookingStepRoute.Step6Decoration]: undefined;
-    [BookingStepRoute.Step7Payment]: undefined;
+    [BookingStepRoute.Step3Schedule]: { bookingId?: string };
+    [BookingStepRoute.Step4Attendance]: { bookingId?: string };
+    [BookingStepRoute.Step5Requirements]: { bookingId?: string };
+    [BookingStepRoute.Step6Decoration]: { bookingId?: string };
+    [BookingStepRoute.Step7Payment]: { bookingId?: string };
 };
