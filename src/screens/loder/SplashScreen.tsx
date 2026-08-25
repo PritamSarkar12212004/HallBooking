@@ -14,6 +14,7 @@ import { readStorage } from '../../manager/storage/storageManager';
 import token from '../../const/token/token';
 import { useAppDispatch } from '../../hooks/redux/redux';
 import { setUser } from '../../store/slices/userSlice';
+import { storageToken } from '../../const/token/storageToken';
 
 const SplashScreen = () => {
     const navigation = useNavigation();
@@ -24,6 +25,8 @@ const SplashScreen = () => {
                 const isAuth = readStorage({
                     key: token.isAuth,
                 });
+                const tokenKey = readStorage({ key: storageToken })
+                console.log(isAuth)
                 if (isAuth) {
                     const stored = readStorage({ key: token.isAuthData });
                     let data: any = null;
@@ -41,7 +44,7 @@ const SplashScreen = () => {
                             email: data?.email,
                             city: data?.city,
                             _id: data?._id,
-                            token: "sss"
+                            token: tokenKey
                         }),
                     );
                     navigation.reset({

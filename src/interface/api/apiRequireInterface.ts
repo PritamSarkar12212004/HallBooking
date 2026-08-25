@@ -12,3 +12,11 @@ export interface createProfileInterface {
     gender: "male" | "female" | "other";
     token: string;
 }
+
+export interface profileUpdateInterface {
+    name: string;
+    email: string;
+    city: string;
+    photo?: string;
+    token: string;
+}

@@ -18,46 +18,126 @@ import {
     Camera,
     Check,
     LogOut,
+    Mail,
+    MapPin,
     Pencil,
     PersonStanding,
     Phone,
+    UserRound,
 } from 'lucide-react-native';
 
 import InputField from '../../components/input/InputField';
 import MainButton from '../../components/buttons/MainButton';
 import { pickFromGallery } from '../../module/ImagePickerModule';
 import { route as appRoute } from '../../const/routes/route';
-import { useAppDispatch } from '../../hooks/redux/redux';
-import { clearUser } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux/redux';
+import { clearUser, updateUser } from '../../store/slices/userSlice';
 import {
     removeStorage,
+    writeStorage,
 } from '../../manager/storage/storageManager';
 import token from '../../const/token/token';
-
-const DUMMY_IMG_URI =
-    'https://img.magnific.com/free-photo/cheerful-indian-businessman-smiling-closeup-portrait-jobs-career-campaign_53876-129417.jpg?semt=ais_hybrid&w=740&q=80';
+import useUpdateProfile from '../../api/auth/hooks/auth/useUpdateProfile';
+import uploadImage from '../../services/Cloudinary/uploadImg';
+import { showMessage } from 'react-native-flash-message';
 
 const ProfileScreen = ({ navigation }: any) => {
+    const data = useAppSelector((state) => state.user.user)
     const dispatch = useAppDispatch();
-    const [activeEdit, setActiveEdit] = useState<boolean>(false);
 
-    const [name, setName] = useState<string>('Pritam Sarkar');
-    const [number, setNumber] = useState<string>('7796419792');
-    const [loader, setLoader] = useState<boolean>(false)
-    const [img, setImg] = useState<Asset | null>(null);
-    const displayImgUri = img?.uri ?? DUMMY_IMG_URI;
+    const [activeEdit, setActiveEdit] = useState<boolean>(false);
+    const [name, setName] = useState<string | any>(data?.name);
+    const [email, setEmail] = useState<string | any>(data?.email);
+    const [city, setCity] = useState<string | any>(data?.city);
+    const [number, setNumber] = useState<string | any>(data?.phone);
+    const [saving, setSaving] = useState<boolean>(false)
+    const [img, setImg] = useState<Asset | null | any>(data?.photo);
+
+    const { updateProfileAsync } = useUpdateProfile()
+
+    const displayImgUri =
+        typeof img === 'string' ? img : img?.uri ?? data?.photo;
 
     const handleEdit = () => {
         setActiveEdit(prev => !prev);
     };
 
-    const handleSave = useCallback(() => {
-        setLoader(true)
-        setTimeout(() => {
-            setLoader(false)
+    const handleSave = useCallback(async () => {
+        if (saving) return;
+
+        if (!name?.trim()) {
+            showMessage({
+                message: 'Name required',
+                description: 'Please enter your name.',
+                type: 'warning',
+            });
+            return;
+        }
+        if (email && !/\S+@\S+\.\S+/.test(email)) {
+            showMessage({
+                message: 'Invalid email',
+                description: 'Please enter a valid email address.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        setSaving(true);
+        try {
+            let photoUrl: string = data?.photo ?? '';
+            if (typeof img !== 'string' && img?.uri) {
+                const uploaded = await uploadImage(img.uri);
+                photoUrl = uploaded.secure_url;
+            }
+
+            await updateProfileAsync({
+                name: name?.trim?.(),
+                email: email?.trim?.(),
+                city: city?.trim?.(),
+                photo: photoUrl,
+                token: data?.token ?? '',
+            });
+
+            const updated = {
+                name: name?.trim?.(),
+                email: email?.trim?.(),
+                city: city?.trim?.(),
+                photo: photoUrl,
+            };
+
+            dispatch(updateUser(updated));
+
+            const storedData = {
+                _id: data?._id,
+                phone: data?.phone,
+                photo: photoUrl,
+                name: updated.name,
+                gender: data?.gender,
+                email: updated.email,
+                city: updated.city,
+            };
+            writeStorage({ key: token.isAuthData, data: storedData });
+
+            showMessage({
+                message: 'Profile Updated',
+                description: 'Your profile has been saved successfully.',
+                type: 'success',
+            });
             setActiveEdit(false);
-        }, 2000);
-    }, [])
+        } catch (error: any) {
+            showMessage({
+                message: 'Update Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
+            setSaving(false);
+        }
+    }, [saving, name, email, city, img, data, updateProfileAsync, dispatch]);
 
     const handleGalleryPhoto = useCallback(async () => {
         const photo = await pickFromGallery();
@@ -125,7 +205,6 @@ const ProfileScreen = ({ navigation }: any) => {
                                 resizeMode="cover"
                             />
                         </View>
-
                         {activeEdit && (
                             <TouchableOpacity
                                 activeOpacity={0.8}
@@ -151,7 +230,6 @@ const ProfileScreen = ({ navigation }: any) => {
                             </TouchableOpacity>
                         )}
                     </View>
-
                     <View className="w-full mt-8">
                         <InputField
                             title="Name"
@@ -163,7 +241,28 @@ const ProfileScreen = ({ navigation }: any) => {
                             edit={activeEdit}
                         />
                     </View>
-
+                    <View className="w-full mt-4">
+                        <InputField
+                            title="Email"
+                            value={email}
+                            setvalue={setEmail}
+                            placeholder="Enter your email"
+                            keyType="email-address"
+                            Icon={Mail}
+                            edit={activeEdit}
+                        />
+                    </View>
+                    <View className="w-full mt-4">
+                        <InputField
+                            title="City"
+                            value={city}
+                            setvalue={setCity}
+                            placeholder="Enter your city"
+                            keyType="default"
+                            Icon={MapPin}
+                            edit={activeEdit}
+                        />
+                    </View>
                     <View className="w-full mt-4">
                         <InputField
                             title="Phone Number"
@@ -172,18 +271,32 @@ const ProfileScreen = ({ navigation }: any) => {
                             placeholder="Enter your phone number"
                             keyType="phone-pad"
                             Icon={Phone}
-                            edit={activeEdit}
+                            edit={false}
                         />
                     </View>
-
+                    <View className="w-full mt-4">
+                        <InputField
+                            title="Gender"
+                            value={
+                                data?.gender
+                                    ? data.gender.charAt(0).toUpperCase() +
+                                    data.gender.slice(1)
+                                    : ''
+                            }
+                            setvalue={() => { }}
+                            placeholder="Gender"
+                            keyType="default"
+                            Icon={UserRound}
+                            edit={false}
+                        />
+                    </View>
                     <View className="w-full mt-8">
                         {!activeEdit ? (
                             <MainButton title="Edit Profile" actionFunc={handleEdit} Icon={Pencil} />
                         ) : (
-                            <MainButton title="Save Changes" actionFunc={handleSave} Icon={Check} loader={loader} />
+                            <MainButton title="Save Changes" actionFunc={handleSave} Icon={Check} loader={saving} disabled={saving} />
                         )}
                     </View>
-
                     <View className="w-full mt-8 mb-8">
                         <TouchableOpacity
                             activeOpacity={0.8}

@@ -25,8 +25,8 @@ const Colors = {
 };
 const DashHeader = ({ navigation, name, photo }: {
     navigation: any;
-    name: string;
-    photo: string
+    name: string | any;
+    photo: string | any
 }) => {
 
     const greeting = useMemo(() => {
@@ -68,6 +68,7 @@ const DashHeader = ({ navigation, name, photo }: {
 
                 <View className="flex-row items-center gap-3">
                     <TouchableOpacity
+                        activeOpacity={0.9}
                         className="w-11 h-11 rounded-2xl items-center justify-center"
                         style={{
                             backgroundColor: Colors.surface,
@@ -86,6 +87,7 @@ const DashHeader = ({ navigation, name, photo }: {
                         />
                     </TouchableOpacity>
                     <TouchableOpacity
+                        activeOpacity={0.9}
                         className="w-11 h-11 rounded-2xl overflow-hidden"
                         style={{
                             borderWidth: 2,

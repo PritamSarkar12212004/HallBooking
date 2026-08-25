@@ -4,7 +4,7 @@ const apiRoute = {
             Send: "/send-otp",
             Verify: "/verify-otp"
         },
-        profile: "/profile"
+        profile: "/profile",
     }
 }
 export default apiRoute
