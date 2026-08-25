@@ -15,7 +15,7 @@ import {
 } from '../../components/auth/frame/AuthFrame';
 import AuthButton from '../../components/auth/buttons/AuthButton';
 import { route as appRoute } from '../../const/routes/route';
-import useVerifyOtpApi from '../../api/auth/hooks/useVerifyOtpApi';
+import useVerifyOtpApi from '../../api/auth/hooks/auth/useVerifyOtpApi';
 import { showMessage } from 'react-native-flash-message';
 import { useAppDispatch } from '../../hooks/redux/redux';
 import { setUser } from '../../store/slices/userSlice';
@@ -97,6 +97,7 @@ const OtpScreen = ({ route, navigation }: any) => {
                 type: 'success',
             });
             if (response.data?.isNewUser) {
+                console.log(response.data)
                 dispatch(setUser({
                     token: response.data?.token,
                     _id: response.data?.user._id,
@@ -108,9 +109,11 @@ const OtpScreen = ({ route, navigation }: any) => {
                     city: response.data?.user.city,
                 }))
                 writeStorage({ key: storageToken, data: response.data?.token })
-                navigation.replace(appRoute.setUp);
+                navigation.replace(appRoute.setUp, {
+                    phonenumber: phoneNumber,
+                });
             } else {
-                navigation.replace(appRoute.setUp);
+                navigation.replace(appRoute.home);
             }
 
         } catch (error) {

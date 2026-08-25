@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import sendOtpApi from '../call/sendOtpApi';
-import { sendOtpApiInterface } from '../../../interface/api/apiRequireInterface';
+import sendOtpApi from '../../call/sendOtpApi';
+import { sendOtpApiInterface } from '../../../../interface/api/apiRequireInterface';
 
 const useAuthApi = () => {
     const sendOtpMutation = useMutation({

@@ -11,7 +11,7 @@ import {
     AuthTopFrame,
     MainFrame,
 } from '../../components/auth/frame/AuthFrame';
-import useAuthApi from '../../api/auth/hooks/useAuthApi';
+import useAuthApi from '../../api/auth/hooks/auth/useAuthApi';
 import { showMessage } from 'react-native-flash-message';
 
 const validatePhoneNumber = (phone: string): boolean => {
@@ -65,9 +65,6 @@ const AuthScreen = ({ navigation }: any) => {
             }
 
         } catch (error: any) {
-
-            console.log('OTP API Error:', error);
-
             const message =
                 error?.response?.data?.message ||
                 error?.message ||

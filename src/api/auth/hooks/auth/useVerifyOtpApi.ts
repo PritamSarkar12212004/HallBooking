@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import { verifyOtpInterface } from '../../../interface/api/apiRequireInterface';
-import verifyOtpApi from '../call/veridyOtpApi';
+import { verifyOtpInterface } from '../../../../interface/api/apiRequireInterface';
+import verifyOtpApi from '../../call/veridyOtpApi';
 
 const useVerifyOtpApi = () => {
     const sendOtpMutation = useMutation({
