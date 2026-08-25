@@ -21,6 +21,7 @@ import { useAppDispatch } from '../../hooks/redux/redux';
 import { setUser } from '../../store/slices/userSlice';
 import { writeStorage } from '../../manager/storage/storageManager';
 import { storageToken } from '../../const/token/storageToken';
+import token from '../../const/token/token';
 
 const OTP_LENGTH = 6;
 
@@ -97,7 +98,6 @@ const OtpScreen = ({ route, navigation }: any) => {
                 type: 'success',
             });
             if (response.data?.isNewUser) {
-                console.log(response.data)
                 dispatch(setUser({
                     token: response.data?.token,
                     _id: response.data?.user._id,
@@ -113,7 +113,39 @@ const OtpScreen = ({ route, navigation }: any) => {
                     phonenumber: phoneNumber,
                 });
             } else {
-                navigation.replace(appRoute.home);
+                console.log(response.data)
+                dispatch(setUser({
+                    token: response.data?.token,
+                    _id: response.data?.user._id,
+                    phone: response.data?.user.phone,
+                    photo: response.data?.user.photo,
+                    name: response.data?.user.name,
+                    gender: response.data?.user.gender,
+                    email: response.data?.user.email,
+                    city: response.data?.user.city,
+                }))
+                writeStorage({ key: storageToken, data: response.data?.token })
+                writeStorage({ key: token.isAuth, data: true })
+                writeStorage({
+                    key: token.isAuthData,
+                    data: {
+                        _id: response.data?.user._id,
+                        phone: response.data?.user.phone,
+                        photo: response.data?.user.photo,
+                        name: response.data?.user.name,
+                        gender: response.data?.user.gender,
+                        email: response.data?.user.email,
+                        city: response.data?.user.city,
+                    }
+                })
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: appRoute.home,
+                        },
+                    ],
+                });
             }
 
         } catch (error) {
