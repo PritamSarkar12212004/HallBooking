@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Camera } from 'lucide-react-native';
 
 import Wrapper from '../../../layouts/wraper/Wraper';
@@ -17,13 +17,21 @@ import MainButton from '../../../components/buttons/MainButton';
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
 import { capturePhoto } from '../../../module/ImagePickerModule';
+import uploadImage from '../../../services/Cloudinary/uploadImg';
+import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import { useAppSelector } from '../../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 
 const term =
     'I hereby declare that the information provided above is true and correct. I have read and agree to abide by the terms and conditions of the hall booking.';
 
 const Step6DecorationScreen = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const bookingId = route?.params?.bookingId as string | undefined;
+    const user = useAppSelector((state) => state.user.user);
+    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
 
     const [loader, setLoader] = useState(false);
 
@@ -53,16 +61,69 @@ const Step6DecorationScreen = () => {
         }
     }, []);
 
-    const handleNext = () => {
-        setLoader(true);
+    const handleNext = async () => {
+        if (loader || saving) {
+            return;
+        }
+        if (!bookingId) {
+            showMessage({
+                message: 'Booking Error',
+                description: 'Booking id is missing. Please restart from Halls screen.',
+                type: 'danger',
+            });
+            return;
+        }
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing.',
+                type: 'danger',
+            });
+            return;
+        }
 
-        setTimeout(() => {
-            setLoader(false);
+        setLoader(true);
+        try {
+            // Upload signatures to Cloudinary if new images were captured.
+            let applicantPhoto = '';
+            let managerPhoto = '';
+            if (applicantSignature?.uri) {
+                const up = await uploadImage(applicantSignature.uri);
+                applicantPhoto = up.secure_url;
+            }
+            if (managerSignature?.uri) {
+                const up = await uploadImage(managerSignature.uri);
+                managerPhoto = up.secure_url;
+            }
+
+            await updateSectionAsync({
+                id: bookingId,
+                section: 'declaration',
+                token: user.token,
+                data: {
+                    applicantSignature: applicantPhoto,
+                    managerSignature: managerPhoto,
+                    termsAccepted: true,
+                },
+            });
 
             navigation.navigate(
-                BookingStepRoute.Step7Payment
+                BookingStepRoute.Step7Payment,
+                { bookingId }
             );
-        }, 200);
+        } catch (error: any) {
+            showMessage({
+                message: 'Save Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
+            setLoader(false);
+        }
     };
 
     return (
@@ -181,7 +242,7 @@ const Step6DecorationScreen = () => {
             <MainButton
                 title="Done"
                 actionFunc={handleNext}
-                loader={loader}
+                loader={loader || saving}
             />
         </Wrapper>
     );

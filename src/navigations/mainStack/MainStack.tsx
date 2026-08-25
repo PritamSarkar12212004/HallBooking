@@ -7,7 +7,7 @@ import TabUiNavi from '../../ui/navigation/TabUiNavi';
 // Main tab screens
 import HomeScreen from '../../screens/main/HomeScreen';
 import BookingListScreen from '../../screens/main/BookingListScreen';
-import HallCalendarScreen from '../../screens/main/HallCalendarScreen';
+import HallCalendarScreen from '../../screens/booking/HallCalendarScreen';
 import ProfileScreen from '../../screens/main/ProfileScreen';
 
 // CEO screens
@@ -115,6 +115,10 @@ const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.Profile}
                 component={ProfileScreen}
+            />
+            <Stack.Screen
+                name={MainRoute.HallCalendar}
+                component={HallCalendarScreen}
             />
         </Stack.Navigator>
     );

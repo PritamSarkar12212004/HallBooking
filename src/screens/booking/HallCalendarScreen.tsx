@@ -16,6 +16,7 @@ import TimePicker from '../../components/picker/TimePicker';
 import useCreateBooking from '../../api/booking/hooks/useCreateBooking';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
+import SubHeader from '../../components/header/SubHeader';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -210,7 +211,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
     return (
         <Wrapper safeBottom>
-            <MainDerder
+            <SubHeader
                 navigation={navigation}
                 title="Halls"
             />

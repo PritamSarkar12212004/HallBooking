@@ -39,3 +39,8 @@ export interface updateBookingSectionInterface {
     data: Record<string, any>;
     token: string;
 }
+
+export interface getBookingByIdInterface {
+    id: string;
+    token: string;
+}

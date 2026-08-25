@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import SubHeader from '../../../components/header/SubHeader';
 import { ScrollView, Text, View } from '../../../lib/style/withTailwind';
 import InputField from '../../../components/input/InputField';
 import MainButton from '../../../components/buttons/MainButton';
 import {
-    Clock3,
     Cookie,
     Phone,
     UserRound,
@@ -15,27 +14,32 @@ import {
 import { Divider } from 'react-native-paper';
 import MultiSelector from '../../../components/Selector/MultiSelector';
 import { BookingStepRoute } from '../../../const/routes/route';
+import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
+import { useAppSelector } from '../../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 const Step3ScheduleScreen = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const bookingId = route?.params?.bookingId as string | undefined;
+    const user = useAppSelector((state) => state.user.user);
+    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
+    const { booking: existingBooking, isLoading: loadingBooking } =
+        useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
 
     // Decoration
     const [decoratorName, setDecoratorName] = useState('');
     const [decoratorContact, setDecoratorContact] = useState('');
-    const [decorationTiming, setDecorationTiming] = useState('');
 
     // Catering
     const [catererName, setCatererName] = useState('');
     const [catererContact, setCatererContact] = useState('');
 
-    const handleNext = () => {
-        navigation.navigate(BookingStepRoute.Step4Attendance);
-    };
-    const [selectedEventType, setSelectedEventType] =
-        useState<string[]>([]);
+    const [selectedKitchen, setSelectedKitchen] = useState<string[]>([]);
 
-    const selectEventType = (name: string) => {
-        setSelectedEventType(prev =>
+    const selectKitchen = (name: string) => {
+        setSelectedKitchen(prev =>
             prev[0] === name
                 ? []
                 : [name]
@@ -45,6 +49,72 @@ const Step3ScheduleScreen = () => {
         'Yes',
         'No',
     ];
+
+    // Pre-fill from backend when screen mounts.
+    useEffect(() => {
+        const arr = existingBooking?.arrangements;
+        if (!arr) {
+            return;
+        }
+        if (arr.decorator?.name) setDecoratorName(arr.decorator.name);
+        if (arr.decorator?.contact) setDecoratorContact(arr.decorator.contact);
+        if (arr.caterer?.name) setCatererName(arr.caterer.name);
+        if (arr.caterer?.contact) setCatererContact(arr.caterer.contact);
+        if (arr.kitchenRequired !== undefined && arr.kitchenRequired !== null) {
+            setSelectedKitchen([arr.kitchenRequired ? 'Yes' : 'No']);
+        }
+    }, [existingBooking]);
+
+    const handleNext = async () => {
+        if (saving) {
+            return;
+        }
+        if (!bookingId) {
+            showMessage({
+                message: 'Booking Error',
+                description: 'Booking id is missing. Please restart from Halls screen.',
+                type: 'danger',
+            });
+            return;
+        }
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing.',
+                type: 'danger',
+            });
+            return;
+        }
+
+        try {
+            await updateSectionAsync({
+                id: bookingId,
+                section: 'arrangements',
+                token: user.token,
+                data: {
+                    decoratorName,
+                    decoratorContact,
+                    catererName,
+                    catererContact,
+                    kitchenRequired: selectedKitchen[0] ?? 'No',
+                },
+            });
+
+            navigation.navigate(BookingStepRoute.Step4Attendance, {
+                bookingId,
+            });
+        } catch (error: any) {
+            showMessage({
+                message: 'Save Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        }
+    };
 
 
     return (
@@ -84,15 +154,6 @@ const Step3ScheduleScreen = () => {
                         placeholder="Enter contact number"
                         keyType="phone-pad"
                         Icon={Phone}
-                    />
-
-                    <InputField
-                        title="Decoration Timing"
-                        value={decorationTiming}
-                        setvalue={setDecorationTiming}
-                        placeholder="e.g. 10:00 AM - 2:00 PM"
-                        keyType="default"
-                        Icon={Clock3}
                     />
 
                 </View>
@@ -136,8 +197,8 @@ const Step3ScheduleScreen = () => {
                     <MultiSelector
                         title="Kichen Required"
                         list={eventTypes}
-                        value={selectedEventType}
-                        actionFunc={selectEventType}
+                        value={selectedKitchen}
+                        actionFunc={selectKitchen}
                         selection="Single select"
                         Icon={Cookie}
                     />
@@ -147,6 +208,7 @@ const Step3ScheduleScreen = () => {
             <MainButton
                 title="Next"
                 actionFunc={handleNext}
+                loader={saving || loadingBooking}
             />
 
         </Wrapper>

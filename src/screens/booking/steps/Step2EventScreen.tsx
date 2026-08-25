@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import SubHeader from '../../../components/header/SubHeader';
 import { ScrollView, View } from '../../../lib/style/withTailwind';
 import MultiSelector from '../../../components/Selector/MultiSelector';
@@ -14,6 +14,10 @@ import {
 import MainButton from '../../../components/buttons/MainButton';
 import { BookingStepRoute } from '../../../const/routes/route';
 import InputField from '../../../components/input/InputField';
+import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
+import { useAppSelector } from '../../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 const eventTypes = [
     'Wedding',
@@ -46,15 +50,20 @@ const hallRequirements = [
     'Air Conditioning',
     'Decoration',
     'Lighting',
-    'Generator / Backup Power',
     'Parking',
     'Green Room',
     'Registration Desk',
 ];
 
 const Step2EventScreen = () => {
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const bookingId = route?.params?.bookingId as string | undefined;
+    const user = useAppSelector((state) => state.user.user);
+    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
+    const { booking: existingBooking, isLoading: loadingBooking } =
+        useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
 
-    const navigation = useNavigation();
     const [expectedAttendance, setExpectedAttendance] = useState('');
     const [selectedEventType, setSelectedEventType] =
         useState<string[]>([]);
@@ -78,13 +87,74 @@ const Step2EventScreen = () => {
         );
     };
 
+    // Pre-fill from backend when screen mounts (existing booking data).
+    useEffect(() => {
+        if (!existingBooking?.event) {
+            return;
+        }
+        const ev = existingBooking.event;
+        if (ev.expectedAttendance) {
+            setExpectedAttendance(String(ev.expectedAttendance));
+        }
+        if (ev.type) {
+            setSelectedEventType([ev.type]);
+        }
+        if (Array.isArray(ev.hallRequirements) && ev.hallRequirements.length) {
+            setSelectedRequirements(ev.hallRequirements);
+        }
+    }, [existingBooking]);
+
     const [loader, setloader] = useState<boolean>(false)
-    const handleNext = () => {
+    const handleNext = async () => {
+        if (saving || loader) {
+            return;
+        }
+        if (!bookingId) {
+            showMessage({
+                message: 'Booking Error',
+                description: 'Booking id is missing. Please restart from Halls screen.',
+                type: 'danger',
+            });
+            return;
+        }
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing.',
+                type: 'danger',
+            });
+            return;
+        }
+
         setloader(true)
-        setTimeout(() => {
+        try {
+            await updateSectionAsync({
+                id: bookingId,
+                section: 'event',
+                token: user.token,
+                data: {
+                    expectedAttendance: Number(expectedAttendance) || undefined,
+                    type: selectedEventType[0] ?? undefined,
+                    requirements: selectedRequirements,
+                },
+            });
+
+            navigation.navigate(BookingStepRoute.Step3Schedule, {
+                bookingId,
+            });
+        } catch (error: any) {
+            showMessage({
+                message: 'Save Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
             setloader(false)
-            navigation.navigate(BookingStepRoute.Step3Schedule);
-        }, 200)
+        }
     }
     return (
         <Wrapper safeBottom>
@@ -133,7 +203,7 @@ const Step2EventScreen = () => {
                 </View>
 
             </ScrollView>
-            <MainButton title="Next" actionFunc={handleNext} loader={loader} />
+            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving || loadingBooking} />
         </Wrapper>
     );
 };

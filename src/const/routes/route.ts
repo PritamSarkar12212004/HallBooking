@@ -28,6 +28,7 @@ export const MainRoute = {
     StaffActivity: "StaffActivity",
     Reports: "Reports",
     Profile: "Profile",
+    HallCalendar: "HallCalendar",
 } as const;
 
 export const BookingStepRoute = {
@@ -42,7 +43,7 @@ export const BookingStepRoute = {
 
 export type BookingStepParamList = {
     [BookingStepRoute.Step1Applicant]: { bookingId?: string; bookingNumber?: string } | undefined;
-    [BookingStepRoute.Step2Event]: { applicantData?: any };
+    [BookingStepRoute.Step2Event]: { applicantData?: any; bookingId?: string };
     [BookingStepRoute.Step3Schedule]: { bookingId?: string };
     [BookingStepRoute.Step4Attendance]: { bookingId?: string };
     [BookingStepRoute.Step5Requirements]: { bookingId?: string };

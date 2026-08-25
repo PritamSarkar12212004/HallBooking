@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 import {
     Check,
     CheckCircle2,
-    FileText,
 } from 'lucide-react-native';
 
 import Wrapper from '../../../layouts/wraper/Wraper';
@@ -21,6 +20,9 @@ import MainButton from '../../../components/buttons/MainButton';
 
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
+import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import { useAppSelector } from '../../../hooks/redux/redux';
+import { showMessage } from 'react-native-flash-message';
 
 const terms = [
     'The booking will be confirmed only after receipt of the prescribed advance payment.',
@@ -44,32 +46,74 @@ const terms = [
 
 const Step4AttendanceScreen = () => {
 
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const bookingId = route?.params?.bookingId as string | undefined;
+    const user = useAppSelector((state) => state.user.user);
+    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
 
     const [accepted, setAccepted] = useState(false);
     const [loader, setLoader] = useState(false);
 
     const isNextDisabled = useMemo(
-        () => !accepted || loader,
-        [accepted, loader]
+        () => !accepted || loader || saving,
+        [accepted, loader, saving]
     );
 
     const handleAccept = () => {
         setAccepted(prev => !prev);
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
 
         if (!accepted) {
             return;
         }
+        if (!bookingId) {
+            showMessage({
+                message: 'Booking Error',
+                description: 'Booking id is missing. Please restart from Halls screen.',
+                type: 'danger',
+            });
+            return;
+        }
+        if (!user?.token) {
+            showMessage({
+                message: 'Authentication Error',
+                description: 'User token is missing.',
+                type: 'danger',
+            });
+            return;
+        }
+
         setLoader(true);
-        setTimeout(() => {
-            setLoader(false);
+        try {
+            await updateSectionAsync({
+                id: bookingId,
+                section: 'declaration',
+                token: user.token,
+                data: {
+                    termsAccepted: true,
+                },
+            });
+
             navigation.navigate(
-                BookingStepRoute.Step5Requirements
+                BookingStepRoute.Step5Requirements,
+                { bookingId }
             );
-        }, 200);
+        } catch (error: any) {
+            showMessage({
+                message: 'Save Failed',
+                description:
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    'Please try again.',
+                type: 'danger',
+                duration: 3000,
+            });
+        } finally {
+            setLoader(false);
+        }
     };
 
     return (
