@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Image, SafeAreaView } from '../../lib/style/withTailwind';
+import React from 'react';
+import { ScrollView, View, Text, TouchableOpacity, SafeAreaView } from '../../lib/style/withTailwind';
 import { BarChart } from 'react-native-gifted-charts';
 import {
-    Bell,
     CalendarDays,
     CalendarCheck,
     IndianRupee,
@@ -11,7 +10,6 @@ import {
     Building2,
     Clock3,
     TrendingUp,
-    Sparkles,
     ArrowUpRight,
     CalendarClock,
 } from 'lucide-react-native';
@@ -20,8 +18,8 @@ import PaymentStatusChip from '../../components/ui/PaymentStatusChip';
 import { TabRoute, MainRoute } from '../../const/routes/route';
 import { Theme } from '../../const/theme/Theme';
 import { useAppSelector } from '../../hooks/redux/redux';
+import DashHeader from '../../components/header/DashHeader';
 
-// ─── Premium Color Palette ───
 const Colors = {
     background: '#0F1115',
     surface: '#1A1D24',
@@ -42,8 +40,6 @@ const Colors = {
     purple: '#A78BFA',
     purpleSoft: 'rgba(167, 139, 250, 0.12)',
 };
-
-// ─── Mock Data (API se replace hoga) ───
 const mockTodayEvents = [
     {
         id: '1',
@@ -73,7 +69,6 @@ const mockTodayEvents = [
         paymentStatus: 'Pending' as const,
     },
 ];
-
 const mockUpcomingEvents = [
     {
         id: '4',
@@ -116,8 +111,6 @@ const mockUpcomingEvents = [
         paymentStatus: 'Pending' as const,
     },
 ];
-
-// Next 7 days chart data
 const chartData = [
     { value: 3, label: '22' },
     { value: 5, label: '23' },
@@ -129,26 +122,6 @@ const chartData = [
 ];
 
 const HomeScreen = ({ navigation }: any) => {
-    // Time-based greeting
-    const greeting = useMemo(() => {
-        const hour = new Date().getHours();
-        if (hour < 12) return 'Good Morning';
-        if (hour < 17) return 'Good Afternoon';
-        return 'Good Evening';
-    }, []);
-
-    // Current date display
-    const currentDate = useMemo(() => {
-        return new Date().toLocaleDateString('en-IN', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-        });
-    }, []);
-
-    const userName = 'Pritam';
-    const userRole = 'Staff';
-
     const stats = [
         {
             title: "Today's Events",
@@ -179,105 +152,21 @@ const HomeScreen = ({ navigation }: any) => {
             softColor: Colors.purpleSoft,
         },
     ];
-
     const handleStatPress = (_title: string) => {
         navigation.navigate(TabRoute.Bookings);
     };
 
-    const handleNotificationPress = () => {
-        // Notification screen / modal
-    };
-
-    const handleProfilePress = () => {
-        navigation.navigate(TabRoute.Profile);
-    };
 
     const data = useAppSelector((state) => state.user.user)
     console.log(data)
 
     return (
         <SafeAreaView className="flex-1" style={{ backgroundColor: Theme.background.primary }} edges={['top']}>
+            <DashHeader navigation={navigation} name={data?.name} photo={data?.photo} />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
             >
-                {/* ─── Premium Header ─── */}
-                <View className="px-5 pt-5 pb-4">
-                    <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                            {/* Greeting with gradient accent */}
-                            <View className="flex-row items-center gap-2">
-                                <Sparkles size={16} color={Colors.gold} />
-                                <Text className="text-[#9CA3AF] text-sm font-medium tracking-wide">
-                                    {currentDate}
-                                </Text>
-                            </View>
-                            <Text className="text-white text-[26px] font-bold mt-1.5 tracking-tight">
-                                {greeting}, {userName}
-                            </Text>
-
-                            {/* Role badge with premium styling */}
-                            <View className="flex-row items-center gap-2 mt-3">
-                                <View
-                                    className="px-3.5 py-1.5 rounded-full flex-row items-center gap-1.5"
-                                    style={{
-                                        backgroundColor: Colors.accentSoft,
-                                        borderWidth: 1,
-                                        borderColor: 'rgba(248, 239, 203, 0.2)',
-                                    }}
-                                >
-                                    <View
-                                        className="w-1.5 h-1.5 rounded-full"
-                                        style={{ backgroundColor: Colors.gold }}
-                                    />
-                                    <Text className="text-[#F8EFCB] text-xs font-semibold uppercase tracking-wider">
-                                        {userRole}
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <View className="flex-row items-center gap-3">
-                            {/* Notification Bell with badge */}
-                            <TouchableOpacity
-                                className="w-11 h-11 rounded-2xl items-center justify-center"
-                                style={{
-                                    backgroundColor: Colors.surface,
-                                    borderWidth: 1,
-                                    borderColor: Colors.border,
-                                }}
-                                onPress={handleNotificationPress}
-                            >
-                                <Bell size={19} color={Colors.textPrimary} />
-                                <View
-                                    className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full border-2"
-                                    style={{
-                                        backgroundColor: Colors.red,
-                                        borderColor: Colors.background,
-                                    }}
-                                />
-                            </TouchableOpacity>
-
-                            {/* Profile Photo with premium ring */}
-                            <TouchableOpacity
-                                className="w-11 h-11 rounded-2xl overflow-hidden"
-                                style={{
-                                    borderWidth: 2,
-                                    borderColor: Colors.gold,
-                                }}
-                                onPress={handleProfilePress}
-                            >
-                                <Image
-                                    source={{ uri: 'https://i.pravatar.cc/100?img=12' }}
-                                    className="w-full h-full"
-                                    resizeMode="cover"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-                {/* ─── Quick Stats Cards (horizontal scroll) ─── */}
                 <View className="mt-5">
                     <ScrollView
                         horizontal

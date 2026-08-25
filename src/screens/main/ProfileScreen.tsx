@@ -67,12 +67,9 @@ const ProfileScreen = ({ navigation }: any) => {
     }, []);
 
     const handleLogout = useCallback(() => {
-        // 1. Clear redux user state
         dispatch(clearUser());
-        // 2. Clear stored auth tokens / user data from storage
         removeStorage({ key: token.isAuth });
         removeStorage({ key: token.isAuthData });
-        // 3. Reset navigation to the login screen
         navigation.reset({
             index: 0,
             routes: [

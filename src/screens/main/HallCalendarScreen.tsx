@@ -144,12 +144,10 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
     return (
         <Wrapper safeBottom>
-
             <MainDerder
                 navigation={navigation}
                 title="Halls"
             />
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
