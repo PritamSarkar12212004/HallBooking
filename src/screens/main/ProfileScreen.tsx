@@ -7,6 +7,7 @@ import MainDerder from '../../components/header/MainDerder';
 import {
     Image,
     ScrollView,
+    Text,
     TouchableOpacity,
     View,
 } from '../../lib/style/withTailwind';
@@ -16,6 +17,7 @@ import { Theme } from '../../const/theme/Theme';
 import {
     Camera,
     Check,
+    LogOut,
     Pencil,
     PersonStanding,
     Phone,
@@ -24,20 +26,25 @@ import {
 import InputField from '../../components/input/InputField';
 import MainButton from '../../components/buttons/MainButton';
 import { pickFromGallery } from '../../module/ImagePickerModule';
+import { route as appRoute } from '../../const/routes/route';
+import { useAppDispatch } from '../../hooks/redux/redux';
+import { clearUser } from '../../store/slices/userSlice';
+import {
+    removeStorage,
+} from '../../manager/storage/storageManager';
+import token from '../../const/token/token';
 
 const DUMMY_IMG_URI =
     'https://img.magnific.com/free-photo/cheerful-indian-businessman-smiling-closeup-portrait-jobs-career-campaign_53876-129417.jpg?semt=ais_hybrid&w=740&q=80';
 
 const ProfileScreen = ({ navigation }: any) => {
+    const dispatch = useAppDispatch();
     const [activeEdit, setActiveEdit] = useState<boolean>(false);
 
     const [name, setName] = useState<string>('Pritam Sarkar');
     const [number, setNumber] = useState<string>('7796419792');
     const [loader, setLoader] = useState<boolean>(false)
-    // pickFromGallery poora Asset object deta hai (uri, width, height, fileName, type...)
     const [img, setImg] = useState<Asset | null>(null);
-
-    // Picked photo hai to uski uri, warna dummy fallback
     const displayImgUri = img?.uri ?? DUMMY_IMG_URI;
 
     const handleEdit = () => {
@@ -58,6 +65,23 @@ const ProfileScreen = ({ navigation }: any) => {
             setImg(photo);
         }
     }, []);
+
+    const handleLogout = useCallback(() => {
+        // 1. Clear redux user state
+        dispatch(clearUser());
+        // 2. Clear stored auth tokens / user data from storage
+        removeStorage({ key: token.isAuth });
+        removeStorage({ key: token.isAuthData });
+        // 3. Reset navigation to the login screen
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: appRoute.login,
+                },
+            ],
+        });
+    }, [dispatch, navigation]);
 
     return (
         <Wrapper safeBottom>
@@ -161,6 +185,27 @@ const ProfileScreen = ({ navigation }: any) => {
                         ) : (
                             <MainButton title="Save Changes" actionFunc={handleSave} Icon={Check} loader={loader} />
                         )}
+                    </View>
+
+                    <View className="w-full mt-8 mb-8">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={handleLogout}
+                            className="flex-row items-center justify-center gap-2 rounded-xl h-13"
+                            style={{
+                                backgroundColor: 'transparent',
+                                borderWidth: 1,
+                                borderColor: '#E5484D',
+                            }}
+                        >
+                            <LogOut
+                                size={20}
+                                color="#E5484D"
+                            />
+                            <Text className="font-bold" style={{ color: '#E5484D' }}>
+                                Logout
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>

@@ -63,7 +63,7 @@ const SetupScreen = ({ navigation, route }: any) => {
 
     const [gender, setGender] = useState<
         'male' | 'female' | 'other' | ''
-    >(user?.gender ?? '');
+    >((user?.gender?.toLowerCase?.() as 'male' | 'female' | 'other') ?? '');
 
     const displayImgUri = img?.uri ?? user?.photo;
 
@@ -136,6 +136,17 @@ const SetupScreen = ({ navigation, route }: any) => {
                 }),
             );
             writeStorage({ key: token.isAuth, data: true })
+            writeStorage({
+                key: token.isAuthData, data: {
+                    _id: response?.user._id,
+                    phone: response?.user.phone,
+                    photo: response?.user.photo,
+                    name: response?.user.name,
+                    gender: response?.user.gender,
+                    email: response?.user.email,
+                    city: response?.user.city,
+                }
+            })
             navigation.reset({
                 index: 0,
                 routes: [
@@ -176,7 +187,6 @@ const SetupScreen = ({ navigation, route }: any) => {
             paddingTop={0}
         >
             <View className="flex-1 px-4">
-
                 <AuthNavigation
                     need={true}
                     navigation={navigation}

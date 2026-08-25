@@ -19,6 +19,7 @@ import StatusChip from '../../components/ui/StatusChip';
 import PaymentStatusChip from '../../components/ui/PaymentStatusChip';
 import { TabRoute, MainRoute } from '../../const/routes/route';
 import { Theme } from '../../const/theme/Theme';
+import { useAppSelector } from '../../hooks/redux/redux';
 
 // ─── Premium Color Palette ───
 const Colors = {
@@ -190,6 +191,9 @@ const HomeScreen = ({ navigation }: any) => {
     const handleProfilePress = () => {
         navigation.navigate(TabRoute.Profile);
     };
+
+    const data = useAppSelector((state) => state.user.user)
+    console.log(data)
 
     return (
         <SafeAreaView className="flex-1" style={{ backgroundColor: Theme.background.primary }} edges={['top']}>
