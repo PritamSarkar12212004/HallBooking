@@ -27,7 +27,6 @@ const Wrapper = ({
     paddingBottom = 0,
 }: WrapperProps) => {
     const insets = useSafeAreaInsets();
-
     return (
         <View
             style={[
