@@ -42,5 +42,5 @@ export interface updateBookingSectionInterface {
 
 export interface getBookingByIdInterface {
     id: string;
-    token: string;
+    token: string | any
 }

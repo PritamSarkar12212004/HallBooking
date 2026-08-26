@@ -18,6 +18,7 @@ import ReportsScreen from '../../screens/ceo/ReportsScreen';
 // Booking management screens
 import BookingDetailScreen from '../../screens/booking/BookingDetailScreen';
 import AddPaymentScreen from '../../screens/booking/AddPaymentScreen';
+import EditFinanceScreen from '../../screens/booking/EditFinanceScreen';
 import HandoverChecklistScreen from '../../screens/booking/HandoverChecklistScreen';
 import OfficeApprovalScreen from '../../screens/booking/OfficeApprovalScreen';
 
@@ -95,6 +96,10 @@ const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.AddPayment}
                 component={AddPaymentScreen}
+            />
+            <Stack.Screen
+                name={MainRoute.EditFinance}
+                component={EditFinanceScreen}
             />
             <Stack.Screen
                 name={MainRoute.HandoverChecklist}

@@ -158,12 +158,10 @@ const Step2EventScreen = () => {
     }
     return (
         <Wrapper safeBottom>
-
             <SubHeader
                 navigation={navigation}
                 title="Event Details"
             />
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1"

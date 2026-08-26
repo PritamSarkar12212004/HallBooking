@@ -6,7 +6,7 @@ import Wrapper from '../../layouts/wraper/Wraper';
 import MainDerder from '../../components/header/MainDerder';
 import MainSearchInput from '../../components/input/MainSearchInput';
 import { Theme } from '../../const/theme/Theme';
-import { MainRoute } from '../../const/routes/route';
+import {  MainRoute } from '../../const/routes/route';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useListBookings from '../../api/booking/hooks/useListBookings';
 import BookingListSkeleton from '../../ui/Skeleton/BookingListSkeleton';
@@ -17,10 +17,14 @@ const BookingListScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
     const [search, setSearch] = useState('');
     const [refreshing, setRefreshing] = useState(false);
-
     const { bookings, isLoading, refetch } = useListBookings(user?.token);
-
     const typedBookings: bookingListInterface[] = (bookings as bookingListInterface[]) ?? [];
+
+    const navigateDetiles = useCallback((id: string) => {
+        navigation.navigate(MainRoute.BookingDetail, {
+            id,
+        });
+    }, [navigation])
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -67,7 +71,7 @@ const BookingListScreen = ({ navigation }: any) => {
                     <FlatList<bookingListInterface>
                         data={typedBookings}
                         keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => <BookingListCard item={item} />}
+                        renderItem={({ item }) => <BookingListCard item={item} actionPress={navigateDetiles} />}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl

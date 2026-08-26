@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Text, View } from '../../../lib/style/withTailwind';
+import { Image, Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import { Theme } from '../../../const/theme/Theme';
 import { bookingListInterface } from '../../../interface/api/bookintInterface';
 import { Calendar, Clock, MapPin, User } from 'lucide-react-native';
@@ -7,11 +7,14 @@ import { formatDate, formatTime } from '../../../functions/formate/DateTimeForma
 
 interface Props {
     item: bookingListInterface;
+    actionPress: any
 }
 
-const BookingListCard = React.memo(({ item }: Props) => {
+const BookingListCard = React.memo(({ item, actionPress }: Props) => {
     return (
-        <View
+        <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => actionPress(item.id)}
             className="rounded-2xl overflow-hidden mb-4"
             style={{ backgroundColor: Theme.background.secondary }}
         >
@@ -77,7 +80,7 @@ const BookingListCard = React.memo(({ item }: Props) => {
                     </View>
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 });
 

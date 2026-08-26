@@ -23,6 +23,7 @@ export const MainRoute = {
     NewBooking: "NewBooking",
     BookingDetail: "BookingDetail",
     AddPayment: "AddPayment",
+    EditFinance: "EditFinance",
     HandoverChecklist: "HandoverChecklist",
     OfficeApproval: "OfficeApproval",
     StaffActivity: "StaffActivity",
