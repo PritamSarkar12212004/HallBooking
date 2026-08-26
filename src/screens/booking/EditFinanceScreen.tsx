@@ -67,7 +67,6 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         );
     }
 
-    // Reference (current) values from the backend
     const refRent = financial?.hallRent ?? 0;
     const refDeposit = financial?.securityDeposit ?? 0;
     const refTotal = financial?.totalAmount ?? 0;
@@ -78,14 +77,12 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     const num = (v: string, fallback: number) =>
         v === '' ? fallback : Number(v);
 
-    // Effective values (current edit state)
     const rentVal = num(hallRent, refRent);
     const depositVal = num(securityDeposit, refDeposit);
     const totalVal = num(totalAmount, refTotal);
     const advanceVal = num(advancePaid, refAdvance);
     const balanceVal = num(balanceAmount, refBalance);
 
-    // Something actually changed?
     const hasChanges =
         rentVal !== refRent ||
         depositVal !== refDeposit ||
@@ -134,6 +131,10 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
             {
                 onSuccess: () => {
                     setSaving(false);
+                    // Refetch the booking so Booking Detail shows the new values.
+                    queryClient.invalidateQueries({
+                        queryKey: ['booking', bookingId],
+                    });
                     showMessage({
                         message: 'Finance Updated',
                         description: 'Payment details saved successfully.',
