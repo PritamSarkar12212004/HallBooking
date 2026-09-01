@@ -2,7 +2,6 @@ import React from 'react';
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
 import { Image, ScrollView, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
-import { useAppDrawer } from '../../components/navigation/AppDrawer';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { MainRoute } from '../../const/routes/route';
@@ -15,7 +14,7 @@ import {
     Mail,
     Building2,
     Tag,
-    EllipsisVertical,
+    Pencil,
     Wallet,
 } from 'lucide-react-native';
 import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
@@ -81,7 +80,7 @@ const BookingDetailContent = ({
     isLoading,
     statusColor,
 }: any) => {
-    const { openDrawer } = useAppDrawer();
+    const bookingId = booking?._id ?? route.params?.id;
     return (
         <>
             <SubHeader
@@ -92,44 +91,14 @@ const BookingDetailContent = ({
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() =>
-                                openDrawer(
-                                    [
-                                        {
-                                            title: 'BOOKING ACTIONS',
-                                            items: [
-                                                {
-                                                    key: 'payment',
-                                                    icon: 'receipt',
-                                                    label: 'Payment Track Record',
-                                                    onPress: () =>
-                                                        navigation.navigate(
-                                                            MainRoute.PaymentTrackRecord,
-                                                            { id: booking?._id ?? route.params?.id },
-                                                        ),
-                                                },
-                                                {
-                                                    key: 'finance',
-                                                    icon: 'wallet',
-                                                    label: 'Update Finance',
-                                                    onPress: () =>
-                                                        navigation.navigate(
-                                                            MainRoute.EditFinance,
-                                                            { id: booking?._id ?? route.params?.id },
-                                                        ),
-                                                },
-                                            ],
-                                        },
-                                    ],
-                                    {
-                                        title: 'Booking Details',
-                                        subtitle: 'Manage this booking',
-                                    },
-                                )
+                                navigation.navigate(MainRoute.EditFinance, {
+                                    id: bookingId,
+                                })
                             }
                             className="w-10 h-10 rounded-xl items-center justify-center"
                             style={{ backgroundColor: Dark.surfaceAlt }}
                         >
-                            <EllipsisVertical size={20} color="#FFFFFF" />
+                            <Pencil size={18} color="#FFFFFF" />
                         </TouchableOpacity>
                     )
                 }
@@ -270,6 +239,30 @@ const BookingDetailContent = ({
                             <InfoRow label="Total Amount" value={`₹${booking.financial?.totalAmount?.toLocaleString()}`} bold />
                             <InfoRow label="Advance Paid" value={`₹${booking.financial?.advancePaid?.toLocaleString()}`} />
                             <InfoRow
+                                label="Final Payment"
+                                value={`₹${(booking.financial?.finalPayment ?? 0).toLocaleString()}`}
+                            />
+                            <InfoRow
+                                label="Last Finance Update"
+                                value={
+                                    booking.financeHistory?.length
+                                        ? `${formatDate(
+                                              String(
+                                                  booking.financeHistory[
+                                                      booking.financeHistory.length - 1
+                                                  ]?.editedAt,
+                                              ),
+                                          )} • ${
+                                              booking.financeHistory[
+                                                  booking.financeHistory.length - 1
+                                              ]?.editedByName || '—'
+                                          }`
+                                        : booking.updatedAt
+                                            ? formatDate(String(booking.updatedAt))
+                                            : '—'
+                                }
+                            />
+                            <InfoRow
                                 label="Balance"
                                 value={`₹${booking.financial?.balanceAmount?.toLocaleString()}`}
                                 valueColor="#F59E0B"
@@ -312,7 +305,7 @@ const BookingDetailContent = ({
             )}
             {!isLoading && (
                 <View
-                    className="absolute bottom-0 left-0 right-0 flex-row items-center justify-between px-5 py-4"
+                    className="absolute  bottom-0 left-0 right-0 flex-row items-center justify-between px-5 py-4"
                     style={{
                         backgroundColor: Dark.bg,
                         borderTopWidth: 1,

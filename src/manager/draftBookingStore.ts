@@ -54,6 +54,7 @@ export interface DraftBookingData {
         securityDeposit?: number;
         totalAmount?: number;
         advancePaid?: number;
+        finalPayment?: number;
         balanceAmount?: number;
         mode?: string;
         transactionNumber?: string;
