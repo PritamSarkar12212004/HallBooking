@@ -1,9 +1,12 @@
 export interface bookingListInterface {
     eventImage: string;
     eventName: string;
-    hallName: string;
     id: string;
     startDate: string;
     startTime: string;
-    takenBy: string
+    endTime: string;
+    totalAmount: number;
+    balanceAmount: number;
+    applicantName: string;
+    takenBy: string;
 }

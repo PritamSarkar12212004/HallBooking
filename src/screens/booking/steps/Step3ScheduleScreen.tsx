@@ -14,7 +14,7 @@ import {
 import { Divider } from 'react-native-paper';
 import MultiSelector from '../../../components/Selector/MultiSelector';
 import { BookingStepRoute } from '../../../const/routes/route';
-import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import { updateDraft } from '../../../manager/draftBookingStore';
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
@@ -24,7 +24,6 @@ const Step3ScheduleScreen = () => {
     const route = useRoute<any>();
     const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
-    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
 
@@ -74,9 +73,6 @@ const Step3ScheduleScreen = () => {
     }, [existingBooking]);
 
     const handleNext = async () => {
-        if (saving) {
-            return;
-        }
         if (!formValid) {
             showMessage({
                 message: 'Complete Required Fields',
@@ -85,39 +81,19 @@ const Step3ScheduleScreen = () => {
             });
             return;
         }
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
-        if (!user?.token) {
-            showMessage({
-                message: 'Authentication Error',
-                description: 'User token is missing.',
-                type: 'danger',
-            });
-            return;
-        }
 
+        // DRAFT SYSTEM: save the arrangements section locally — no API call.
         try {
-            await updateSectionAsync({
-                id: bookingId,
-                section: 'arrangements',
-                token: user.token,
-                data: {
-                    decoratorName,
-                    decoratorContact: decoratorContact.trim()
-                        ? decoratorContact
-                        : undefined,
-                    catererName,
-                    catererContact: catererContact.trim()
-                        ? catererContact
-                        : undefined,
-                    kitchenRequired: selectedKitchen[0] ?? 'No',
-                },
+            updateDraft('arrangements', {
+                decoratorName,
+                decoratorContact: decoratorContact.trim()
+                    ? decoratorContact
+                    : undefined,
+                catererName,
+                catererContact: catererContact.trim()
+                    ? catererContact
+                    : undefined,
+                kitchenRequired: selectedKitchen[0] ?? 'No',
             });
 
             navigation.navigate(BookingStepRoute.Step4Attendance, {
@@ -125,9 +101,8 @@ const Step3ScheduleScreen = () => {
             });
         } catch (error: any) {
             showMessage({
-                message: 'Save Failed',
+                message: 'Draft Save Failed',
                 description:
-                    error?.response?.data?.message ||
                     error?.message ||
                     'Please try again.',
                 type: 'danger',
@@ -228,7 +203,7 @@ const Step3ScheduleScreen = () => {
             <MainButton
                 title="Next"
                 actionFunc={handleNext}
-                loader={saving || loadingBooking}
+                loader={loadingBooking}
                 disabled={!formValid}
             />
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Image } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Camera } from 'lucide-react-native';
 
 import Wrapper from '../../../layouts/wraper/Wraper';
@@ -19,6 +19,11 @@ import { BookingStepRoute } from '../../../const/routes/route';
 import { capturePhoto } from '../../../module/ImagePickerModule';
 import uploadImage from '../../../services/Cloudinary/uploadImg';
 import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import useCreateBooking from '../../../api/booking/hooks/useCreateBooking';
+import {
+    getDraft,
+    clearDraft,
+} from '../../../manager/draftBookingStore';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
 
@@ -28,10 +33,9 @@ const term =
 
 const Step6DecorationScreen = () => {
     const navigation = useNavigation<any>();
-    const route = useRoute<any>();
-    const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
     const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
+    const { createBookingAsync } = useCreateBooking();
 
     const [loader, setLoader] = useState(false);
 
@@ -76,14 +80,6 @@ const Step6DecorationScreen = () => {
             });
             return;
         }
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
         if (!user?.token) {
             showMessage({
                 message: 'Authentication Error',
@@ -107,29 +103,89 @@ const Step6DecorationScreen = () => {
                 managerPhoto = up.secure_url;
             }
 
+            // DRAFT SYSTEM: the booking is created ONLY here, on "Done".
+            const draft = getDraft();
+            if (!draft) {
+                throw new Error('Draft booking data is missing. Please restart from Halls screen.');
+            }
+
+            const res = await createBookingAsync({
+                bookingType: draft.bookingType ?? '1 Day',
+                startDate: draft.startDate ?? '',
+                endDate: draft.endDate ?? '',
+                startTime: draft.startTime ?? '',
+                endTime: draft.endTime ?? '',
+                eventName: draft.eventName ?? '',
+                bookedByStaff: draft.bookedByStaff ?? '',
+                eventImage: draft.eventImage,
+                allocatedTeam: draft.allocatedTeam ?? [],
+                token: user.token,
+            });
+
+            const newBookingId = res?.booking?._id;
+            if (!newBookingId) {
+                throw new Error('Booking id missing in response');
+            }
+
+            // Push every saved draft section to the backend in order.
+            if (draft.applicant) {
+                await updateSectionAsync({
+                    id: newBookingId,
+                    section: 'applicant',
+                    token: user.token,
+                    data: draft.applicant,
+                });
+            }
+            if (draft.event) {
+                await updateSectionAsync({
+                    id: newBookingId,
+                    section: 'event',
+                    token: user.token,
+                    data: draft.event,
+                });
+            }
+            if (draft.arrangements) {
+                await updateSectionAsync({
+                    id: newBookingId,
+                    section: 'arrangements',
+                    token: user.token,
+                    data: draft.arrangements,
+                });
+            }
+            if (draft.payment) {
+                await updateSectionAsync({
+                    id: newBookingId,
+                    section: 'payment',
+                    token: user.token,
+                    data: draft.payment,
+                });
+            }
             await updateSectionAsync({
-                id: bookingId,
+                id: newBookingId,
                 section: 'declaration',
                 token: user.token,
                 data: {
                     applicantSignature: applicantPhoto,
                     managerSignature: managerPhoto,
-                    termsAccepted: true,
+                    termsAccepted: draft.termsAccepted ?? true,
                 },
             });
 
+            // Draft is now a real booking — clear the local draft.
+            clearDraft();
+
             // Form confirmed — show the success animation, then the
-            // success screen auto-redirects to the Bookings tab.
+            // success screen auto-redirects to the Bookings tab (fresh fetch).
             navigation.replace(
                 BookingStepRoute.BookingSuccess,
                 {
-                    bookingId,
-                    bookingNumber: route?.params?.bookingNumber,
+                    bookingId: newBookingId,
+                    bookingNumber: res?.booking?.bookingNumber,
                 }
             );
         } catch (error: any) {
             showMessage({
-                message: 'Save Failed',
+                message: 'Booking Create Failed',
                 description:
                     error?.response?.data?.message ||
                     error?.message ||

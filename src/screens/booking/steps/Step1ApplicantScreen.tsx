@@ -27,26 +27,32 @@ import { BookingStepRoute } from '../../../const/routes/route';
 import MainButton from '../../../components/buttons/MainButton';
 import { Divider } from 'react-native-paper';
 import uploadImage from '../../../services/Cloudinary/uploadImg';
-import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
-import { useAppSelector } from '../../../hooks/redux/redux';
+import {
+    getDraft,
+    updateDraft,
+} from '../../../manager/draftBookingStore';
 import { showMessage } from 'react-native-flash-message';
 
 const Step1ApplicantScreen = ({ navigation, route }: any) => {
     const bookingId = route?.params?.bookingId as string | undefined;
-    const user = useAppSelector((state) => state.user.user);
-    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
+    // Prefill from the local draft (if the user is coming back).
+    const draftApplicant = getDraft()?.applicant;
+    const [applicantName, setApplicantName] = useState(draftApplicant?.name ?? '');
+    const [organization, setOrganization] = useState(draftApplicant?.organization ?? '');
+    const [mobileNumber, setMobileNumber] = useState(draftApplicant?.mobile ?? '');
+    const [address, setAddress] = useState(draftApplicant?.address ?? '');
+    const [email, setEmail] = useState(draftApplicant?.email ?? '');
 
-    const [applicantName, setApplicantName] = useState('');
-    const [organization, setOrganization] = useState('');
-    const [mobileNumber, setMobileNumber] = useState('');
-    const [address, setAddress] = useState('');
-    const [email, setEmail] = useState('');
     const [loader, setloader] = useState<boolean>(false)
     const [mobileTouched, setMobileTouched] = useState(false);
     const [emailTouched, setEmailTouched] = useState(false);
-    const [img, setImg] = useState<any>(null);
+    const [img, setImg] = useState<any>(
+        draftApplicant?.governmentIdPhoto
+            ? { uri: draftApplicant.governmentIdPhoto }
+            : null,
+    );
     const [selectedId, setSelectedId] =
-        useState<any | null>(null);
+        useState<any | null>(draftApplicant?.governmentIdType ?? null);
 
     // Mobile: allow digits only, capped at 10.
     const handleMobileChange = useCallback((text: string) => {
@@ -111,7 +117,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
     }, []);
 
     const handleNext = useCallback(async () => {
-        if (saving || loader) {
+        if (loader) {
             return;
         }
 
@@ -126,46 +132,25 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
             return;
         }
 
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
-
-        if (!user?.token) {
-            showMessage({
-                message: 'Authentication Error',
-                description: 'User token is missing.',
-                type: 'danger',
-            });
-            return;
-        }
-
+        // DRAFT SYSTEM: save the applicant section locally — no API call.
+        // Government ID photo is uploaded to Cloudinary now so the final
+        // create has a URL ready.
         setloader(true)
         try {
-            // Upload government ID photo to Cloudinary if a new image was chosen.
             let governmentIdPhoto = '';
             if (img?.uri) {
                 const uploaded = await uploadImage(img.uri);
                 governmentIdPhoto = uploaded.secure_url;
             }
 
-            await updateSectionAsync({
-                id: bookingId,
-                section: 'applicant',
-                token: user.token,
-                data: {
-                    name: applicantName,
-                    organization,
-                    mobile: mobileNumber,
-                    address,
-                    email,
-                    governmentIdType: selectedId ?? undefined,
-                    governmentIdPhoto,
-                },
+            updateDraft('applicant', {
+                name: applicantName,
+                organization,
+                mobile: mobileNumber,
+                address,
+                email,
+                governmentIdType: selectedId ?? undefined,
+                governmentIdPhoto,
             });
 
             navigation.navigate(BookingStepRoute.Step2Event, {
@@ -182,7 +167,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
             });
         } catch (error: any) {
             showMessage({
-                message: 'Save Failed',
+                message: 'Upload Failed',
                 description:
                     error?.response?.data?.message ||
                     error?.message ||
@@ -195,11 +180,8 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
         }
 
     }, [
-        saving,
         loader,
         formValid,
-        bookingId,
-        user,
         applicantName,
         organization,
         mobileNumber,
@@ -207,9 +189,9 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
         email,
         selectedId,
         img,
-        updateSectionAsync,
         navigation,
-    ]);
+        bookingId,
+    ])
 
     return (
         <Wrapper safeBottom>
@@ -315,7 +297,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
                 />
 
             </ScrollView>
-            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving} disabled={!formValid} />
+            <MainButton title="Next" actionFunc={handleNext} loader={loader} disabled={!formValid} />
         </Wrapper>
     );
 };

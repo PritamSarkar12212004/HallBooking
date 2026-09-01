@@ -68,10 +68,10 @@ const BookingListScreen = ({ navigation }: any) => {
                         setvalue={setSearch}
                     />
 
-                    <FlatList<bookingListInterface>
+                    <FlatList
                         data={typedBookings}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => <BookingListCard item={item} actionPress={navigateDetiles} />}
+                        keyExtractor={(item: any) => item.id}
+                        renderItem={({ item }) => <BookingListCard item={item as bookingListInterface} actionPress={navigateDetiles} />}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl

@@ -20,10 +20,9 @@ import MainButton from '../../../components/buttons/MainButton';
 
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
-import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import { updateDraft } from '../../../manager/draftBookingStore';
 import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
 import { useAppSelector } from '../../../hooks/redux/redux';
-import { showMessage } from 'react-native-flash-message';
 import TermsSkeleton from '../../../ui/Skeleton/TermsSkeleton';
 
 const Step4AttendanceScreen = () => {
@@ -32,7 +31,6 @@ const Step4AttendanceScreen = () => {
     const route = useRoute<any>();
     const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
-    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
     const { meta, isLoading: loadingTerms, isError: termsError } =
         useGetBookingMeta(user?.token);
 
@@ -45,8 +43,8 @@ const Step4AttendanceScreen = () => {
     const [loader, setLoader] = useState(false);
 
     const isNextDisabled = useMemo(
-        () => !accepted || loader || saving || loadingTerms,
-        [accepted, loader, saving, loadingTerms]
+        () => !accepted || loader || loadingTerms,
+        [accepted, loader, loadingTerms]
     );
 
     const handleAccept = () => {
@@ -58,48 +56,16 @@ const Step4AttendanceScreen = () => {
         if (!accepted) {
             return;
         }
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
-        if (!user?.token) {
-            showMessage({
-                message: 'Authentication Error',
-                description: 'User token is missing.',
-                type: 'danger',
-            });
-            return;
-        }
 
+        // DRAFT SYSTEM: just mark terms accepted in the local draft — no API call.
         setLoader(true);
         try {
-            await updateSectionAsync({
-                id: bookingId,
-                section: 'declaration',
-                token: user.token,
-                data: {
-                    termsAccepted: true,
-                },
-            });
+            updateDraft('termsAccepted', true);
 
             navigation.navigate(
                 BookingStepRoute.Step5Requirements,
                 { bookingId }
             );
-        } catch (error: any) {
-            showMessage({
-                message: 'Save Failed',
-                description:
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    'Please try again.',
-                type: 'danger',
-                duration: 3000,
-            });
         } finally {
             setLoader(false);
         }

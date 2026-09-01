@@ -37,8 +37,11 @@ import CamGalPickerButton from '../../../components/buttons/CamGalPickerButton';
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
 import uploadImage from '../../../services/Cloudinary/uploadImg';
-import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
+import {
+    getDraft,
+    updateDraft,
+} from '../../../manager/draftBookingStore';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
 import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
@@ -49,18 +52,48 @@ const Step5RequirementsScreen = () => {
     const route = useRoute<any>();
     const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
-    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
     const { meta } = useGetBookingMeta(user?.token);
     const upiInfo = meta?.upi;
 
-    const [instrument, setInstrument] = useState('');
-    const [securityDeposit, setSecurityDeposit] = useState('');
-    const [totalAmount, setTotalAmount] = useState('');
-    const [advancePaid, setAdvancePaid] = useState('');
-    const [hallRent, setHallRent] = useState('');
-    const [paymentMode, setPaymentMode] = useState<string[]>([]);
+    const [instrument, setInstrument] = useState(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.instrument ? String(d.instrument) : '';
+        },
+    );
+    const [securityDeposit, setSecurityDeposit] = useState(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.securityDeposit ? String(d.securityDeposit) : '';
+        },
+    );
+    const [totalAmount, setTotalAmount] = useState(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.totalAmount ? String(d.totalAmount) : '';
+        },
+    );
+    const [advancePaid, setAdvancePaid] = useState(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.advancePaid ? String(d.advancePaid) : '';
+        },
+    );
+    const [hallRent, setHallRent] = useState(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.hallRent ? String(d.hallRent) : '';
+        },
+    );
+    const [paymentMode, setPaymentMode] = useState<string[]>(
+        () => {
+            const d = getDraft()?.payment;
+            return d?.mode ? [d.mode] : [];
+        },
+    );
+    const [, setloader] = useState(false);
 
     const paymentModes = [
         'Cash',
@@ -238,9 +271,6 @@ const Step5RequirementsScreen = () => {
     };
 
     const handleNext = async () => {
-        if (saving) {
-            return;
-        }
         if (!formValid) {
             showMessage({
                 message: 'Complete Required Fields',
@@ -249,23 +279,8 @@ const Step5RequirementsScreen = () => {
             });
             return;
         }
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
-        if (!user?.token) {
-            showMessage({
-                message: 'Authentication Error',
-                description: 'User token is missing.',
-                type: 'danger',
-            });
-            return;
-        }
 
+        setloader(true);
         try {
             // Upload payment proof to Cloudinary if a new image was chosen.
             let paymentProofPhoto = '';
@@ -274,21 +289,17 @@ const Step5RequirementsScreen = () => {
                 paymentProofPhoto = uploaded.secure_url;
             }
 
-            await updateSectionAsync({
-                id: bookingId,
-                section: 'payment',
-                token: user.token,
-                data: {
-                    hallRent: hallRentNum || undefined,
-                    instrument: instrumentNum || undefined,
-                    securityDeposit: securityDepositNum || undefined,
-                    totalAmount: effectiveTotal || undefined,
-                    advancePaid: advanceNum || undefined,
-                    balanceAmount: effectiveBalance || undefined,
-                    mode: paymentMode[0] ?? undefined,
-                    transactionNumber: requiresTransaction ? transactionNumber : undefined,
-                    paymentProofPhoto,
-                },
+            // DRAFT SYSTEM: save the payment section locally — no API call.
+            updateDraft('payment', {
+                hallRent: hallRentNum || undefined,
+                instrument: instrumentNum || undefined,
+                securityDeposit: securityDepositNum || undefined,
+                totalAmount: effectiveTotal || undefined,
+                advancePaid: advanceNum || undefined,
+                balanceAmount: effectiveBalance || undefined,
+                mode: paymentMode[0] ?? undefined,
+                transactionNumber: requiresTransaction ? transactionNumber : undefined,
+                paymentProofPhoto,
             });
 
             navigation.navigate(BookingStepRoute.Step6Decoration, {
@@ -296,7 +307,7 @@ const Step5RequirementsScreen = () => {
             });
         } catch (error: any) {
             showMessage({
-                message: 'Save Failed',
+                message: 'Upload Failed',
                 description:
                     error?.response?.data?.message ||
                     error?.message ||
@@ -304,6 +315,8 @@ const Step5RequirementsScreen = () => {
                 type: 'danger',
                 duration: 3000,
             });
+        } finally {
+            setloader(false);
         }
     };
     return (
@@ -562,7 +575,7 @@ const Step5RequirementsScreen = () => {
             <MainButton
                 title="Next"
                 actionFunc={handleNext}
-                loader={saving || loadingBooking}
+                loader={loadingBooking}
                 disabled={!formValid}
             />
 

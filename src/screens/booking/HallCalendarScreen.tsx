@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Image, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
 import { Alert } from 'react-native';
 import type { Asset } from 'react-native-image-picker';
-
 import Wrapper from '../../layouts/wraper/Wraper';
-
 import DateButton from '../../components/buttons/DateButton';
 import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
@@ -14,13 +12,13 @@ import { Building2, Camera, ImagePlus, PanelsTopLeft, Trash2, UploadCloud, UserR
 import { Divider } from 'react-native-paper';
 import { MainRoute } from '../../const/routes/route';
 import TimePicker from '../../components/picker/TimePicker';
-import useCreateBooking from '../../api/booking/hooks/useCreateBooking';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
 import SubHeader from '../../components/header/SubHeader';
 import { Theme } from '../../const/theme/Theme';
 import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
 import uploadImage from '../../services/Cloudinary/uploadImg';
+import { startDraft } from '../../manager/draftBookingStore';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -48,7 +46,6 @@ const todayString = formatDate(today);
 
 const HallCalendarScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
-    const { createBookingAsync, isLoading: creatingBooking } = useCreateBooking();
 
     const [startDate, setStartDate] = useState(todayString);
     const [endDate, setEndDate] = useState(todayString);
@@ -220,7 +217,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
         !!eventImageUrl;
 
     const actionPress = async () => {
-        if (!isFormValid || loader || creatingBooking) {
+        if (!isFormValid || loader) {
             return;
         }
 
@@ -235,7 +232,10 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
         setLoader(true)
         try {
-            const res = await createBookingAsync({
+            // DRAFT SYSTEM: nothing is created in the backend yet. The base
+            // details are stored locally; the booking is created only when
+            // the last step's "Done" is pressed.
+            startDraft({
                 bookingType: selectedDayType[0] || '1 Day',
                 startDate,
                 endDate,
@@ -245,19 +245,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 bookedByStaff: bookingTakenBy,
                 eventImage: eventImageUrl ?? undefined,
                 allocatedTeam: selectedStaff,
-                token: user.token,
             });
 
-            // res.data = { booking, nextSteps }
-            const booking = res?.booking;
-            if (!booking?._id) {
-                throw new Error('Booking id missing in response');
-            }
-
-            navigation.navigate(MainRoute.NewBooking, {
-                bookingId: booking._id,
-                bookingNumber: booking.bookingNumber,
-            });
+            navigation.navigate(MainRoute.NewBooking, {});
         } catch (error: any) {
             showMessage({
                 message: 'Booking Create Failed',

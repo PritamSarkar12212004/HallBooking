@@ -15,9 +15,12 @@ import {
 import MainButton from '../../../components/buttons/MainButton';
 import { BookingStepRoute } from '../../../const/routes/route';
 import InputField from '../../../components/input/InputField';
-import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
 import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
+import {
+    getDraft,
+    updateDraft,
+} from '../../../manager/draftBookingStore';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
 import EventDetailsSkeleton from '../../../ui/Skeleton/EventDetailsSkeleton';
@@ -55,7 +58,6 @@ const Step2EventScreen = () => {
     const route = useRoute<any>();
     const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
-    const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
     const {
@@ -77,12 +79,20 @@ const Step2EventScreen = () => {
     const [customEventType, setCustomEventType] = useState('');
     const [customRequirement, setCustomRequirement] = useState('');
 
-    const [expectedAttendance, setExpectedAttendance] = useState('');
+    const [expectedAttendance, setExpectedAttendance] = useState(
+        () => {
+            const d = getDraft()?.event;
+            return d?.expectedAttendance ? String(d.expectedAttendance) : '';
+        },
+    );
     const [selectedEventType, setSelectedEventType] =
-        useState<string[]>([]);
+        useState<string[]>(() => {
+            const d = getDraft()?.event;
+            return d?.type ? [d.type] : [];
+        });
 
     const [selectedRequirements, setSelectedRequirements] =
-        useState<string[]>([]);
+        useState<string[]>(() => getDraft()?.event?.requirements ?? []);
 
     const selectEventType = (name: string) => {
         setSelectedEventType(prev =>
@@ -222,7 +232,7 @@ const Step2EventScreen = () => {
     );
 
     const handleNext = async () => {
-        if (saving || loader) {
+        if (loader) {
             return;
         }
         if (!formValid) {
@@ -233,48 +243,18 @@ const Step2EventScreen = () => {
             });
             return;
         }
-        if (!bookingId) {
-            showMessage({
-                message: 'Booking Error',
-                description: 'Booking id is missing. Please restart from Halls screen.',
-                type: 'danger',
-            });
-            return;
-        }
-        if (!user?.token) {
-            showMessage({
-                message: 'Authentication Error',
-                description: 'User token is missing.',
-                type: 'danger',
-            });
-            return;
-        }
 
+        // DRAFT SYSTEM: save the event section locally — no API call.
         setloader(true)
         try {
-            await updateSectionAsync({
-                id: bookingId,
-                section: 'event',
-                token: user.token,
-                data: {
-                    expectedAttendance: Number(expectedAttendance) || undefined,
-                    type: selectedEventType[0] ?? undefined,
-                    requirements: selectedRequirements,
-                },
+            updateDraft('event', {
+                expectedAttendance: Number(expectedAttendance) || undefined,
+                type: selectedEventType[0] ?? undefined,
+                requirements: selectedRequirements,
             });
 
             navigation.navigate(BookingStepRoute.Step3Schedule, {
                 bookingId,
-            });
-        } catch (error: any) {
-            showMessage({
-                message: 'Save Failed',
-                description:
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    'Please try again.',
-                type: 'danger',
-                duration: 3000,
             });
         } finally {
             setloader(false)
@@ -429,7 +409,7 @@ const Step2EventScreen = () => {
                     </>
                 )}
             </ScrollView>
-            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving || loadingBooking || loadingMeta} disabled={!formValid} />
+            <MainButton title="Next" actionFunc={handleNext} loader={loader || loadingBooking || loadingMeta} disabled={!formValid} />
         </Wrapper>
     );
 };
