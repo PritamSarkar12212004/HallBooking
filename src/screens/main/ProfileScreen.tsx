@@ -241,7 +241,7 @@ const ProfileScreen = ({ navigation }: any) => {
                             edit={activeEdit}
                         />
                     </View>
-                    <View className="w-full mt-4">
+                    <View className="w-full">
                         <InputField
                             title="Email"
                             value={email}
@@ -252,7 +252,7 @@ const ProfileScreen = ({ navigation }: any) => {
                             edit={activeEdit}
                         />
                     </View>
-                    <View className="w-full mt-4">
+                    <View className="w-full">
                         <InputField
                             title="City"
                             value={city}
@@ -263,7 +263,7 @@ const ProfileScreen = ({ navigation }: any) => {
                             edit={activeEdit}
                         />
                     </View>
-                    <View className="w-full mt-4">
+                    <View className="w-full">
                         <InputField
                             title="Phone Number"
                             value={number}
@@ -274,7 +274,7 @@ const ProfileScreen = ({ navigation }: any) => {
                             edit={false}
                         />
                     </View>
-                    <View className="w-full mt-4">
+                    <View className="w-full">
                         <InputField
                             title="Gender"
                             value={
@@ -297,7 +297,7 @@ const ProfileScreen = ({ navigation }: any) => {
                             <MainButton title="Save Changes" actionFunc={handleSave} Icon={Check} loader={saving} disabled={saving} />
                         )}
                     </View>
-                    <View className="w-full mt-8 mb-8">
+                    <View className="w-full mb-8">
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={handleLogout}

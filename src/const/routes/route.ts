@@ -11,7 +11,7 @@ export const route = {
 export const TabRoute = {
     Home: "Home",
     Bookings: "Bookings",
-    Halls: "Halls",
+    Notification: "Notification",
     Profile: "Profile",
     Staff: "Staff",
     Dashboard: "Dashboard",
@@ -24,6 +24,7 @@ export const MainRoute = {
     BookingDetail: "BookingDetail",
     AddPayment: "AddPayment",
     EditFinance: "EditFinance",
+    PaymentTrackRecord: "PaymentTrackRecord",
     HandoverChecklist: "HandoverChecklist",
     OfficeApproval: "OfficeApproval",
     StaffActivity: "StaffActivity",

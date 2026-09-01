@@ -1,11 +1,11 @@
 import React from 'react'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { SafeAreaView, View, TouchableOpacity } from '../../lib/style/withTailwind';
-import { CalendarDays, ClipboardList, House, UserRound, BarChart3, Users } from 'lucide-react-native';
+import { CalendarDays, ClipboardList, House, UserRound, BarChart3, Users, Bell } from 'lucide-react-native';
 import { Theme } from '../../const/theme/Theme';
 
-const staffTabIcons = [House, CalendarDays, ClipboardList, UserRound];
-const ceoTabIcons = [BarChart3, ClipboardList, CalendarDays, Users, UserRound];
+const staffTabIcons = [House, CalendarDays, Bell, UserRound];
+const ceoTabIcons = [BarChart3, ClipboardList, Bell, Users, UserRound];
 
 const TabUiNavi = React.memo(
     ({ state, descriptors, navigation }: BottomTabBarProps) => {

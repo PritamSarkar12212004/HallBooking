@@ -45,6 +45,7 @@ const DashHeader = ({ navigation, name, photo }: {
     }, []);
 
     const handleNotificationPress = () => {
+        navigation.navigate(TabRoute.Notification);
     };
 
     const handleProfilePress = () => {

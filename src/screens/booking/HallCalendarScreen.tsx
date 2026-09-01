@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from '../../lib/style/withTailwind';
+import { ScrollView, Image, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
+import { Alert } from 'react-native';
+import type { Asset } from 'react-native-image-picker';
 
 import Wrapper from '../../layouts/wraper/Wraper';
-import MainDerder from '../../components/header/MainDerder';
 
 import DateButton from '../../components/buttons/DateButton';
 import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
 import DatePickerModal from '../../components/picker/DatePickerModal';
-import { Building2, PanelsTopLeft, UserRound } from 'lucide-react-native';
+import { Building2, Camera, ImagePlus, PanelsTopLeft, Trash2, UploadCloud, UserRound } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
 import { MainRoute } from '../../const/routes/route';
 import TimePicker from '../../components/picker/TimePicker';
@@ -17,6 +18,9 @@ import useCreateBooking from '../../api/booking/hooks/useCreateBooking';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
 import SubHeader from '../../components/header/SubHeader';
+import { Theme } from '../../const/theme/Theme';
+import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
+import uploadImage from '../../services/Cloudinary/uploadImg';
 
 const staffMembers = [
     'Rahul Kumar',
@@ -54,6 +58,10 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
     const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
 
+    const [eventPhotoUri, setEventPhotoUri] = useState<string | null>(null);
+    const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+
     const [calendarVisible, setCalendarVisible] = useState(false);
 
     const [activeField, setActiveField] = useState<'start' | 'end'>('start');
@@ -71,6 +79,60 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 ? prev.filter(n => n !== name)
                 : [...prev, name]
         );
+    };
+
+    const processPhoto = async (photo: Asset | null) => {
+        if (!photo?.uri) return;
+
+        const localUri = (photo.uri as string) ?? null;
+        setEventPhotoUri(localUri);
+        setEventImageUrl(null);
+        setUploadingImage(true);
+
+        try {
+            const uploaded = await uploadImage(localUri);
+            setEventImageUrl(uploaded.secure_url);
+        } catch (error: any) {
+            console.log('Upload Error:', error);
+            showMessage({
+                message: 'Upload Failed',
+                description: 'Could not upload the photo. Please try again.',
+                type: 'danger',
+            });
+            setEventPhotoUri(null);
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const choosePhotoSource = () => {
+        Alert.alert(
+            'Event Photo',
+            'Choose where to take/select the photo',
+            [
+                {
+                    text: 'Take Photo',
+                    onPress: async () => {
+                        const photo = await capturePhoto({ cameraType: 'back' });
+                        await processPhoto(photo);
+                    },
+                },
+                {
+                    text: 'Choose from Gallery',
+                    onPress: async () => {
+                        const photo = await pickFromGallery();
+                        await processPhoto(photo);
+                    },
+                },
+                { text: 'Cancel', style: 'cancel' },
+            ],
+            { cancelable: true },
+        );
+    };
+
+    const removePhoto = () => {
+        setEventPhotoUri(null);
+        setEventImageUrl(null);
     };
 
     const openCalendar = (field: 'start' | 'end') => {
@@ -154,7 +216,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
         startTime.trim().length > 0 &&
         endTime.trim().length > 0 &&
         bookingName.trim().length > 0 &&
-        bookingTakenBy.trim().length > 0;
+        bookingTakenBy.trim().length > 0 &&
+        !!eventImageUrl;
 
     const actionPress = async () => {
         if (!isFormValid || loader || creatingBooking) {
@@ -180,6 +243,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 endTime,
                 eventName: bookingName,
                 bookedByStaff: bookingTakenBy,
+                eventImage: eventImageUrl ?? undefined,
                 allocatedTeam: selectedStaff,
                 token: user.token,
             });
@@ -333,6 +397,105 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     selection="Multiple select"
                     Icon={PanelsTopLeft}
                 />
+
+                <View className="mb-3 mt-2">
+                    <Divider />
+                </View>
+
+                <Text className="text-sm font-semibold mb-3" style={{ color: Theme.text.secondary }}>
+                    EVENT PHOTO *
+                </Text>
+
+                {eventPhotoUri ? (
+                    <View
+                        className="rounded-2xl overflow-hidden mb-3"
+                        style={{ backgroundColor: Theme.background.secondary }}
+                    >
+                        <Image
+                            source={{ uri: eventPhotoUri }}
+                            className="w-full"
+                            style={{ height: 180 }}
+                            resizeMode="cover"
+                        />
+                        <View className="flex-row items-center justify-between p-3">
+                            <Text className="text-xs" style={{ color: Theme.text.secondary }}>
+                                {uploadingImage ? 'Uploading photo...' : 'Photo ready to upload'}
+                            </Text>
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={removePhoto}
+                                className="flex-row items-center px-3 py-2 rounded-lg"
+                                style={{ backgroundColor: Theme.background.third }}
+                            >
+                                <Trash2 size={15} color="#F87171" />
+                                <Text className="ml-1.5 text-xs font-semibold" style={{ color: '#F87171' }}>
+                                    Remove
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={choosePhotoSource}
+                        className="rounded-2xl border-2 border-dashed items-center justify-center py-10 mb-4"
+                        style={{
+                            borderColor: Theme.border.primary,
+                            backgroundColor: Theme.background.secondary,
+                        }}
+                    >
+                        {uploadingImage ? (
+                            <>
+                                <UploadCloud size={30} color={Theme.button.primary} />
+                                <Text className="mt-2 text-sm font-semibold" style={{ color: Theme.text.primary }}>
+                                    Uploading...
+                                </Text>
+                            </>
+                        ) : (
+                            <>
+                                <ImagePlus size={30} color={Theme.button.primary} />
+                                <Text className="mt-2 text-sm font-semibold" style={{ color: Theme.text.primary }}>
+                                    Add Event Photo
+                                </Text>
+                                <Text className="mt-1 text-xs" style={{ color: Theme.text.secondary }}>
+                                    Take a photo or choose from gallery
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
+
+                <View className="flex-row gap-3 mb-2">
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={async () => {
+                            const photo = await capturePhoto({ cameraType: 'back' });
+                            await processPhoto(photo);
+                        }}
+                        className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                        style={{ backgroundColor: Theme.background.third }}
+                    >
+                        <Camera size={16} color={Theme.button.primary} />
+                        <Text className="ml-2 text-sm font-semibold" style={{ color: Theme.text.primary }}>
+                            Camera
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={async () => {
+                            const photo = await pickFromGallery();
+                            await processPhoto(photo);
+                        }}
+                        className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                        style={{ backgroundColor: Theme.background.third }}
+                    >
+                        <ImagePlus size={16} color={Theme.button.primary} />
+                        <Text className="ml-2 text-sm font-semibold" style={{ color: Theme.text.primary }}>
+                            Gallery
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
 
             <MainButton

@@ -2,6 +2,7 @@ import React from 'react';
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
 import { Image, ScrollView, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
+import { useAppDrawer } from '../../components/navigation/AppDrawer';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { Theme } from '../../const/theme/Theme';
@@ -15,7 +16,7 @@ import {
     Mail,
     Building2,
     Tag,
-    Edit,
+    EllipsisVertical,
 } from 'lucide-react-native';
 import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
 import BookingDetailSkeleton from '../../ui/Skeleton/BookingDetailSkeleton';
@@ -52,19 +53,71 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
     }
     return (
         <Wrapper safeBottom>
+            <BookingDetailContent
+                navigation={navigation}
+                route={route}
+                booking={booking}
+                isLoading={isLoading}
+                statusColor={statusColor}
+            />
+        </Wrapper>
+    );
+};
+
+const BookingDetailContent = ({
+    navigation,
+    route,
+    booking,
+    isLoading,
+    statusColor,
+}: any) => {
+    const { openDrawer } = useAppDrawer();
+
+    return (
+        <>
             <SubHeader navigation={navigation} title="Booking Details" comp={
 
                 !isLoading && <TouchableOpacity
-                    className=" flex items-center"
                     activeOpacity={0.8}
                     onPress={() =>
-                        navigation.navigate(MainRoute.EditFinance, {
-                            id: booking?._id ?? route.params?.id,
-                        })
+                        openDrawer(
+                            [
+                                {
+                                    title: 'BOOKING ACTIONS',
+                                    items: [
+                                        {
+                                            key: 'payment',
+                                            icon: 'receipt',
+                                            label: 'Payment Track Record',
+                                            onPress: () =>
+                                                navigation.navigate(
+                                                    MainRoute.PaymentTrackRecord,
+                                                    { id: booking?._id ?? route.params?.id },
+                                                ),
+                                        },
+                                        {
+                                            key: 'finance',
+                                            icon: 'wallet',
+                                            label: 'Update Finance',
+                                            onPress: () =>
+                                                navigation.navigate(
+                                                    MainRoute.EditFinance,
+                                                    { id: booking?._id ?? route.params?.id },
+                                                ),
+                                        },
+                                    ],
+                                },
+                            ],
+                            {
+                                title: 'Booking Details',
+                                subtitle: 'Manage this booking',
+                            },
+                        )
                     }
+                    className="w-10 h-10 rounded-xl items-center justify-center"
                     style={{ backgroundColor: Theme.background.secondary }}
                 >
-                    <Edit size={20} color={Theme.button.primary} />
+                    <EllipsisVertical size={20} color={Theme.button.primary} />
                 </TouchableOpacity>
             }
             />
@@ -77,7 +130,8 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                         <View className="relative rounded-3xl overflow-hidden">
                             <Image
                                 source={{
-                                    uri: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1469&auto=format&fit=crop',
+                                    uri: booking?.eventImage ||
+                                        'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1469&auto=format&fit=crop',
                                 }}
                                 className="w-full"
                                 style={{ aspectRatio: 2 / 1 }}
@@ -111,9 +165,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                         </Text>
                     </View>
 
-                    {/* ========== INFO CARDS ========== */}
                     <View className=" mt-6 gap-3">
-                        {/* Event Type */}
                         <View
                             className="flex-row items-center p-4 rounded-2xl"
                             style={{ backgroundColor: Theme.background.secondary }}
@@ -134,7 +186,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                             </View>
                         </View>
 
-                        {/* Date & Time */}
                         <View
                             className="flex-row items-center p-4 rounded-2xl"
                             style={{ backgroundColor: Theme.background.secondary }}
@@ -158,7 +209,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                             </View>
                         </View>
 
-                        {/* Schedule End */}
                         <View
                             className="flex-row items-center p-4 rounded-2xl"
                             style={{ backgroundColor: Theme.background.secondary }}
@@ -180,7 +230,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                         </View>
                     </View>
 
-                    {/* ========== APPLICANT ========== */}
                     <View className=" mt-8">
                         <Text
                             className="text-sm font-semibold mb-3"
@@ -201,7 +250,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                         </View>
                     </View>
 
-                    {/* ========== FINANCIAL ========== */}
                     <View className=" mt-8">
                         <Text
                             className="text-sm font-semibold mb-3"
@@ -227,7 +275,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                         </View>
                     </View>
 
-                    {/* ========== TEAM ========== */}
                     {booking.allocatedTeam?.length > 0 && (
                         <View className=" mt-8">
                             <Text
@@ -262,7 +309,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
                     )}
                 </ScrollView>
             }
-        </Wrapper>
+        </>
     );
 };
 

@@ -131,7 +131,6 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
             {
                 onSuccess: () => {
                     setSaving(false);
-                    // Refetch the booking so Booking Detail shows the new values.
                     queryClient.invalidateQueries({
                         queryKey: ['booking', bookingId],
                     });

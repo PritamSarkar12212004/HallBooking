@@ -11,6 +11,7 @@ const createBookingApi = async (data: createDraftBookingInterface) => {
         endTime: data.endTime,
         eventName: data.eventName,
         bookedByStaff: data.bookedByStaff,
+        eventImage: data.eventImage,
         allocatedTeam: data.allocatedTeam ?? [],
     }, {
         headers: {

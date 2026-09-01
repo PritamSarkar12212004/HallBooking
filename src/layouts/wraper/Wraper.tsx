@@ -3,6 +3,7 @@ import { StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { Theme } from '../../const/theme/Theme';
+import AppDrawer from '../../components/navigation/AppDrawer';
 
 interface WrapperProps extends PropsWithChildren {
     style?: StyleProp<ViewStyle>;
@@ -47,7 +48,7 @@ const Wrapper = ({
                 style,
             ]}
         >
-            {children}
+            <AppDrawer>{children}</AppDrawer>
         </View>
     );
 };

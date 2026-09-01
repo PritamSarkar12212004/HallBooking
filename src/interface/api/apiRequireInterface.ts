@@ -29,6 +29,7 @@ export interface createDraftBookingInterface {
     endTime: string;
     eventName: string;
     bookedByStaff: string;
+    eventImage?: string;
     allocatedTeam?: string[];
     token: string;
 }
