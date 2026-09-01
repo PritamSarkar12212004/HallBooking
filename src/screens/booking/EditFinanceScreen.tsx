@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image } from 'react-native';
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
@@ -35,6 +35,7 @@ import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSection';
 import { useQueryClient } from '@tanstack/react-query';
 import uploadImage from '../../services/Cloudinary/uploadImg';
+import useGetBookingMeta from '../../api/booking/hooks/useGetBookingMeta';
 
 const paymentModes = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 
@@ -48,6 +49,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     });
 
     const financial = booking?.financial || {};
+    const upiInfo = useGetBookingMeta(user?.token).meta?.upi;
     const lastPayment =
         booking?.payments && booking.payments.length > 0
             ? booking.payments[booking.payments.length - 1]
@@ -98,28 +100,6 @@ const instrumentNum = num(instrument);
         effectiveTotal - advanceNum - instrumentNum - hallRentNum - finalNum,
     );
 
-    // Sum of every non-refundable component must not exceed the total.
-    const amountsExceed =
-        effectiveTotal > 0 &&
-        (advanceNum + finalNum + instrumentNum + hallRentNum) > effectiveTotal;
-
-    const warnedRef = useRef(false);
-    useEffect(() => {
-        if (amountsExceed && !warnedRef.current) {
-            warnedRef.current = true;
-            showMessage({
-                message: 'Invalid Amounts',
-                description:
-                    'Advance + Final Payment + Instrument + Hall Rent is more than the Total Amount.',
-                type: 'warning',
-                duration: 3500,
-            });
-        }
-        if (!amountsExceed) {
-            warnedRef.current = false;
-        }
-    }, [amountsExceed]);
-
     const requiresTransaction =
         paymentMode[0] === 'UPI' ||
         paymentMode[0] === 'Cheque' ||
@@ -136,7 +116,6 @@ const instrumentNum = num(instrument);
         const advanceOk = advanceNum > 0 && advanceNum <= effectiveTotal;
         const modeOk = paymentMode.length > 0;
         if (!totalOk || !advanceOk || !modeOk) return false;
-        if (amountsExceed) return false;
         if (requiresTransaction && transactionNumber.trim().length === 0) return false;
         if (requiresProof && !photo?.uri) return false;
         return true;
@@ -144,7 +123,6 @@ const instrumentNum = num(instrument);
         effectiveTotal,
         advanceNum,
         paymentMode,
-        amountsExceed,
         requiresTransaction,
         transactionNumber,
         requiresProof,
@@ -378,14 +356,6 @@ const instrumentNum = num(instrument);
                         ₹{(effectiveBalance || 0).toLocaleString()}
                     </Text>
                 </View>
-                {/* Inline warning (UI jump-free reserved slot) */}
-                <View style={{ minHeight: 18, justifyContent: 'center' }}>
-                    {amountsExceed ? (
-                        <Text className="text-xs" style={{ color: '#FF6B6B' }}>
-                            ⚠ Advance + Final Payment exceeds the Total Amount
-                        </Text>
-                    ) : null}
-                </View>
 
                 <MultiSelector
                     title="Mode of Payment"
@@ -395,6 +365,32 @@ const instrumentNum = num(instrument);
                     selection="Single select"
                     Icon={CreditCard}
                 />
+
+                {/* UPI: inline QR from backend — scan to pay */}
+                {paymentMode[0] === 'UPI' && upiInfo && (
+                    <View
+                        className="rounded-2xl p-4 items-center mb-4 mt-3"
+                        style={{ backgroundColor: Theme.background.secondary }}
+                    >
+                        <Text className="text-white text-base font-semibold mb-1">
+                            Scan to Pay (UPI)
+                        </Text>
+                        <Text className="text-[#8F8B91] text-xs mb-3">
+                            {upiInfo.name} • {upiInfo.id}
+                        </Text>
+                        <Image
+                            source={{ uri: upiInfo.qrUrl }}
+                            style={{ width: 200, height: 200, borderRadius: 12 }}
+                            resizeMode="contain"
+                        />
+                        <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
+                            Amount: ₹{(effectiveBalance || 0).toLocaleString()}
+                        </Text>
+                        <Text className="text-[#8F8B91] text-xs mt-1 text-center">
+                            Scan the QR with any UPI app, then add the payment proof below.
+                        </Text>
+                    </View>
+                )}
 
                 {requiresTransaction && (
                     <View className="mb-2 mt-3">
