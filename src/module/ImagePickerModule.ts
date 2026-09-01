@@ -3,6 +3,11 @@ import {
     launchImageLibrary,
     ImagePickerResponse,
 } from 'react-native-image-picker';
+import {
+    Alert,
+    PermissionsAndroid,
+    Platform,
+} from 'react-native';
 
 const handleImageResult = (
     result: ImagePickerResponse
@@ -18,6 +23,10 @@ const handleImageResult = (
             result.errorCode,
             result.errorMessage
         );
+        Alert.alert(
+            'Camera Error',
+            result.errorMessage || result.errorCode || 'Could not open the camera.',
+        );
         return null;
     }
 
@@ -30,16 +39,63 @@ const handleImageResult = (
     return photo;
 };
 
-export const capturePhoto = async ({ cameraType }: { cameraType: "back" | "back" | "front" }): Promise<any | null> => {
+// Android requires an explicit runtime grant for CAMERA (since it is
+// declared in the manifest). Without it launchCamera silently fails.
+const requestCameraPermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+        return true;
+    }
+    try {
+        const alreadyGranted = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.CAMERA,
+        );
+        if (alreadyGranted) {
+            return true;
+        }
+        const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.CAMERA,
+            {
+                title: 'Camera Permission',
+                message: 'HallBooking needs camera access to capture photos and signatures.',
+                buttonPositive: 'Allow',
+                buttonNegative: 'Deny',
+            },
+        );
+        return result === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (e) {
+        console.log('Camera permission error:', e);
+        return false;
+    }
+};
 
-    const result = await launchCamera({
-        mediaType: 'photo',
-        cameraType: cameraType ? cameraType : 'back',
-        quality: 0.8,
-        saveToPhotos: false,
-    });
+export const capturePhoto = async ({ cameraType }: { cameraType: "back" | "front" }): Promise<any | null> => {
 
-    return handleImageResult(result);
+    const granted = await requestCameraPermission();
+    if (!granted) {
+        Alert.alert(
+            'Permission Denied',
+            'Camera permission is required to capture photos. Please enable it in app settings.',
+        );
+        return null;
+    }
+
+    try {
+        const result = await launchCamera({
+            mediaType: 'photo',
+            cameraType: cameraType ?? 'back',
+            quality: 0.8,
+            saveToPhotos: false,
+        });
+
+        return handleImageResult(result);
+    } catch (e: any) {
+        console.log('launchCamera exception:', e);
+        Alert.alert(
+            'Camera Error',
+            e?.message || 'Could not open the camera. Please try again.',
+        );
+        return null;
+    }
 };
 
 export const pickFromGallery = async (): Promise<any | null> => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -41,6 +41,7 @@ import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBooking
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
+import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
 
 const Step5RequirementsScreen = () => {
 
@@ -51,12 +52,14 @@ const Step5RequirementsScreen = () => {
     const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
+    const { meta } = useGetBookingMeta(user?.token);
+    const upiInfo = meta?.upi;
 
-    const [hallRent, setHallRent] = useState('');
+    const [instrument, setInstrument] = useState('');
     const [securityDeposit, setSecurityDeposit] = useState('');
     const [totalAmount, setTotalAmount] = useState('');
     const [advancePaid, setAdvancePaid] = useState('');
-    const [balanceAmount, setBalanceAmount] = useState('');
+    const [hallRent, setHallRent] = useState('');
     const [paymentMode, setPaymentMode] = useState<string[]>([]);
 
     const paymentModes = [
@@ -77,12 +80,88 @@ const Step5RequirementsScreen = () => {
     const [transactionNumber, setTransactionNumber] =
         useState('');
 
+    const [photo, setPhoto] = useState<any | null>(null);
+
+    // Amount fields accept digits only — alphabets/symbols are stripped live.
+    const handleAmountChange = (setter: (v: string) => void) => (text: string) => {
+        setter(text.replace(/[^0-9]/g, ''));
+    };
+
+    // Auto-calc derived values from inputs (live, no button needed).
+    const num = (v: string) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    // All five manual inputs: Total, Hall Rent, Instrument, Security Deposit, Advance Paid.
+    // Auto-calc only Balance:
+    //   Balance = total − advance − instrument − hallRent
+    const instrumentNum = num(instrument);
+    const securityDepositNum = num(securityDeposit);
+    const effectiveTotal = num(totalAmount);
+    const hallRentNum = num(hallRent);
+    const advanceNum = num(advancePaid);
+    const effectiveBalance = Math.max(
+        0,
+        effectiveTotal - advanceNum - instrumentNum - hallRentNum,
+    );
+
+    // Warning: advance + instrument + hall rent exceed the total amount.
+    const amountsExceed =
+        effectiveTotal > 0 &&
+        (advanceNum + instrumentNum + hallRentNum) > effectiveTotal;
+
+    // Popup warning once, when the amounts start exceeding the total.
+    const warnedRef = React.useRef(false);
+    useEffect(() => {
+        if (amountsExceed && !warnedRef.current) {
+            warnedRef.current = true;
+            showMessage({
+                message: 'Invalid Amounts',
+                description: 'Advance + Instrument + Hall Rent is more than the Total Amount.',
+                type: 'warning',
+                duration: 3500,
+            });
+        }
+        if (!amountsExceed) {
+            warnedRef.current = false;
+        }
+    }, [amountsExceed]);
+
     const requiresTransaction =
         paymentMode[0] === 'UPI' ||
         paymentMode[0] === 'Cheque' ||
         paymentMode[0] === 'NEFT/RTGS';
 
-    const [photo, setPhoto] = useState<any | null>(null);
+    // Payment proof required for non-cash modes.
+    const requiresProof = paymentMode.length > 0 && paymentMode[0] !== 'Cash';
+
+    // Form valid when total>0, advance present, mode chosen, and (if needed)
+    // transaction no + proof provided. UPI shows an inline QR to scan.
+
+    const formValid = useMemo(() => {
+        const totalOk = effectiveTotal > 0;
+        const partsOk = instrumentNum > 0 && securityDepositNum > 0 && hallRentNum > 0;
+        const advanceOk = advanceNum > 0 && advanceNum <= effectiveTotal;
+        const modeOk = paymentMode.length > 0;
+        if (!totalOk || !partsOk || !advanceOk || !modeOk) return false;
+        if (amountsExceed) return false;
+        if (requiresTransaction && transactionNumber.trim().length === 0) return false;
+        if (requiresProof && !photo?.uri) return false;
+        return true;
+    }, [
+        effectiveTotal,
+        instrumentNum,
+        securityDepositNum,
+        hallRentNum,
+        advanceNum,
+        amountsExceed,
+        paymentMode,
+        requiresTransaction,
+        transactionNumber,
+        requiresProof,
+        photo,
+    ]);
 
     // Pre-fill from backend when screen mounts.
     useEffect(() => {
@@ -91,10 +170,10 @@ const Step5RequirementsScreen = () => {
             return;
         }
         if (fin.hallRent) setHallRent(String(fin.hallRent));
+        if (fin.instrument) setInstrument(String(fin.instrument));
         if (fin.securityDeposit) setSecurityDeposit(String(fin.securityDeposit));
         if (fin.totalAmount) setTotalAmount(String(fin.totalAmount));
         if (fin.advancePaid) setAdvancePaid(String(fin.advancePaid));
-        if (fin.balanceAmount !== undefined) setBalanceAmount(String(fin.balanceAmount));
         if (fin.mode) setPaymentMode([fin.mode]);
         if (existingBooking?.payments?.[0]?.transactionId) {
             setTransactionNumber(existingBooking.payments[0].transactionId);
@@ -162,6 +241,14 @@ const Step5RequirementsScreen = () => {
         if (saving) {
             return;
         }
+        if (!formValid) {
+            showMessage({
+                message: 'Complete Required Fields',
+                description: 'Please fill payment details, select mode, and add proof (if needed).',
+                type: 'warning',
+            });
+            return;
+        }
         if (!bookingId) {
             showMessage({
                 message: 'Booking Error',
@@ -192,11 +279,12 @@ const Step5RequirementsScreen = () => {
                 section: 'payment',
                 token: user.token,
                 data: {
-                    hallRent: Number(hallRent) || undefined,
-                    securityDeposit: Number(securityDeposit) || undefined,
-                    totalAmount: Number(totalAmount) || undefined,
-                    advancePaid: Number(advancePaid) || undefined,
-                    balanceAmount: Number(balanceAmount) || undefined,
+                    hallRent: hallRentNum || undefined,
+                    instrument: instrumentNum || undefined,
+                    securityDeposit: securityDepositNum || undefined,
+                    totalAmount: effectiveTotal || undefined,
+                    advancePaid: advanceNum || undefined,
+                    balanceAmount: effectiveBalance || undefined,
                     mode: paymentMode[0] ?? undefined,
                     transactionNumber: requiresTransaction ? transactionNumber : undefined,
                     paymentProofPhoto,
@@ -238,46 +326,69 @@ const Step5RequirementsScreen = () => {
                             Payment Summary
                         </Text>
                     </View>
+                    {/* Total Amount — manual input, digits only */}
+                    <InputField
+                        title="Total Amount *"
+                        value={totalAmount}
+                        setvalue={handleAmountChange(setTotalAmount)}
+                        placeholder="Enter total amount"
+                        keyType="numeric"
+                        Icon={IndianRupee}
+                    />
+                    {/* Hall Rent — manual input, digits only */}
                     <InputField
                         title="Hall Rent *"
                         value={hallRent}
-                        setvalue={setHallRent}
+                        setvalue={handleAmountChange(setHallRent)}
                         placeholder="Enter hall rent"
                         keyType="numeric"
                         Icon={IndianRupee}
                     />
                     <InputField
-                        title="Security Deposit *"
-                        value={securityDeposit}
-                        setvalue={setSecurityDeposit}
-                        placeholder="Enter security deposit"
-                        keyType="numeric"
-                        Icon={ShieldCheck}
-                    />
-                    <InputField
-                        title="Total Amount *"
-                        value={totalAmount}
-                        setvalue={setTotalAmount}
-                        placeholder="Enter total amount"
+                        title="Instrument / Table *"
+                        value={instrument}
+                        setvalue={handleAmountChange(setInstrument)}
+                        placeholder="Enter instrument / table amount"
                         keyType="numeric"
                         Icon={ReceiptText}
                     />
                     <InputField
+                        title="Security Deposit *"
+                        value={securityDeposit}
+                        setvalue={handleAmountChange(setSecurityDeposit)}
+                        placeholder="Enter security deposit"
+                        keyType="numeric"
+                        Icon={ShieldCheck}
+                    />
+                    {/* Advance Paid — manual input, digits only */}
+                    <InputField
                         title="Advance Paid *"
                         value={advancePaid}
-                        setvalue={setAdvancePaid}
+                        setvalue={handleAmountChange(setAdvancePaid)}
                         placeholder="Enter advance paid amount"
                         keyType="numeric"
                         Icon={WalletCards}
                     />
-                    <InputField
-                        title="Balance Amount"
-                        value={balanceAmount}
-                        setvalue={setBalanceAmount}
-                        placeholder="Enter balance amount"
-                        keyType="numeric"
-                        Icon={IndianRupee}
-                    />
+                    {/* Balance Amount — always auto-calculated */}
+                    <View
+                        className="rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between"
+                        style={{ backgroundColor: Theme.background.secondary }}
+                    >
+                        <Text className="text-white text-base font-semibold">
+                            Balance Amount
+                        </Text>
+                        <Text className="text-white text-lg font-bold" style={{ color: Theme.button.primary }}>
+                            ₹{(effectiveBalance || 0).toLocaleString()}
+                        </Text>
+                    </View>
+                    {/* Inline warning when amounts exceed the total (UI jump-free reserved slot) */}
+                    <View style={{ minHeight: 18, justifyContent: 'center' }}>
+                        {amountsExceed ? (
+                            <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                                ⚠ Advance + Instrument + Hall Rent exceeds the Total Amount
+                            </Text>
+                        ) : null}
+                    </View>
 
                 </View>
                 <View className="mb-3">
@@ -292,6 +403,32 @@ const Step5RequirementsScreen = () => {
                     />
 
                 </View>
+
+                {/* UPI: inline dummy QR from backend (scan to pay) */}
+                {paymentMode[0] === 'UPI' && upiInfo && (
+                    <View
+                        className="rounded-2xl p-4 items-center mb-6"
+                        style={{ backgroundColor: Theme.background.secondary }}
+                    >
+                        <Text className="text-white text-base font-semibold mb-1">
+                            Scan to Pay (UPI)
+                        </Text>
+                        <Text className="text-[#8F8B91] text-xs mb-3">
+                            {upiInfo.name} • {upiInfo.id}
+                        </Text>
+                        <Image
+                            source={{ uri: upiInfo.qrUrl }}
+                            style={{ width: 220, height: 220, borderRadius: 12 }}
+                            resizeMode="contain"
+                        />
+                        <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
+                            Amount: ₹{(effectiveTotal || 0).toLocaleString()}
+                        </Text>
+                        <Text className="text-[#8F8B91] text-xs mt-1 text-center">
+                            Scan the QR with any UPI app, then add the payment proof below.
+                        </Text>
+                    </View>
+                )}
 
                 {requiresTransaction && (
                     <View className="mb-5">
@@ -322,9 +459,11 @@ const Step5RequirementsScreen = () => {
                     </Text>
 
                     <Text className="text-[#8F8B91] text-xs mb-4">
-                        Capture or select payment receipt
+                        {paymentMode[0] === 'Cash'
+                            ? 'Cash payment does not require a proof.'
+                            : 'Capture or select payment receipt'}
                     </Text>
-                    {photo?.uri ? (
+                    {requiresProof && (photo?.uri ? (
                         <View
                             className="rounded-xl overflow-hidden"
                             style={{
@@ -415,7 +554,7 @@ const Step5RequirementsScreen = () => {
 
                         </View>
 
-                    )}
+                    ))}
 
                 </View>
 
@@ -424,6 +563,7 @@ const Step5RequirementsScreen = () => {
                 title="Next"
                 actionFunc={handleNext}
                 loader={saving || loadingBooking}
+                disabled={!formValid}
             />
 
         </Wrapper>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 
 import Wrapper from '../../../layouts/wraper/Wraper';
 import SubHeader from '../../../components/header/SubHeader';
@@ -7,6 +7,7 @@ import GovernmentIdForm from '../../../components/Selector/GovernmentIdForm';
 
 import {
     ScrollView,
+    Text,
     View,
 } from '../../../lib/style/withTailwind';
 
@@ -41,11 +42,51 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
     const [address, setAddress] = useState('');
     const [email, setEmail] = useState('');
     const [loader, setloader] = useState<boolean>(false)
-
+    const [mobileTouched, setMobileTouched] = useState(false);
+    const [emailTouched, setEmailTouched] = useState(false);
     const [img, setImg] = useState<any>(null);
-
     const [selectedId, setSelectedId] =
         useState<any | null>(null);
+
+    // Mobile: allow digits only, capped at 10.
+    const handleMobileChange = useCallback((text: string) => {
+        setMobileNumber(text.replace(/[^0-9]/g, '').slice(0, 10));
+    }, []);
+
+    const handleEmailChange = useCallback((text: string) => {
+        setEmail(text.trim());
+    }, []);
+
+    const mobileValid = /^\d{10}$/.test(mobileNumber);
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
+    const mobileError =
+        mobileTouched && !mobileValid
+            ? mobileNumber.length === 0
+                ? 'Mobile number is required'
+                : mobileNumber.length < 10
+                    ? `Enter all 10 digits (${mobileNumber.length}/10)`
+                    : 'Enter a valid 10-digit mobile number'
+            : '';
+
+    const emailError =
+        emailTouched && !emailValid
+            ? email.trim().length === 0
+                ? 'Email is required'
+                : 'Enter a valid email address (e.g. name@example.com)'
+            : '';
+
+    // Form is valid only when every required field passes validation.
+    const formValid = useMemo(
+        () =>
+            applicantName.trim().length > 0 &&
+            mobileValid &&
+            emailValid &&
+            address.trim().length > 0 &&
+            !!selectedId &&
+            !!img?.uri,
+        [applicantName, mobileValid, emailValid, address, selectedId, img],
+    );
 
     const handleCapturePhoto = useCallback(async () => {
 
@@ -71,6 +112,17 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
 
     const handleNext = useCallback(async () => {
         if (saving || loader) {
+            return;
+        }
+
+        if (!formValid) {
+            setMobileTouched(true);
+            setEmailTouched(true);
+            showMessage({
+                message: 'Complete Required Fields',
+                description: 'Please fill all required fields with valid details.',
+                type: 'warning',
+            });
             return;
         }
 
@@ -145,6 +197,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
     }, [
         saving,
         loader,
+        formValid,
         bookingId,
         user,
         applicantName,
@@ -196,11 +249,19 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
                 <InputField
                     title="Mobile Number *"
                     value={mobileNumber}
-                    setvalue={setMobileNumber}
-                    placeholder="Enter mobile number"
+                    setvalue={handleMobileChange}
+                    placeholder="Enter 10-digit mobile number"
                     keyType="phone-pad"
                     Icon={Phone}
                 />
+                {/* Reserved error slot keeps layout stable (no UI jump) */}
+                <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                    {mobileError ? (
+                        <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                            {mobileError}
+                        </Text>
+                    ) : null}
+                </View>
                 <View className="mb-2">
                     <Divider />
                 </View>
@@ -218,12 +279,20 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
                 <InputField
                     title="Email ID *"
                     value={email}
-                    setvalue={setEmail}
+                    setvalue={handleEmailChange}
                     placeholder="Enter email address"
                     keyType="email-address"
                     Icon={Mail}
                 />
-                <View className="mb-2">
+                {/* Reserved error slot keeps layout stable (no UI jump) */}
+                <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                    {emailError ? (
+                        <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                            {emailError}
+                        </Text>
+                    ) : null}
+                </View>
+                <View className="mb-3">
                     <Divider />
                 </View>
                 <GovernmentIdForm
@@ -246,7 +315,7 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
                 />
 
             </ScrollView>
-            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving} />
+            <MainButton title="Next" actionFunc={handleNext} loader={loader || saving} disabled={!formValid} />
         </Wrapper>
     );
 };

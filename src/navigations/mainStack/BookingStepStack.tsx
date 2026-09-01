@@ -11,6 +11,8 @@ import Step4AttendanceScreen from '../../screens/booking/steps/Step4AttendanceSc
 import Step5RequirementsScreen from '../../screens/booking/steps/Step5RequirementsScreen';
 import Step6DecorationScreen from '../../screens/booking/steps/Step6DecorationScreen';
 import Step7PaymentScreen from '../../screens/booking/steps/Step7PaymentScreen';
+import UpiQrScreen from '../../screens/booking/steps/UpiQrScreen';
+import BookingSuccessScreen from '../../screens/booking/steps/BookingSuccessScreen';
 
 const Stack = createStackNavigator<BookingStepParamList>();
 
@@ -55,6 +57,14 @@ const BookingStepStack = () => {
             <Stack.Screen
                 name={BookingStepRoute.Step7Payment}
                 component={Step7PaymentScreen}
+            />
+            <Stack.Screen
+                name={BookingStepRoute.UpiQr}
+                component={UpiQrScreen}
+            />
+            <Stack.Screen
+                name={BookingStepRoute.BookingSuccess}
+                component={BookingSuccessScreen}
             />
         </Stack.Navigator>
     );

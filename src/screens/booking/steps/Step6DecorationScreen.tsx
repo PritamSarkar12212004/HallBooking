@@ -61,8 +61,19 @@ const Step6DecorationScreen = () => {
         }
     }, []);
 
+    // Done is enabled only after BOTH signatures are captured.
+    const formValid = !!applicantSignature?.uri && !!managerSignature?.uri;
+
     const handleNext = async () => {
         if (loader || saving) {
+            return;
+        }
+        if (!formValid) {
+            showMessage({
+                message: 'Signatures Required',
+                description: 'Please capture both Applicant and Manager signatures.',
+                type: 'warning',
+            });
             return;
         }
         if (!bookingId) {
@@ -107,9 +118,14 @@ const Step6DecorationScreen = () => {
                 },
             });
 
-            navigation.navigate(
-                BookingStepRoute.Step7Payment,
-                { bookingId }
+            // Form confirmed — show the success animation, then the
+            // success screen auto-redirects to the Bookings tab.
+            navigation.replace(
+                BookingStepRoute.BookingSuccess,
+                {
+                    bookingId,
+                    bookingNumber: route?.params?.bookingNumber,
+                }
             );
         } catch (error: any) {
             showMessage({
@@ -243,6 +259,7 @@ const Step6DecorationScreen = () => {
                 title="Done"
                 actionFunc={handleNext}
                 loader={loader || saving}
+                disabled={!formValid}
             />
         </Wrapper>
     );

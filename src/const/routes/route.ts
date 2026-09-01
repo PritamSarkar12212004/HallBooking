@@ -41,6 +41,8 @@ export const BookingStepRoute = {
     Step5Requirements: "Step5Requirements",
     Step6Decoration: "Step6Decoration",
     Step7Payment: "Step7Payment",
+    UpiQr: "UpiQr",
+    BookingSuccess: "BookingSuccess",
 } as const;
 
 export type BookingStepParamList = {
@@ -51,4 +53,6 @@ export type BookingStepParamList = {
     [BookingStepRoute.Step5Requirements]: { bookingId?: string };
     [BookingStepRoute.Step6Decoration]: { bookingId?: string };
     [BookingStepRoute.Step7Payment]: { bookingId?: string };
+    [BookingStepRoute.UpiQr]: { bookingId?: string; amount?: number };
+    [BookingStepRoute.BookingSuccess]: { bookingId?: string; bookingNumber?: string };
 };

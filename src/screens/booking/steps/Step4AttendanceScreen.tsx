@@ -21,28 +21,10 @@ import MainButton from '../../../components/buttons/MainButton';
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
 import useUpdateBookingSection from '../../../api/booking/hooks/useUpdateBookingSection';
+import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
-
-const terms = [
-    'The booking will be confirmed only after receipt of the prescribed advance payment.',
-
-    'Any damage to the hall, furniture, fixtures, or equipment shall be recovered from the security deposit or billed separately.',
-
-    'The balance amount must be paid before the commencement of the event.',
-
-    'The applicant is responsible for maintaining cleanliness and discipline during the event.',
-
-    'Loud music must comply with applicable local laws and permissible timings.',
-
-    'The management reserves the right to cancel the booking in case of violation of rules or misuse of the premises.',
-
-    'The applicant shall vacate the hall within the booked time. Additional charges may apply for exceeding the allotted time.',
-
-    'Smoking, illegal activities, and possession or consumption of prohibited substances inside the premises are strictly prohibited.',
-
-    'The management shall not be responsible for loss, theft, or damage to personal belongings.',
-];
+import TermsSkeleton from '../../../ui/Skeleton/TermsSkeleton';
 
 const Step4AttendanceScreen = () => {
 
@@ -51,13 +33,20 @@ const Step4AttendanceScreen = () => {
     const bookingId = route?.params?.bookingId as string | undefined;
     const user = useAppSelector((state) => state.user.user);
     const { updateSectionAsync, isLoading: saving } = useUpdateBookingSection();
+    const { meta, isLoading: loadingTerms, isError: termsError } =
+        useGetBookingMeta(user?.token);
+
+    const terms = useMemo(
+        () => meta?.terms ?? [],
+        [meta],
+    );
 
     const [accepted, setAccepted] = useState(false);
     const [loader, setLoader] = useState(false);
 
     const isNextDisabled = useMemo(
-        () => !accepted || loader || saving,
-        [accepted, loader, saving]
+        () => !accepted || loader || saving || loadingTerms,
+        [accepted, loader, saving, loadingTerms]
     );
 
     const handleAccept = () => {
@@ -118,7 +107,6 @@ const Step4AttendanceScreen = () => {
 
     return (
         <Wrapper safeBottom>
-
             <SubHeader
                 navigation={navigation}
                 title="Terms & Conditions"
@@ -136,6 +124,13 @@ const Step4AttendanceScreen = () => {
                     style={{
                     }}
                 >
+                    {loadingTerms ? (
+                        <TermsSkeleton />
+                    ) : termsError ? (
+                        <Text className="text-center text-sm my-6" style={{ color: '#F87171' }}>
+                            Could not load terms. Please restart the app or try again.
+                        </Text>
+                    ) : (
                     <View className="gap-4">
 
                         {terms.map((term, index) => (
@@ -174,6 +169,7 @@ const Step4AttendanceScreen = () => {
                         ))}
 
                     </View>
+                    )}
 
                 </View>
 
@@ -275,7 +271,7 @@ const Step4AttendanceScreen = () => {
                 title="Continue"
                 actionFunc={handleNext}
                 disabled={isNextDisabled}
-                loader={loader}
+                loader={loader || loadingTerms}
             />
 
         </Wrapper>

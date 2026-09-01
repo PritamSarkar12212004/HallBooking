@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import SubHeader from '../../../components/header/SubHeader';
@@ -50,6 +50,14 @@ const Step3ScheduleScreen = () => {
         'No',
     ];
 
+    // Required: decorator name & caterer name must be filled (contact optional).
+    const formValid = useMemo(
+        () =>
+            decoratorName.trim().length > 0 &&
+            catererName.trim().length > 0,
+        [decoratorName, catererName],
+    );
+
     // Pre-fill from backend when screen mounts.
     useEffect(() => {
         const arr = existingBooking?.arrangements;
@@ -67,6 +75,14 @@ const Step3ScheduleScreen = () => {
 
     const handleNext = async () => {
         if (saving) {
+            return;
+        }
+        if (!formValid) {
+            showMessage({
+                message: 'Complete Required Fields',
+                description: 'Please fill decorator and caterer names.',
+                type: 'warning',
+            });
             return;
         }
         if (!bookingId) {
@@ -93,9 +109,13 @@ const Step3ScheduleScreen = () => {
                 token: user.token,
                 data: {
                     decoratorName,
-                    decoratorContact,
+                    decoratorContact: decoratorContact.trim()
+                        ? decoratorContact
+                        : undefined,
                     catererName,
-                    catererContact,
+                    catererContact: catererContact.trim()
+                        ? catererContact
+                        : undefined,
                     kitchenRequired: selectedKitchen[0] ?? 'No',
                 },
             });
@@ -209,6 +229,7 @@ const Step3ScheduleScreen = () => {
                 title="Next"
                 actionFunc={handleNext}
                 loader={saving || loadingBooking}
+                disabled={!formValid}
             />
 
         </Wrapper>

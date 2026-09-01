@@ -8,6 +8,7 @@ const apiRoute = {
     },
     booking: {
         root: "/",
+        options: "/options",
         byId: (id: string) => `/${id}`,
         applicant: (id: string) => `/${id}/applicant`,
         event: (id: string) => `/${id}/event`,

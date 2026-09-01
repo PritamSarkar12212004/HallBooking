@@ -12,6 +12,7 @@ import { queryClient } from './src/lib/tanstack/queryClient';
 import { PaperTheme } from './src/const/theme/PaperTheme';
 import RootNavigation from './src/navigations/RootNavigation';
 import FlashMessage from 'react-native-flash-message';
+import AutoFillTool from './src/dev/AutoFillTool';
 import { store } from './src/store';
 import { Provider } from 'react-redux';
 
@@ -32,7 +33,9 @@ const App = () => {
                     StatusBar.currentHeight ?? 0
                   }
                 />
-                <RootNavigation />
+                <AutoFillTool>
+                  <RootNavigation />
+                </AutoFillTool>
               </NavigationContainer>
             </Provider>
           </PaperProvider>

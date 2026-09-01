@@ -487,7 +487,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             const photo = await pickFromGallery();
                             await processPhoto(photo);
                         }}
-                        className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                        className="flex-1 flex-row items-center justify-center py-4 rounded-xl"
                         style={{ backgroundColor: Theme.background.third }}
                     >
                         <ImagePlus size={16} color={Theme.button.primary} />
