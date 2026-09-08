@@ -1,18 +1,23 @@
 import React, {
     useCallback,
+    useMemo,
     useRef,
     useState,
 } from 'react';
 
+import { OtpInput } from 'react-native-otp-entry';
+import type {
+    OtpInputRef,
+    Theme as OtpInputTheme,
+} from 'react-native-otp-entry';
+
 import Wrapper from '../../layouts/wraper/Wraper';
 import {
+    Text,
     View,
 } from '../../lib/style/withTailwind';
 import AuthNavigation from '../../components/navigation/AuthNavigation';
-import {
-    AuthTopFrame,
-    OtpInput,
-} from '../../components/auth/frame/AuthFrame';
+import { AuthTopFrame } from '../../components/auth/frame/AuthFrame';
 import AuthButton from '../../components/auth/buttons/AuthButton';
 import { route as appRoute } from '../../const/routes/route';
 import useVerifyOtpApi from '../../api/auth/hooks/auth/useVerifyOtpApi';
@@ -22,8 +27,13 @@ import { setUser } from '../../store/slices/userSlice';
 import { writeStorage } from '../../manager/storage/storageManager';
 import { storageToken } from '../../const/token/storageToken';
 import token from '../../const/token/token';
+import { Theme } from '../../const/theme/Theme';
 
 const OTP_LENGTH = 6;
+// Validation: a code is only valid when it contains exactly 6 numeric digits.
+const OTP_REGEX = /^\d{6}$/;
+const FOCUS_COLOR = '#FFFFFF';
+const ERROR_COLOR = '#FF6B6B';
 
 const OtpScreen = ({ route, navigation }: any) => {
     const phoneNumber = route?.params?.phonenumber ?? '';
@@ -31,62 +41,61 @@ const OtpScreen = ({ route, navigation }: any) => {
         verifyOtpAsync,
         isLoading,
     } = useVerifyOtpApi();
-    const [otp, setOtp] = useState<string[]>(
-        () => Array(OTP_LENGTH).fill('')
+    const [otp, setOtp] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const otpInputRef = useRef<OtpInputRef>(null);
+    const dispatch = useAppDispatch();
+    const isValid = OTP_REGEX.test(otp);
+
+    const otpTheme = useMemo<OtpInputTheme>(
+        () => ({
+            pinCodeContainerStyle: {
+                width: 48,
+                height: 56,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                backgroundColor: Theme.background.secondary,
+                borderColor: error
+                    ? ERROR_COLOR
+                    : 'rgba(255,255,255,0.15)',
+            },
+            filledPinCodeContainerStyle: {
+                borderColor: error
+                    ? ERROR_COLOR
+                    : 'rgba(255,255,255,0.3)',
+            },
+            pinCodeTextStyle: {
+                color: Theme.text.primary,
+                fontSize: 20,
+                fontWeight: '700',
+            },
+            focusStickStyle: {
+                borderRadius: 2,
+            },
+        }),
+        [error]
     );
 
-    const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
-    const inputRefs = useRef<any[]>([]);
-    const isValid = otp.every(Boolean);
-    const dispatch = useAppDispatch()
-    const handleChange = useCallback(
-        (value: string, index: number) => {
-            const numericValue = value.replace(/[^0-9]/g, '');
-            if (numericValue.length > 1) {
-                const pasted = numericValue
-                    .slice(0, OTP_LENGTH)
-                    .split('');
-
-                setOtp(prevOtp => {
-                    const newOtp = [...prevOtp];
-                    pasted.forEach((char, i) => {
-
-                        const position = index + i;
-
-                        if (position < OTP_LENGTH) {
-                            newOtp[position] = char;
-                        }
-
-                    });
-                    return newOtp;
-                });
-                const nextIndex = Math.min(
-                    index + pasted.length,
-                    OTP_LENGTH - 1
-                );
-                inputRefs.current[nextIndex]?.focus();
-                return;
-            }
-            setOtp(prevOtp => {
-                const newOtp = [...prevOtp];
-                newOtp[index] = numericValue;
-                return newOtp;
-            });
-            if (
-                numericValue &&
-                index < OTP_LENGTH - 1
-            ) {
-                inputRefs.current[index + 1]?.focus();
-            }
-        },
-        []
-    );
+    const handleOtpChange = useCallback((value: string) => {
+        // Validation: keep digits only and cap the code length.
+        const numericValue = value
+            .replace(/[^0-9]/g, '')
+            .slice(0, OTP_LENGTH);
+        setOtp(numericValue);
+        setError(null);
+    }, []);
 
     const handleVerify = useCallback(async () => {
-        if (!isValid || isLoading) {
+        if (isLoading) {
             return;
         }
-        const code = otp.join('');
+        // Validation: reject incomplete/non-numeric codes before the API call.
+        if (!OTP_REGEX.test(otp)) {
+            setError(`Please enter the complete ${OTP_LENGTH}-digit OTP.`);
+            otpInputRef.current?.focus();
+            return;
+        }
+        const code = otp;
         try {
             const response = await verifyOtpAsync({
                 phone: phoneNumber,
@@ -148,11 +157,16 @@ const OtpScreen = ({ route, navigation }: any) => {
                 });
             }
 
-        } catch (error) {
+        } catch (err: any) {
             const message =
-                error?.response?.data?.message ||
-                error?.message ||
+                err?.response?.data?.message ||
+                err?.message ||
                 'Invalid OTP. Please try again.';
+            // Validation feedback: mark the boxes, clear them and refocus.
+            setError(message);
+            otpInputRef.current?.clear();
+            setOtp('');
+            otpInputRef.current?.focus();
             showMessage({
                 message: 'Verification Failed',
                 description: message,
@@ -162,7 +176,6 @@ const OtpScreen = ({ route, navigation }: any) => {
         }
 
     }, [
-        isValid,
         isLoading,
         otp,
         phoneNumber,
@@ -170,17 +183,6 @@ const OtpScreen = ({ route, navigation }: any) => {
         navigation,
         dispatch
     ]);
-
-    const handleFocus = useCallback(
-        (index: number) => {
-            setFocusedIndex(index);
-        },
-        []
-    );
-
-    const handleBlur = useCallback(() => {
-        setFocusedIndex(null);
-    }, []);
 
     return (
         <Wrapper
@@ -198,27 +200,28 @@ const OtpScreen = ({ route, navigation }: any) => {
                         dis={`Enter the 6-digit code sent to +91 ${phoneNumber}`}
                     />
                     <View className="w-full mt-8">
-                        <View className="w-full flex-row justify-between">
-                            {otp.map((digit, index) => (
-                                <OtpInput
-                                    key={index}
-                                    value={digit}
-                                    isFocused={
-                                        focusedIndex === index
-                                    }
-                                    onChangeText={(value: string) =>
-                                        handleChange(
-                                            value,
-                                            index
-                                        )
-                                    }
-                                    onFocus={() =>
-                                        handleFocus(index)
-                                    }
-                                    onBlur={handleBlur}
-                                />
-                            ))}
-                        </View>
+                        <OtpInput
+                            ref={otpInputRef}
+                            numberOfDigits={OTP_LENGTH}
+                            type="numeric"
+                            autoFocus={false}
+                            focusColor={error ? ERROR_COLOR : FOCUS_COLOR}
+                            onTextChange={handleOtpChange}
+                            theme={otpTheme}
+                        />
+                    </View>
+                    <View
+                        className="w-full mt-2 px-1"
+                        style={{ minHeight: 18, justifyContent: 'center' }}
+                    >
+                        {error ? (
+                            <Text
+                                className="text-xs"
+                                style={{ color: ERROR_COLOR }}
+                            >
+                                {error}
+                            </Text>
+                        ) : null}
                     </View>
                 </View>
                 <View className=" pb-6">

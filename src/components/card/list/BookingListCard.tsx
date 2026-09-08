@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
+import { Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import { Theme } from '../../../const/theme/Theme';
 import { bookingListInterface } from '../../../interface/api/bookintInterface';
 import {
@@ -11,6 +11,7 @@ import {
     CheckCircle2,
     Wallet2,
 } from 'lucide-react-native';
+import FastImage, { ImageStyle } from 'react-native-fast-image';
 import { formatDate, formatTime } from '../../../functions/formate/DateTimeFormate';
 import { StyleSheet } from 'react-native';
 
@@ -51,12 +52,17 @@ const BookingListCard = React.memo(({ item, actionPress }: Props) => {
             }}
         >
             {/* Cover image */}
-            <View>
-                <Image
-                    source={{ uri: item.eventImage }}
-                    className="w-full"
-                    style={{ aspectRatio: 2 / 1, backgroundColor: Theme.background.third }}
-                    resizeMode="cover"
+            <View
+                className="w-full"
+                style={{ aspectRatio: 2 / 1, backgroundColor: Theme.background.third }}
+            >
+                <FastImage
+                    source={{ uri: item.eventImage, priority: FastImage.priority.normal }}
+                    resizeMode={FastImage.resizeMode.cover}
+                    // FastImage's typings (v8.6.3) don't expose layout props against
+                    // RN 0.87 yet — absoluteFill fills the wrapper above, which is
+                    // exactly how the lib sizes its own inner image.
+                    style={StyleSheet.absoluteFill as ImageStyle}
                 />
                 {/* Dark scrim for legibility over any image */}
                 <View

@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 import { Theme } from "../../../const/theme/Theme";
-import { Text, TextInput, View } from "../../../lib/style/withTailwind";
+import { Text, View } from "../../../lib/style/withTailwind";
 
 export const AuthTopFrame = React.memo(({ title, dis }: {
     title: string;
@@ -55,52 +55,4 @@ export const MainFrame = React.memo(({ title, isFocused, dis, input }: {
     </View>
 }
 )
-interface OtpInputProps {
-    value: string;
-    isFocused: boolean;
-    onChangeText: (value: string) => void;
-    onFocus: () => void;
-    onBlur: () => void;
-}
-
-export const OtpInput = React.memo(
-    ({
-        value,
-        isFocused,
-        onChangeText,
-        onFocus,
-        onBlur,
-    }: OtpInputProps) => {
-        return (
-            <TextInput
-                className="text-white text-xl font-bold text-center rounded-xl"
-                style={{
-                    backgroundColor: Theme.background.secondary,
-                    borderWidth: 1.5,
-                    borderColor: isFocused
-                        ? '#ffffff'
-                        : value
-                            ? 'rgba(255,255,255,0.3)'
-                            : 'transparent',
-                    width: 48,
-                    height: 56,
-                }}
-                keyboardType="number-pad"
-                maxLength={6}
-                value={value}
-                onChangeText={onChangeText}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                selectTextOnFocus
-            />
-        );
-    },
-    // Only re-render when a value/focus state actually changes. The callback
-    // props (onChangeText/onFocus/onBlur) are recreated as new inline functions
-    // on every parent render, which would otherwise defeat React.memo and cause
-    // every OTP box to re-render on each screen re-render (e.g. every timer tick).
-    (prev, next) =>
-        prev.value === next.value &&
-        prev.isFocused === next.isFocused
-);
 

@@ -130,11 +130,8 @@ const AuthScreen = ({ navigation }: any) => {
                 <View className=" pb-6">
                     <AuthButton
                         title="Continue"
-
                         handleContinue={handleContinue}
-
                         isValid={isValid}
-
                         loading={isLoading}
                     />
                 </View>

@@ -1,5 +1,5 @@
 const envApi = {
-    baseUri: "http://10.247.153.201:5000/api/v1",
+    baseUri: "http://172.17.0.1:5000/api/v1",
     Auth: {
         root: "/auth"
     },
@@ -7,4 +7,4 @@ const envApi = {
         root: "/bookings"
     }
 }
-export default envApi
+export default envApi   
