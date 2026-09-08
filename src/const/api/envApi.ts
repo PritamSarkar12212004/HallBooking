@@ -7,4 +7,4 @@ const envApi = {
         root: "/bookings"
     }
 }
-export default envApi   
+export default envApi

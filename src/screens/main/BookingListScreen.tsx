@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FlatList, TouchableOpacity, RefreshControl, ScrollView } from '../../lib/style/withTailwind';
+import { FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from '../../lib/style/withTailwind';
 import { Text, View } from '../../lib/style/withTailwind';
 import { Plus, ListFilter, X } from 'lucide-react-native';
 
@@ -30,7 +30,7 @@ const BookingListScreen = ({ navigation }: any) => {
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
     const [refreshing, setRefreshing] = useState(false);
-    const { bookings, isLoading, refetch } = useListBookings(user?.token);
+    const { bookings, isLoading, refetch, hasMore, loadMore, isLoadingMore } = useListBookings(user?.token);
     const typedBookings: bookingListInterface[] = (bookings as bookingListInterface[]) ?? [];
 
     const navigateDetiles = useCallback((id: string) => {
@@ -45,6 +45,36 @@ const BookingListScreen = ({ navigation }: any) => {
             setRefreshing(false);
         }
     }, [refetch]);
+
+    // Auto-loads the next page of bookings once the user scrolls to the end,
+    // then merges it into the list — no manual "Load More" tap needed.
+    const onEndReached = useCallback(() => {
+        if (hasMore && !isLoadingMore && !isLoading) {
+            loadMore();
+        }
+    }, [hasMore, isLoadingMore, isLoading, loadMore]);
+
+    // Bottom loading indicator (only once there is at least one booking loaded).
+    const listFooter = typedBookings.length > 0 ? (
+        <View className="flex-row items-center justify-center pt-6" style={{ gap: 8 }}>
+            {isLoadingMore ? (
+                <>
+                    <ActivityIndicator size="small" color={Theme.button.primary} />
+                    <Text className="text-sm font-semibold" style={{ color: Theme.text.secondary }}>
+                        Loading more…
+                    </Text>
+                </>
+            ) : hasMore ? (
+                <Text className="text-xs" style={{ color: Theme.text.secondary }}>
+                    Scroll down to load more
+                </Text>
+            ) : (
+                <Text className="text-xs" style={{ color: Theme.text.secondary }}>
+                    You're all caught up
+                </Text>
+            )}
+        </View>
+    ) : undefined;
 
     // Best-performance filtering: memoized so it only recomputes when the
     // search term, active chip, or data actually changes (no per-keypress).
@@ -191,6 +221,8 @@ const BookingListScreen = ({ navigation }: any) => {
                         </View>
                     }
                     contentContainerStyle={{ paddingBottom: 20 }}
+                    onEndReached={onEndReached}
+                    ListFooterComponent={listFooter}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
