@@ -18,6 +18,8 @@ import PaymentStatusChip from '../../components/ui/PaymentStatusChip';
 import { TabRoute, MainRoute } from '../../const/routes/route';
 import { Theme } from '../../const/theme/Theme';
 import { useAppSelector } from '../../hooks/redux/redux';
+import useGetDashboard from '../../api/booking/hooks/useGetDashboard';
+import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
 import DashHeader from '../../components/header/DashHeader';
 
 const Colors = {
@@ -40,113 +42,44 @@ const Colors = {
     purple: '#A78BFA',
     purpleSoft: 'rgba(167, 139, 250, 0.12)',
 };
-const mockTodayEvents = [
-    {
-        id: '1',
-        hallName: 'Grand Banquet Hall',
-        applicantName: 'Rahul Sharma',
-        startTime: '10:00 AM',
-        endTime: '2:00 PM',
-        status: 'Confirmed' as const,
-        paymentStatus: 'Paid' as const,
-    },
-    {
-        id: '2',
-        hallName: 'Crystal Palace',
-        applicantName: 'Priya Singh',
-        startTime: '3:00 PM',
-        endTime: '8:00 PM',
-        status: 'Pending' as const,
-        paymentStatus: 'Partial' as const,
-    },
-    {
-        id: '3',
-        hallName: 'Royal Garden Hall',
-        applicantName: 'Amit Verma',
-        startTime: '6:00 PM',
-        endTime: '11:00 PM',
-        status: 'Confirmed' as const,
-        paymentStatus: 'Pending' as const,
-    },
-];
-const mockUpcomingEvents = [
-    {
-        id: '4',
-        hallName: 'Grand Banquet Hall',
-        applicantName: 'Sneha Gupta',
-        date: '23 Aug',
-        startTime: '11:00 AM',
-        endTime: '4:00 PM',
-        status: 'Confirmed' as const,
-        paymentStatus: 'Paid' as const,
-    },
-    {
-        id: '5',
-        hallName: 'Crystal Palace',
-        applicantName: 'Vikram Patel',
-        date: '24 Aug',
-        startTime: '2:00 PM',
-        endTime: '7:00 PM',
-        status: 'Pending' as const,
-        paymentStatus: 'Pending' as const,
-    },
-    {
-        id: '6',
-        hallName: 'Royal Garden Hall',
-        applicantName: 'Neha Joshi',
-        date: '25 Aug',
-        startTime: '9:00 AM',
-        endTime: '1:00 PM',
-        status: 'Confirmed' as const,
-        paymentStatus: 'Partial' as const,
-    },
-    {
-        id: '7',
-        hallName: 'Grand Banquet Hall',
-        applicantName: 'Karan Mehta',
-        date: '26 Aug',
-        startTime: '5:00 PM',
-        endTime: '10:00 PM',
-        status: 'Cancelled' as const,
-        paymentStatus: 'Pending' as const,
-    },
-];
-const chartData = [
-    { value: 3, label: '22' },
-    { value: 5, label: '23' },
-    { value: 2, label: '24' },
-    { value: 4, label: '25' },
-    { value: 1, label: '26' },
-    { value: 6, label: '27' },
-    { value: 3, label: '28' },
-];
+const formatCompactINR = (value: number): string => {
+    if (!value) return '₹0';
+    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
+    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `₹${(value / 1000).toFixed(1)}k`;
+    return `₹${value}`;
+};
 
 const HomeScreen = ({ navigation }: any) => {
+    const user = useAppSelector((state) => state.user.user);
+    const { dashboard } = useGetDashboard(user?.token);
+    const dStats = dashboard?.stats;
+
     const stats = [
         {
             title: "Today's Events",
-            value: '3',
+            value: String(dStats?.todayEvents ?? 0),
             icon: CalendarCheck,
             accentColor: Colors.green,
             softColor: Colors.greenSoft,
         },
         {
             title: 'Pending Payments',
-            value: '₹12,500',
+            value: formatCompactINR(dStats?.pendingPaymentsAmount ?? 0),
             icon: IndianRupee,
             accentColor: Colors.red,
             softColor: Colors.redSoft,
         },
         {
             title: "Week's Bookings",
-            value: '24',
+            value: String(dStats?.weekBookings ?? 0),
             icon: CalendarDays,
             accentColor: Colors.blue,
             softColor: Colors.blueSoft,
         },
         {
             title: 'Active Bookings',
-            value: '7',
+            value: String(dStats?.activeBookings ?? 0),
             icon: UserRound,
             accentColor: Colors.purple,
             softColor: Colors.purpleSoft,
@@ -156,13 +89,14 @@ const HomeScreen = ({ navigation }: any) => {
         navigation.navigate(TabRoute.Bookings);
     };
 
-
-    const data = useAppSelector((state) => state.user.user)
-    console.log(data)
+    const todayEvents = dashboard?.todayEvents ?? [];
+    const upcomingEvents = dashboard?.upcomingEvents ?? [];
+    const weeklyChart = dashboard?.weeklyChart ?? [];
+    const maxChartValue = Math.max(...weeklyChart.map((w) => w.value), 4);
 
     return (
         <SafeAreaView className="flex-1" style={{ backgroundColor: Theme.background.primary }} edges={['top']}>
-            <DashHeader navigation={navigation} name={data?.name} photo={data?.photo} />
+            <DashHeader navigation={navigation} name={user?.name} photo={user?.photo} />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
@@ -227,7 +161,7 @@ const HomeScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                     </View>
 
-                    {mockTodayEvents.map((event) => (
+                    {todayEvents.map((event) => (
                         <TouchableOpacity
                             key={event.id}
                             className="rounded-2xl p-4 mb-3"
@@ -257,8 +191,8 @@ const HomeScreen = ({ navigation }: any) => {
                                     </Text>
                                 </View>
                                 <View className="items-end gap-1.5">
-                                    <StatusChip status={event.status} />
-                                    <PaymentStatusChip status={event.paymentStatus} />
+                                    <StatusChip status={event.status as any} />
+                                    <PaymentStatusChip status={event.paymentStatus as any} />
                                 </View>
                             </View>
 
@@ -283,10 +217,10 @@ const HomeScreen = ({ navigation }: any) => {
                         </View>
                         <View
                             className="px-3 py-1.5 rounded-full"
-                            style={{ backgroundColor: Colors.greenSoft }}
+                            style={{ backgroundColor: (dStats?.weeklyGrowth ?? 0) >= 0 ? Colors.greenSoft : Colors.redSoft }}
                         >
-                            <Text className="text-[#34D399] text-xs font-semibold">
-                                +12% vs last week
+                            <Text className="text-xs font-semibold" style={{ color: (dStats?.weeklyGrowth ?? 0) >= 0 ? Colors.green : Colors.red }}>
+                                {(dStats?.weeklyGrowth ?? 0) >= 0 ? '+' : ''}{dStats?.weeklyGrowth ?? 0}% vs last week
                             </Text>
                         </View>
                     </View>
@@ -300,13 +234,13 @@ const HomeScreen = ({ navigation }: any) => {
                         }}
                     >
                         <BarChart
-                            data={chartData}
+                            data={weeklyChart}
                             barWidth={26}
                             barBorderRadius={8}
                             frontColor={Colors.gold}
                             gradientColor={Colors.gold}
                             noOfSections={4}
-                            maxValue={6}
+                            maxValue={maxChartValue}
                             yAxisThickness={0}
                             xAxisThickness={0}
                             xAxisColor={Colors.border}
@@ -345,7 +279,7 @@ const HomeScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                     </View>
 
-                    {mockUpcomingEvents.map((event) => (
+                    {upcomingEvents.map((event) => (
                         <TouchableOpacity
                             key={event.id}
                             className="rounded-2xl p-4 mb-3"
@@ -375,15 +309,15 @@ const HomeScreen = ({ navigation }: any) => {
                                     </Text>
                                 </View>
                                 <View className="items-end gap-1.5">
-                                    <StatusChip status={event.status} />
-                                    <PaymentStatusChip status={event.paymentStatus} />
+                                    <StatusChip status={event.status as any} />
+                                    <PaymentStatusChip status={event.paymentStatus as any} />
                                 </View>
                             </View>
 
                             <View className="flex-row items-center gap-2 mt-3 ml-10">
                                 <CalendarDays size={13} color={Colors.textMuted} />
                                 <Text className="text-[#6B7280] text-xs font-medium">
-                                    {event.date} • {event.startTime} - {event.endTime}
+                                    {formatDate(event.date)} • {event.startTime} - {event.endTime}
                                 </Text>
                             </View>
                         </TouchableOpacity>
