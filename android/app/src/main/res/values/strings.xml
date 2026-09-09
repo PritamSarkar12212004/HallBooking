@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Frolic</string>
+      <string moduleConfig="true" name="CodePushServerUrl">
+        https://api.revopush.org
+    </string>
+    <string moduleConfig="true" name="CodePushDeploymentKey">I-t4miC8Y8i852M4FAvfT5zRIujfNkxaF_8DVg</string>
 </resources>
