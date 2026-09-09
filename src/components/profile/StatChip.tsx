@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from '../../lib/style/withTailwind';
+import { View, Text } from '../../lib/style/withTailwind';
 import { LucideIcon } from 'lucide-react-native';
 import { Palette } from './const/profilePalette';
 

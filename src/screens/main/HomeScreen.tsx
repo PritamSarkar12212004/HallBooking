@@ -24,10 +24,11 @@ import EventCard from '../../components/card/dashboard/EventCard';
 import SectionTitle from '../../components/card/dashboard/SectionTitle';
 import EmptyListCard from '../../components/card/dashboard/EmptyListCard';
 import WeeklyBookingsChart from '../../components/charts/WeeklyBookingsChart';
+import HomeScreenSkeleton from '../../ui/Skeleton/HomeScreenSkeleton';
 
 const HomeScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
-    const { dashboard } = useGetDashboard(user?.token);
+    const { dashboard, isLoading } = useGetDashboard(user?.token);
 
     // ── Derived data: keep stable references so memoized children skip re-render ──
     const stats = dashboard?.stats;
@@ -107,6 +108,9 @@ const HomeScreen = ({ navigation }: any) => {
         <SafeAreaView className="flex-1" style={{ backgroundColor: DashboardPalette.bg }} edges={['top']}>
             <DashHeader navigation={navigation} name={user?.name} photo={user?.photo} />
             <View className="flex-1">
+                {isLoading && !dashboard ? (
+                    <HomeScreenSkeleton />
+                ) : (
                 <ScrollView
                     className="flex-1 rounded-t-[28px]"
                     style={{ backgroundColor: DashboardPalette.sheet }}
@@ -206,6 +210,7 @@ const HomeScreen = ({ navigation }: any) => {
                         )}
                     </View>
                 </ScrollView>
+                )}
             </View>
         </SafeAreaView>
     );

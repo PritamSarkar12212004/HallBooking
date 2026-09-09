@@ -63,7 +63,7 @@ const DashHeader = ({ navigation, name, photo }: {
                         </Text>
                     </View>
                     <Text className="text-white text-[26px] font-bold mt-1.5 tracking-tight">
-                        {greeting}, {name}
+                        {greeting}
                     </Text>
                 </View>
 
