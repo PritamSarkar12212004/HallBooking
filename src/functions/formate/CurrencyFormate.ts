@@ -1,6 +1,3 @@
-export const formatINR = (value: number): string =>
-    `₹${(value || 0).toLocaleString('en-IN')}`;
-
 export const formatCompactINR = (value: number): string => {
     if (!value) return '₹0';
     if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;

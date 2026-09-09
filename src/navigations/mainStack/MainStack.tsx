@@ -15,11 +15,8 @@ import StaffActivityScreen from '../../screens/ceo/StaffActivityScreen';
 import ReportsScreen from '../../screens/ceo/ReportsScreen';
 
 import BookingDetailScreen from '../../screens/booking/BookingDetailScreen';
-import AddPaymentScreen from '../../screens/booking/AddPaymentScreen';
 import EditFinanceScreen from '../../screens/booking/EditFinanceScreen';
 import PaymentTrackRecordScreen from '../../screens/booking/PaymentTrackRecordScreen';
-import HandoverChecklistScreen from '../../screens/booking/HandoverChecklistScreen';
-import OfficeApprovalScreen from '../../screens/booking/OfficeApprovalScreen';
 
 import BookingStepStack from './BookingStepStack';
 
@@ -90,28 +87,12 @@ const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
                 component={BookingDetailScreen}
             />
             <Stack.Screen
-                name={MainRoute.AddPayment}
-                component={AddPaymentScreen}
-            />
-            <Stack.Screen
                 name={MainRoute.EditFinance}
                 component={EditFinanceScreen}
             />
             <Stack.Screen
                 name={MainRoute.PaymentTrackRecord}
                 component={PaymentTrackRecordScreen}
-            />
-            <Stack.Screen
-                name={MainRoute.HandoverChecklist}
-                component={HandoverChecklistScreen}
-            />
-            <Stack.Screen
-                name={MainRoute.OfficeApproval}
-                component={OfficeApprovalScreen}
-            />
-            <Stack.Screen
-                name={MainRoute.StaffActivity}
-                component={StaffActivityScreen}
             />
             <Stack.Screen
                 name={MainRoute.Reports}
