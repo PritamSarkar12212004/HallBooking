@@ -114,8 +114,6 @@ const HomeScreen = ({ navigation }: any) => {
                     contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 28 }}
                 >
                     <HeroRevenueCard stats={stats} onPress={openBookings} />
-
-                    {/* Quick actions */}
                     <View className="flex-row gap-3 mt-5">
                         <TouchableOpacity
                             activeOpacity={0.85}

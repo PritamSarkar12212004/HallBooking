@@ -53,7 +53,7 @@ const DashHeader = ({ navigation, name, photo }: {
     };
 
     return (
-        <View className="px-5  pb-4">
+        <View className="px-5  pb-2">
             <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                     <View className="flex-row items-center gap-2">
