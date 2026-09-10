@@ -1,5 +1,5 @@
 const envApi = {
-    baseUri: "http://172.17.0.1:5000/api/v1",
+    baseUri: "https://api.wishboxdecor.in/api/v1",
     Auth: {
         root: "/auth"
     },

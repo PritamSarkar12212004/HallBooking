@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    type ViewStyle,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import tw from 'twrnc';
@@ -53,16 +54,16 @@ const rangeKeysOf = (start: string, end: string): string[] => {
 const todayKey = toDateKey(new Date());
 
 // Range band styles (start / middle / end / single day)
-const BAND_BASE = {
-    position: 'absolute' as const,
+const BAND_BASE: ViewStyle = {
+    position: 'absolute',
     top: 8,
     bottom: 8,
     backgroundColor: Theme.button.primary,
 };
-const BAND_START = { ...BAND_BASE, left: 6, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 };
-const BAND_MIDDLE = { ...BAND_BASE, left: 1, right: 1 };
-const BAND_END = { ...BAND_BASE, right: 6, borderTopRightRadius: 10, borderBottomRightRadius: 10 };
-const BAND_SINGLE = { ...BAND_BASE, left: 6, right: 6, borderRadius: 10 };
+const BAND_START: ViewStyle = { ...BAND_BASE, left: 6, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 };
+const BAND_MIDDLE: ViewStyle = { ...BAND_BASE, left: 1, right: 1 };
+const BAND_END: ViewStyle = { ...BAND_BASE, right: 6, borderTopRightRadius: 10, borderBottomRightRadius: 10 };
+const BAND_SINGLE: ViewStyle = { ...BAND_BASE, left: 6, right: 6, borderRadius: 10 };
 
 const CaalenderScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
@@ -156,7 +157,7 @@ const CaalenderScreen = ({ navigation }: any) => {
             return (
                 <TouchableOpacity
                     onPress={() => setSelectedDate(key)}
-                    style={tw`flex-1 items-center justify-center h-12`}
+                    style={tw`self-stretch items-center justify-center h-12`}
                     activeOpacity={0.7}
                 >
                     {inRange && <View style={bandStyle} />}
@@ -199,7 +200,6 @@ const CaalenderScreen = ({ navigation }: any) => {
             >
                 <Calendar
                     current={todayKey}
-                    horizontal={false}          // ← week-strip view like your design
                     hideExtraDays={true}
                     firstDay={0}
                     hideArrows={true}

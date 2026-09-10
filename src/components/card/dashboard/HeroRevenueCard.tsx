@@ -11,10 +11,6 @@ interface HeroRevenueCardProps {
     onPress: () => void;
 }
 
-/**
- * Golden revenue hero card with collection progress bar.
- * Memoized: only re-renders when stats or onPress reference changes.
- */
 const HeroRevenueCard = React.memo(({ stats, onPress }: HeroRevenueCardProps) => {
     const total = stats?.totalRevenue ?? 0;
     const collected = stats?.collectedAmount ?? 0;
