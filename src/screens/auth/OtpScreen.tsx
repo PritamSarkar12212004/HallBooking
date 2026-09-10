@@ -49,8 +49,6 @@ const OtpScreen = ({ route, navigation }: any) => {
     const dispatch = useAppDispatch();
     const isValid = OTP_REGEX.test(otp);
 
-    // Persist the verified session (user + token) once, shared by both the
-    // new-user and returning-user flows.
     const persistSignIn = (data: any) => {
         dispatch(setUser({
             token: data?.token,
@@ -95,7 +93,6 @@ const OtpScreen = ({ route, navigation }: any) => {
     );
 
     const handleOtpChange = useCallback((value: string) => {
-        // Validation: keep digits only and cap the code length.
         const numericValue = value
             .replace(/[^0-9]/g, '')
             .slice(0, OTP_LENGTH);
@@ -107,7 +104,6 @@ const OtpScreen = ({ route, navigation }: any) => {
         if (isLoading) {
             return;
         }
-        // Validation: reject incomplete/non-numeric codes before the API call.
         if (!OTP_REGEX.test(otp)) {
             setError(`Please enter the complete ${OTP_LENGTH}-digit OTP.`);
             otpInputRef.current?.focus();
@@ -182,6 +178,7 @@ const OtpScreen = ({ route, navigation }: any) => {
     useEffect(() => {
         startOtpListener(message => {
             const match = OTP_EXTRACT_REGEX.exec(message);
+            console.log(match)
             const extractedOtp = match ? match[0] : null;
             if (!extractedOtp) {
                 return;

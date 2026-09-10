@@ -72,7 +72,8 @@ const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-                animation: "slide_from_right"
+                animation: "slide_from_right",
+                freezeOnBlur: true
             }}
         >
             <Stack.Screen

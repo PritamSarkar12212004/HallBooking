@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from '../../../lib/style/withTailwind';
-import { Building2, ChevronRight, Clock3, Users } from 'lucide-react-native';
+import { Building2, CalendarCheck2, ChevronRight, Clock3, Users, Wallet } from 'lucide-react-native';
 import DashboardPalette from '../../../const/theme/dashboardPalette';
 import { DashboardEventItem } from '../../../interface/api/dashboardInterface';
 import { formatDate, formatTime } from '../../../functions/formate/DateTimeFormate';
@@ -47,16 +47,16 @@ const EventCard = React.memo(({ event, showDate = false, onPress }: EventCardPro
             </Text>
         </View>
 
-        <View className="flex-row items-center justify-between mt-3.5 pt-3.5" style={{ borderTopWidth: 1, borderTopColor: DashboardPalette.border }}>
-            <View className="flex-row items-center flex-1 mr-2">
+        <View className="mt-3.5 pt-3.5" style={{ borderTopWidth: 1, borderTopColor: DashboardPalette.border }}>
+            <View className="flex-row items-center">
                 <Users size={13} color={DashboardPalette.inkMuted} />
-                <Text className="text-xs font-semibold ml-1.5" style={{ color: DashboardPalette.inkSoft }} numberOfLines={1}>
+                <Text className="text-xs font-semibold ml-1.5 flex-1" style={{ color: DashboardPalette.inkSoft }} numberOfLines={1}>
                     {event.applicantName}
                 </Text>
             </View>
-            <View className="flex-row items-center gap-1.5">
-                <StatusChip status={event.status as any} />
-                <PaymentStatusChip status={event.paymentStatus as any} />
+            <View className="flex-row items-center gap-2 mt-2.5">
+                <StatusChip status={event.status as any} Icon={CalendarCheck2} />
+                <PaymentStatusChip status={event.paymentStatus as any} Icon={Wallet} />
             </View>
         </View>
     </TouchableOpacity>

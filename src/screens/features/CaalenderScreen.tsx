@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -71,6 +71,15 @@ const CaalenderScreen = ({ navigation }: any) => {
 
     const [selectedDate, setSelectedDate] = useState(todayKey);
     const [refreshing, setRefreshing] = useState(false);
+
+    // Heavy Calendar mount is deferred until the navigation transition ends
+    // (~350ms slide animation), so the animation stays smooth instead of
+    // fighting the JS thread while the calendar builds its first render.
+    const [calendarReady, setCalendarReady] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setCalendarReady(true), 350);
+        return () => clearTimeout(timer);
+    }, []);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -198,9 +207,10 @@ const CaalenderScreen = ({ navigation }: any) => {
                     { backgroundColor: Theme.background.secondary },
                 ]}
             >
-                <Calendar
-                    current={todayKey}
-                    hideExtraDays={true}
+                {calendarReady ? (
+                    <Calendar
+                        current={todayKey}
+                        hideExtraDays={true}
                     firstDay={0}
                     hideArrows={true}
                     hideDayNames={false}
@@ -220,7 +230,10 @@ const CaalenderScreen = ({ navigation }: any) => {
                         textDayHeaderFontSize: 12,
                     }}
                     style={{ backgroundColor: Theme.background.secondary }}
-                />
+                    />
+                ) : (
+                    <View style={{ height: 340 }} />
+                )}
             </View>
 
             <ScrollView
