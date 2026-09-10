@@ -57,7 +57,7 @@ const HomeScreen = ({ navigation }: any) => {
         [navigation]
     );
     const openNewBooking = useCallback(() => navigation.navigate(MainRoute.NewBooking), [navigation]);
-    const openHallCalendar = useCallback(() => navigation.navigate(MainRoute.HallCalendar), [navigation]);
+    const openHallCalendar = useCallback(() => navigation.navigate(MainRoute.FeatureCalendar), [navigation]);
 
     // ── KPI cards data (memoized on stats) ──
     const kpis = useMemo(

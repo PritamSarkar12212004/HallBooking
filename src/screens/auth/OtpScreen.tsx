@@ -1,5 +1,6 @@
 import React, {
     useCallback,
+    useEffect,
     useMemo,
     useRef,
     useState,
@@ -28,10 +29,11 @@ import { writeStorage } from '../../manager/storage/storageManager';
 import { storageToken } from '../../const/token/storageToken';
 import token from '../../const/token/token';
 import { Theme } from '../../const/theme/Theme';
+import { removeListener, startOtpListener } from 'react-native-otp-verify';
 
 const OTP_LENGTH = 6;
-// Validation: a code is only valid when it contains exactly 6 numeric digits.
-const OTP_REGEX = /^\d{6}$/;
+const OTP_REGEX = new RegExp(`^\\d{${OTP_LENGTH}}$`);
+const OTP_EXTRACT_REGEX = new RegExp(`\\d{${OTP_LENGTH}}`);
 const FOCUS_COLOR = '#FFFFFF';
 const ERROR_COLOR = '#FF6B6B';
 
@@ -46,6 +48,22 @@ const OtpScreen = ({ route, navigation }: any) => {
     const otpInputRef = useRef<OtpInputRef>(null);
     const dispatch = useAppDispatch();
     const isValid = OTP_REGEX.test(otp);
+
+    // Persist the verified session (user + token) once, shared by both the
+    // new-user and returning-user flows.
+    const persistSignIn = (data: any) => {
+        dispatch(setUser({
+            token: data?.token,
+            _id: data?.user._id,
+            phone: data?.user.phone,
+            photo: data?.user.photo,
+            name: data?.user.name,
+            gender: data?.user.gender,
+            email: data?.user.email,
+            city: data?.user.city,
+        }));
+        writeStorage({ key: storageToken, data: data?.token });
+    };
 
     const otpTheme = useMemo<OtpInputTheme>(
         () => ({
@@ -106,47 +124,26 @@ const OtpScreen = ({ route, navigation }: any) => {
                 description: 'Your phone number has been verified successfully.',
                 type: 'success',
             });
-            if (response.data?.isNewUser) {
-                dispatch(setUser({
-                    token: response.data?.token,
-                    _id: response.data?.user._id,
-                    phone: response.data?.user.phone,
-                    photo: response.data?.user.photo,
-                    name: response.data?.user.name,
-                    gender: response.data?.user.gender,
-                    email: response.data?.user.email,
-                    city: response.data?.user.city,
-                }))
-                writeStorage({ key: storageToken, data: response.data?.token })
+            const data = response.data;
+            persistSignIn(data);
+            if (data?.isNewUser) {
                 navigation.replace(appRoute.setUp, {
                     phonenumber: phoneNumber,
                 });
             } else {
-                console.log(response.data)
-                dispatch(setUser({
-                    token: response.data?.token,
-                    _id: response.data?.user._id,
-                    phone: response.data?.user.phone,
-                    photo: response.data?.user.photo,
-                    name: response.data?.user.name,
-                    gender: response.data?.user.gender,
-                    email: response.data?.user.email,
-                    city: response.data?.user.city,
-                }))
-                writeStorage({ key: storageToken, data: response.data?.token })
-                writeStorage({ key: token.isAuth, data: true })
+                writeStorage({ key: token.isAuth, data: true });
                 writeStorage({
                     key: token.isAuthData,
                     data: {
-                        _id: response.data?.user._id,
-                        phone: response.data?.user.phone,
-                        photo: response.data?.user.photo,
-                        name: response.data?.user.name,
-                        gender: response.data?.user.gender,
-                        email: response.data?.user.email,
-                        city: response.data?.user.city,
-                    }
-                })
+                        _id: data?.user._id,
+                        phone: data?.user.phone,
+                        photo: data?.user.photo,
+                        name: data?.user.name,
+                        gender: data?.user.gender,
+                        email: data?.user.email,
+                        city: data?.user.city,
+                    },
+                });
                 navigation.reset({
                     index: 0,
                     routes: [
@@ -156,7 +153,6 @@ const OtpScreen = ({ route, navigation }: any) => {
                     ],
                 });
             }
-
         } catch (err: any) {
             const message =
                 err?.response?.data?.message ||
@@ -183,7 +179,17 @@ const OtpScreen = ({ route, navigation }: any) => {
         navigation,
         dispatch
     ]);
-
+    useEffect(() => {
+        startOtpListener(message => {
+            const match = OTP_EXTRACT_REGEX.exec(message);
+            const extractedOtp = match ? match[0] : null;
+            if (!extractedOtp) {
+                return;
+            }
+            otpInputRef.current?.setValue(extractedOtp);
+        });
+        return () => removeListener();
+    }, []);
     return (
         <Wrapper
             paddingHorizontal={0}

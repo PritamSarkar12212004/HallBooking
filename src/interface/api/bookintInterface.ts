@@ -5,6 +5,7 @@ export interface bookingListInterface {
     hallName: string;
     id: string;
     startDate: string;
+    endDate?: string;
     startTime: string;
     endTime: string;
     totalAmount: number;

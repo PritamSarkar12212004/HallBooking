@@ -19,6 +19,7 @@ import EditFinanceScreen from '../../screens/booking/EditFinanceScreen';
 import PaymentTrackRecordScreen from '../../screens/booking/PaymentTrackRecordScreen';
 
 import BookingStepStack from './BookingStepStack';
+import FeatureStack from './FeatureStack';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -105,6 +106,10 @@ const MainStack = ({ userRole = 'staff' }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.HallCalendar}
                 component={HallCalendarScreen}
+            />
+            <Stack.Screen
+                name={MainRoute.FeatureCalendar}
+                component={FeatureStack}
             />
         </Stack.Navigator>
     );

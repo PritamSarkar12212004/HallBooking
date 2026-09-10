@@ -93,6 +93,12 @@ const defaultSections = (navigation: any): AppMenuSection[] => [
         title: 'MORE',
         items: [
             {
+                key: 'calendar',
+                icon: 'calendar-range',
+                label: 'Calendar',
+                onPress: () => navigation.navigate(MainRoute.FeatureCalendar),
+            },
+            {
                 key: 'reports',
                 icon: 'chart-box',
                 label: 'Reports',

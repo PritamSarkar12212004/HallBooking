@@ -1,3 +1,4 @@
+
 export const route = {
     onboard: 'onboardScreen',
     login: 'loginScreen',
@@ -27,6 +28,7 @@ export const MainRoute = {
     Reports: "Reports",
     Profile: "Profile",
     HallCalendar: "HallCalendar",
+    FeatureCalendar: "FeatureCalendar",
 } as const;
 
 export const BookingStepRoute = {
@@ -40,7 +42,9 @@ export const BookingStepRoute = {
     UpiQr: "UpiQr",
     BookingSuccess: "BookingSuccess",
 } as const;
-
+export const FeatureRoute = {
+    CalendarRange: "CalendarRange",
+} as const;
 export type BookingStepParamList = {
     [BookingStepRoute.Step1Applicant]: { bookingId?: string; bookingNumber?: string } | undefined;
     [BookingStepRoute.Step2Event]: { applicantData?: any; bookingId?: string };
