@@ -8,7 +8,7 @@ import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
 import DatePickerModal from '../../components/picker/DatePickerModal';
-import { Building2, Camera, ImagePlus, PanelsTopLeft, Trash2, UploadCloud, UserRound } from 'lucide-react-native';
+import { Building2, Camera, ImagePlus, Trash2, UploadCloud, UserRound } from 'lucide-react-native';
 import { Divider } from 'react-native-paper';
 import { MainRoute } from '../../const/routes/route';
 import TimePicker from '../../components/picker/TimePicker';
@@ -19,13 +19,6 @@ import { Theme } from '../../const/theme/Theme';
 import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
 import uploadImage from '../../services/Cloudinary/uploadImg';
 import { startDraft } from '../../manager/draftBookingStore';
-
-const staffMembers = [
-    'Rahul Kumar',
-    'Priya Singh',
-    'Amit Verma',
-    'Sneha Gupta',
-];
 
 const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -53,8 +46,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const [bookingName, setBookingName] = useState('');
     const [bookingTakenBy, setBookingTakenBy] = useState('');
 
-    const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
-
     const [eventPhotoUri, setEventPhotoUri] = useState<string | null>(null);
     const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -69,14 +60,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const [viewYear, setViewYear] = useState(currentYear);
 
     const [loader, setLoader] = useState<boolean>(false)
-
-    const toggleStaff = (name: string) => {
-        setSelectedStaff(prev =>
-            prev.includes(name)
-                ? prev.filter(n => n !== name)
-                : [...prev, name]
-        );
-    };
 
     const processPhoto = async (photo: Asset | null) => {
         if (!photo?.uri) return;
@@ -244,7 +227,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 eventName: bookingName,
                 bookedByStaff: bookingTakenBy,
                 eventImage: eventImageUrl ?? undefined,
-                allocatedTeam: selectedStaff,
             });
 
             navigation.navigate(MainRoute.NewBooking, {});
@@ -376,18 +358,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                     keyType="default"
                     Icon={UserRound}
                 />
-                <View className="mb-3">
-                    <Divider />
-                </View>
-                <MultiSelector
-                    title="Allocate Team"
-                    list={staffMembers}
-                    value={selectedStaff}
-                    actionFunc={toggleStaff}
-                    selection="Multiple select"
-                    Icon={PanelsTopLeft}
-                />
-
                 <View className="mb-3 mt-2">
                     <Divider />
                 </View>

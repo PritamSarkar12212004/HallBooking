@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import SubHeader from '../../../components/header/SubHeader';
@@ -26,15 +26,10 @@ const Step3ScheduleScreen = () => {
     const user = useAppSelector((state) => state.user.user);
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
-
-    // Decoration
     const [decoratorName, setDecoratorName] = useState('');
     const [decoratorContact, setDecoratorContact] = useState('');
-
-    // Catering
     const [catererName, setCatererName] = useState('');
     const [catererContact, setCatererContact] = useState('');
-
     const [selectedKitchen, setSelectedKitchen] = useState<string[]>([]);
 
     const selectKitchen = (name: string) => {
@@ -48,16 +43,6 @@ const Step3ScheduleScreen = () => {
         'Yes',
         'No',
     ];
-
-    // Required: decorator name & caterer name must be filled (contact optional).
-    const formValid = useMemo(
-        () =>
-            decoratorName.trim().length > 0 &&
-            catererName.trim().length > 0,
-        [decoratorName, catererName],
-    );
-
-    // Pre-fill from backend when screen mounts.
     useEffect(() => {
         const arr = existingBooking?.arrangements;
         if (!arr) {
@@ -73,16 +58,6 @@ const Step3ScheduleScreen = () => {
     }, [existingBooking]);
 
     const handleNext = async () => {
-        if (!formValid) {
-            showMessage({
-                message: 'Complete Required Fields',
-                description: 'Please fill decorator and caterer names.',
-                type: 'warning',
-            });
-            return;
-        }
-
-        // DRAFT SYSTEM: save the arrangements section locally — no API call.
         try {
             updateDraft('arrangements', {
                 decoratorName,
@@ -134,7 +109,7 @@ const Step3ScheduleScreen = () => {
                         </Text>
                     </View>
                     <InputField
-                        title="Decorator Name *"
+                        title="Decorator Name"
                         value={decoratorName}
                         setvalue={setDecoratorName}
                         placeholder="Enter decorator name"
@@ -170,7 +145,7 @@ const Step3ScheduleScreen = () => {
                     </View>
 
                     <InputField
-                        title="Caterer Name *"
+                        title="Caterer Name"
                         value={catererName}
                         setvalue={setCatererName}
                         placeholder="Enter caterer name"
@@ -204,7 +179,6 @@ const Step3ScheduleScreen = () => {
                 title="Next"
                 actionFunc={handleNext}
                 loader={loadingBooking}
-                disabled={!formValid}
             />
 
         </Wrapper>

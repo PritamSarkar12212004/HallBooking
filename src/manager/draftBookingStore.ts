@@ -15,7 +15,6 @@ export interface DraftBookingData {
     eventName?: string;
     bookedByStaff?: string;
     eventImage?: string;
-    allocatedTeam?: string[];
 
     // Step1 — applicant
     applicant?: {
@@ -47,15 +46,26 @@ export interface DraftBookingData {
     // Step4 — terms
     termsAccepted?: boolean;
 
+    // Step5 — units (before payment)
+    units?: {
+        label: string;
+        quantity: number;
+        perUnit: number;
+        amount: number;
+        paid: boolean;
+    }[];
+
     // Step5 — payment
     payment?: {
-        hallRent?: number;
-        instrument?: number;
+        charges?: { label: string; amount: number; paid: number }[];
+        units?: {
+            label: string;
+            quantity: number;
+            perUnit: number;
+            amount: number;
+            paid: boolean;
+        }[];
         securityDeposit?: number;
-        totalAmount?: number;
-        advancePaid?: number;
-        finalPayment?: number;
-        balanceAmount?: number;
         mode?: string;
         transactionNumber?: string;
         paymentProofPhoto?: string;

@@ -24,11 +24,13 @@ const BookingListCard = React.memo(({ item, actionPress }: Props) => {
     const isPending = (item.balanceAmount || 0) > 0;
     const statusColor = isPending ? '#F59E0B' : '#22C55E';
     const statusLabel =
-        item.paymentStatus === 'Paid'
-            ? 'Paid'
-            : isPending
-                ? 'Balance Due'
-                : 'Draft';
+        item.status === 'Cancelled'
+            ? 'Cancelled'
+            : item.paymentStatus === 'Paid'
+                ? 'Paid'
+                : isPending
+                    ? 'Balance Due'
+                    : 'Confirmed';
 
     // Progress = portion of the total already received/cleared.
     const total = item.totalAmount || 0;

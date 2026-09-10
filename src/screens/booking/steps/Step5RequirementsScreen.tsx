@@ -6,11 +6,8 @@ import {
     Camera,
     CreditCard,
     GalleryHorizontal,
-    IndianRupee,
     ReceiptText,
-    ShieldCheck,
     Trash2,
-    WalletCards,
 } from 'lucide-react-native';
 
 import {
@@ -33,6 +30,22 @@ import InputField from '../../../components/input/InputField';
 import MultiSelector from '../../../components/Selector/MultiSelector';
 import MainButton from '../../../components/buttons/MainButton';
 import CamGalPickerButton from '../../../components/buttons/CamGalPickerButton';
+import FinanceChargesSection, {
+    ChargeRow,
+    chargeRowsToPayload,
+    computeChargeTotals,
+    createDefaultChargeRows,
+    newChargeRow,
+    num,
+} from '../../../components/booking/FinanceChargesSection';
+import UnitsSection, {
+    UnitRow,
+    computeUnitsPaidTotal,
+    computeUnitsTotal,
+    createDefaultUnitRows,
+    newUnitRow,
+    unitRowsToPayload,
+} from '../../../components/booking/UnitsSection';
 
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
@@ -57,34 +70,39 @@ const Step5RequirementsScreen = () => {
     const { meta } = useGetBookingMeta(user?.token);
     const upiInfo = meta?.upi;
 
-    const [instrument, setInstrument] = useState(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.instrument ? String(d.instrument) : '';
-        },
-    );
+    // Section 1 (actual amount) + Section 2 (paid per head) share one row list.
+    const [rows, setRows] = useState<ChargeRow[]>(() => {
+        const d = getDraft()?.payment;
+        if (d?.charges && d.charges.length > 0) {
+            return d.charges.map((c) =>
+                newChargeRow(
+                    c.label,
+                    c.amount ? String(c.amount) : '',
+                    c.paid ? String(c.paid) : '',
+                ),
+            );
+        }
+        return createDefaultChargeRows();
+    });
+    // Units captured on the previous step (editable + paid toggle here).
+    const [unitRows, setUnitRows] = useState<UnitRow[]>(() => {
+        const d = getDraft()?.units;
+        if (d && d.length > 0) {
+            return d.map((u) =>
+                newUnitRow(
+                    u.label,
+                    u.quantity ? String(u.quantity) : '',
+                    u.perUnit ? String(u.perUnit) : '',
+                    !!u.paid,
+                ),
+            );
+        }
+        return createDefaultUnitRows();
+    });
     const [securityDeposit, setSecurityDeposit] = useState(
         () => {
             const d = getDraft()?.payment;
             return d?.securityDeposit ? String(d.securityDeposit) : '';
-        },
-    );
-    const [totalAmount, setTotalAmount] = useState(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.totalAmount ? String(d.totalAmount) : '';
-        },
-    );
-    const [advancePaid, setAdvancePaid] = useState(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.advancePaid ? String(d.advancePaid) : '';
-        },
-    );
-    const [hallRent, setHallRent] = useState(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.hallRent ? String(d.hallRent) : '';
         },
     );
     const [paymentMode, setPaymentMode] = useState<string[]>(
@@ -115,43 +133,43 @@ const Step5RequirementsScreen = () => {
 
     const [photo, setPhoto] = useState<any | null>(null);
 
-    // Amount fields accept digits only — alphabets/symbols are stripped live.
-    const handleAmountChange = (setter: (v: string) => void) => (text: string) => {
-        setter(text.replace(/[^0-9]/g, ''));
-    };
-
-    // Auto-calc derived values from inputs (live, no button needed).
-    const num = (v: string) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : 0;
-    };
-
-    // All five manual inputs: Total, Hall Rent, Instrument, Security Deposit, Advance Paid.
-    // Auto-calc only Balance:
-    //   Balance = total − advance − instrument − hallRent
-    const instrumentNum = num(instrument);
+    // Totals are derived live from the charge rows + units.
+    const {
+        totalAmount: chargesTotal,
+        totalPaid: chargesPaid,
+    } = computeChargeTotals(rows);
+    const unitsTotal = computeUnitsTotal(unitRows);
+    const unitsPaid = computeUnitsPaidTotal(unitRows);
+    const effectiveTotal = chargesTotal + unitsTotal;
+    // Paid = charge payments + units marked paid.
+    const paidTotal = chargesPaid + unitsPaid;
     const securityDepositNum = num(securityDeposit);
-    const effectiveTotal = num(totalAmount);
-    const hallRentNum = num(hallRent);
-    const advanceNum = num(advancePaid);
-    const effectiveBalance = Math.max(
-        0,
-        effectiveTotal - advanceNum - instrumentNum - hallRentNum,
-    );
 
-    // Warning: advance + instrument + hall rent exceed the total amount.
-    const amountsExceed =
-        effectiveTotal > 0 &&
-        (advanceNum + instrumentNum + hallRentNum) > effectiveTotal;
+    // "All Paid" = every charge fully paid and every unit marked paid.
+    const chargesAllPaid =
+        rows.length > 0 &&
+        rows.every((r) => num(r.amount) > 0 && num(r.paid) === num(r.amount));
+    const allPaid = chargesAllPaid && unitRows.every((u) => u.paid);
 
-    // Popup warning once, when the amounts start exceeding the total.
+    const handleToggleAllPaid = () => {
+        const next = !allPaid;
+        setRows((prev) =>
+            prev.map((r) => ({ ...r, paid: next ? r.amount : '' })),
+        );
+        setUnitRows((prev) => prev.map((u) => ({ ...u, paid: next })));
+    };
+
+    // Warning: total paid exceeds the total amount.
+    const amountsExceed = effectiveTotal > 0 && paidTotal > effectiveTotal;
+
+    // Popup warning once, when the paid amount starts exceeding the total.
     const warnedRef = React.useRef(false);
     useEffect(() => {
         if (amountsExceed && !warnedRef.current) {
             warnedRef.current = true;
             showMessage({
                 message: 'Invalid Amounts',
-                description: 'Advance + Instrument + Hall Rent is more than the Total Amount.',
+                description: 'Total paid is more than the Total Amount.',
                 type: 'warning',
                 duration: 3500,
             });
@@ -169,25 +187,21 @@ const Step5RequirementsScreen = () => {
     // Payment proof required for non-cash modes.
     const requiresProof = paymentMode.length > 0 && paymentMode[0] !== 'Cash';
 
-    // Form valid when total>0, advance present, mode chosen, and (if needed)
-    // transaction no + proof provided. UPI shows an inline QR to scan.
+    // Form valid when total>0, some payment received, mode chosen, and (if
+    // needed) transaction no + proof provided. UPI shows an inline QR to scan.
 
     const formValid = useMemo(() => {
         const totalOk = effectiveTotal > 0;
-        const partsOk = instrumentNum > 0 && securityDepositNum > 0 && hallRentNum > 0;
-        const advanceOk = advanceNum > 0 && advanceNum <= effectiveTotal;
+        const paidOk = paidTotal > 0 && paidTotal <= effectiveTotal;
         const modeOk = paymentMode.length > 0;
-        if (!totalOk || !partsOk || !advanceOk || !modeOk) return false;
+        if (!totalOk || !paidOk || !modeOk) return false;
         if (amountsExceed) return false;
         if (requiresTransaction && transactionNumber.trim().length === 0) return false;
         if (requiresProof && !photo?.uri) return false;
         return true;
     }, [
         effectiveTotal,
-        instrumentNum,
-        securityDepositNum,
-        hallRentNum,
-        advanceNum,
+        paidTotal,
         amountsExceed,
         paymentMode,
         requiresTransaction,
@@ -202,11 +216,30 @@ const Step5RequirementsScreen = () => {
         if (!fin) {
             return;
         }
-        if (fin.hallRent) setHallRent(String(fin.hallRent));
-        if (fin.instrument) setInstrument(String(fin.instrument));
+        if (fin.charges && fin.charges.length > 0) {
+            setRows(
+                (fin.charges as { label: string; amount?: number; paid?: number }[]).map((c) =>
+                    newChargeRow(
+                        c.label,
+                        c.amount ? String(c.amount) : '',
+                        c.paid ? String(c.paid) : '',
+                    ),
+                ),
+            );
+        }
+        if (fin.units && fin.units.length > 0) {
+            setUnitRows(
+                (fin.units as { label: string; quantity?: number; perUnit?: number; paid?: boolean }[]).map((u) =>
+                    newUnitRow(
+                        u.label,
+                        u.quantity ? String(u.quantity) : '',
+                        u.perUnit ? String(u.perUnit) : '',
+                        !!u.paid,
+                    ),
+                ),
+            );
+        }
         if (fin.securityDeposit) setSecurityDeposit(String(fin.securityDeposit));
-        if (fin.totalAmount) setTotalAmount(String(fin.totalAmount));
-        if (fin.advancePaid) setAdvancePaid(String(fin.advancePaid));
         if (fin.mode) setPaymentMode([fin.mode]);
         if (existingBooking?.payments?.[0]?.transactionId) {
             setTransactionNumber(existingBooking.payments[0].transactionId);
@@ -290,13 +323,12 @@ const Step5RequirementsScreen = () => {
             }
 
             // DRAFT SYSTEM: save the payment section locally — no API call.
+            // Units (with their paid flags) are saved to the draft as well.
+            updateDraft('units', unitRowsToPayload(unitRows));
             updateDraft('payment', {
-                hallRent: hallRentNum || undefined,
-                instrument: instrumentNum || undefined,
+                charges: chargeRowsToPayload(rows),
+                units: unitRowsToPayload(unitRows),
                 securityDeposit: securityDepositNum || undefined,
-                totalAmount: effectiveTotal || undefined,
-                advancePaid: advanceNum || undefined,
-                balanceAmount: effectiveBalance || undefined,
                 mode: paymentMode[0] ?? undefined,
                 transactionNumber: requiresTransaction ? transactionNumber : undefined,
                 paymentProofPhoto,
@@ -329,82 +361,33 @@ const Step5RequirementsScreen = () => {
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
             >
-                <View className="mb-6">
-                    <View className="flex-row items-center gap-2 mb-4">
-                        <IndianRupee
-                            size={20}
-                            color={Theme.button.primary}
-                        />
-                        <Text className="text-white text-base font-semibold">
-                            Payment Summary
-                        </Text>
-                    </View>
-                    {/* Total Amount — manual input, digits only */}
-                    <InputField
-                        title="Total Amount *"
-                        value={totalAmount}
-                        setvalue={handleAmountChange(setTotalAmount)}
-                        placeholder="Enter total amount"
-                        keyType="numeric"
-                        Icon={IndianRupee}
-                    />
-                    {/* Hall Rent — manual input, digits only */}
-                    <InputField
-                        title="Hall Rent *"
-                        value={hallRent}
-                        setvalue={handleAmountChange(setHallRent)}
-                        placeholder="Enter hall rent"
-                        keyType="numeric"
-                        Icon={IndianRupee}
-                    />
-                    <InputField
-                        title="Instrument / Table *"
-                        value={instrument}
-                        setvalue={handleAmountChange(setInstrument)}
-                        placeholder="Enter instrument / table amount"
-                        keyType="numeric"
-                        Icon={ReceiptText}
-                    />
-                    <InputField
-                        title="Security Deposit *"
-                        value={securityDeposit}
-                        setvalue={handleAmountChange(setSecurityDeposit)}
-                        placeholder="Enter security deposit"
-                        keyType="numeric"
-                        Icon={ShieldCheck}
-                    />
-                    {/* Advance Paid — manual input, digits only */}
-                    <InputField
-                        title="Advance Paid *"
-                        value={advancePaid}
-                        setvalue={handleAmountChange(setAdvancePaid)}
-                        placeholder="Enter advance paid amount"
-                        keyType="numeric"
-                        Icon={WalletCards}
-                    />
-                    {/* Balance Amount — always auto-calculated */}
-                    <View
-                        className="rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between"
-                        style={{ backgroundColor: Theme.background.secondary }}
-                    >
-                        <Text className="text-white text-base font-semibold">
-                            Balance Amount
-                        </Text>
-                        <Text className="text-white text-lg font-bold" style={{ color: Theme.button.primary }}>
-                            ₹{(effectiveBalance || 0).toLocaleString()}
-                        </Text>
-                    </View>
-                    {/* Inline warning when amounts exceed the total (UI jump-free reserved slot) */}
-                    <View style={{ minHeight: 18, justifyContent: 'center' }}>
-                        {amountsExceed ? (
-                            <Text className="text-xs" style={{ color: '#FF6B6B' }}>
-                                ⚠ Advance + Instrument + Hall Rent exceeds the Total Amount
-                            </Text>
-                        ) : null}
-                    </View>
+                <FinanceChargesSection
+                    rows={rows}
+                    setRows={setRows}
+                    securityDeposit={securityDeposit}
+                    setSecurityDeposit={setSecurityDeposit}
+                    extraAmount={unitsTotal}
+                    extraPaid={unitsPaid}
+                    allPaid={allPaid}
+                    onToggleAllPaid={handleToggleAllPaid}
+                />
 
+                <UnitsSection
+                    rows={unitRows}
+                    setRows={setUnitRows}
+                    showPaid
+                />
+
+                {/* Inline warning when paid exceeds the total (UI jump-free reserved slot) */}
+                <View style={{ minHeight: 18, justifyContent: 'center' }}>
+                    {amountsExceed ? (
+                        <Text className="text-xs mb-3" style={{ color: '#FF6B6B' }}>
+                            Total paid is more than the Total Amount
+                        </Text>
+                    ) : null}
                 </View>
-                <View className="mb-3">
+
+                <View className="mb-3 mt-3">
 
                     <MultiSelector
                         title="Mode of Payment"

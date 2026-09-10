@@ -8,7 +8,7 @@ import { ActivityIndicator } from 'react-native';
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
 import { Theme } from '../../const/theme/Theme';
-import {  WalletCards, IndianRupee, ShieldCheck, ReceiptText, History, ArrowRight } from 'lucide-react-native';
+import { IndianRupee, ShieldCheck, History, ArrowRight } from 'lucide-react-native';
 import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
@@ -44,14 +44,30 @@ const PaymentTrackRecordScreen = ({ navigation, route }: any) => {
         );
     }
 
-    const payments = Array.isArray(booking.payments) ? booking.payments : [];
     const fin = booking.financial ?? {};
-    const totalReceived = payments.reduce(
-        (sum: any, p: any) => sum + (Number(p.amount) || 0),
-        0,
-    );
-    const totalAmount = Number(fin.totalAmount) || 0;
-    const balanceAmount = Number(fin.balanceAmount) || 0;
+    const charges = Array.isArray(fin.charges)
+        ? (fin.charges as { label: string; amount?: number; paid?: number }[])
+        : [];
+    const units = Array.isArray(fin.units)
+        ? (fin.units as {
+              label: string;
+              quantity?: number;
+              perUnit?: number;
+              amount?: number;
+              paid?: boolean;
+          }[])
+        : [];
+    // Totals are DERIVED from the charge breakdown so they always match.
+    const totalAmount =
+        Number(fin.totalAmount) ||
+        charges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+    const paidAmount =
+        Number(fin.advancePaid) ||
+        charges.reduce((sum, c) => sum + (Number(c.paid) || 0), 0);
+    const balanceAmount =
+        Number(fin.balanceAmount) || Math.max(0, totalAmount - paidAmount);
+    // Refundable — never part of the total/balance.
+    const securityDeposit = Number(fin.securityDeposit) || 0;
     const paymentStatus = booking.paymentStatus ?? 'Pending';
     const statusColor =
         paymentStatus === 'Paid'
@@ -59,35 +75,15 @@ const PaymentTrackRecordScreen = ({ navigation, route }: any) => {
             : paymentStatus === 'Partial'
                 ? '#F59E0B'
                 : '#EF4444';
-    // Progress computed LIVE from the same fields the balance uses, so it
-    // always matches the Balance card and ignores any stale stored balance.
-    // Settled = Hall Rent + Instrument + Advance + Final Payment
-    // (Security deposit is a refundable hold and excluded.)
-    const paidAmount =
-        (Number(fin.hallRent) || 0) +
-        (Number(fin.instrument) || 0) +
-        (Number(fin.advancePaid) || 0) +
-        (Number(fin.finalPayment) || 0);
     const progress = totalAmount > 0
         ? Math.min(100, Math.round((paidAmount / totalAmount) * 100))
         : 0;
 
-    const summaryRows = [
-        { icon: <IndianRupee size={15} color={Theme.text.secondary} />, label: 'Hall Rent', value: fin.hallRent },
-        { icon: <ReceiptText size={15} color={Theme.text.secondary} />, label: 'Instrument / Table', value: fin.instrument },
-        { icon: <ShieldCheck size={15} color={Theme.text.secondary} />, label: 'Security Deposit (Refundable)', value: fin.securityDeposit },
-        { icon: <WalletCards size={15} color={Theme.text.secondary} />, label: 'Advance Paid', value: fin.advancePaid },
-        { icon: <IndianRupee size={15} color={Theme.text.secondary} />, label: 'Final Payment', value: fin.finalPayment },
-    ];
-
     // Field label map for the audit trail.
     const fieldLabels: Record<string, string> = {
-        hallRent: 'Hall Rent',
-        instrument: 'Instrument',
-        securityDeposit: 'Security Deposit',
         totalAmount: 'Total Amount',
-        advancePaid: 'Advance Paid',
-        finalPayment: 'Final Payment',
+        advancePaid: 'Paid Amount',
+        securityDeposit: 'Security Deposit',
     };
 
     // Balance is derived — never shown as a change diff.
@@ -163,33 +159,173 @@ const PaymentTrackRecordScreen = ({ navigation, route }: any) => {
                    
                 </View>
                 <Text className="text-sm font-semibold mb-3" style={{ color: Theme.text.secondary }}>
-                    FINANCIAL BREAKDOWN
+                    ACTUAL AMOUNT
                 </Text>
                 <View
                     className="rounded-2xl p-4 mb-6"
                     style={{ backgroundColor: Theme.background.secondary }}
                 >
-                    {summaryRows.map((row, i) => (
-                        <View key={row.label}>
+                    {charges.length === 0 ? (
+                        <Text className="text-sm py-2" style={{ color: Theme.text.secondary }}>
+                            No amount heads added yet.
+                        </Text>
+                    ) : (
+                        charges.map((c, i) => {
+                            const amount = Number(c.amount) || 0;
+                            const paid = Number(c.paid) || 0;
+                            const due = Math.max(0, amount - paid);
+                            return (
+                                <View key={`${c.label}-${i}`}>
+                                    <View className="flex-row items-center justify-between py-2.5">
+                                        <View className="flex-row items-center flex-1">
+                                            <View className="mr-2.5">
+                                                <IndianRupee size={15} color={Theme.text.secondary} />
+                                            </View>
+                                            <Text className="text-sm" style={{ color: Theme.text.secondary }}>
+                                                {c.label}
+                                            </Text>
+                                        </View>
+                                        <Text
+                                            className="text-sm font-semibold"
+                                            style={{ color: Theme.text.primary }}
+                                        >
+                                            ₹{amount.toLocaleString()}
+                                        </Text>
+                                    </View>
+                                    <View className="flex-row items-center justify-end gap-3 pb-2.5">
+                                        <Text className="text-xs" style={{ color: '#22C55E' }}>
+                                            Paid ₹{paid.toLocaleString()}
+                                        </Text>
+                                        {due > 0 && (
+                                            <Text className="text-xs" style={{ color: '#F59E0B' }}>
+                                                Due ₹{due.toLocaleString()}
+                                            </Text>
+                                        )}
+                                    </View>
+                                    {i < charges.length - 1 && (
+                                        <View style={{ height: 1, backgroundColor: '#2A2A30' }} />
+                                    )}
+                                </View>
+                            );
+                        })
+                    )}
+
+                    <View
+                        className="flex-row items-center justify-between pt-3 mt-1"
+                        style={{ borderTopWidth: 1, borderTopColor: '#2A2A30' }}
+                    >
+                        <Text className="text-sm font-semibold text-white">
+                            Total Amount
+                        </Text>
+                        <Text className="text-base font-bold" style={{ color: Theme.button.primary }}>
+                            ₹{totalAmount.toLocaleString()}
+                        </Text>
+                    </View>
+                </View>
+
+                {units.length > 0 && (
+                    <>
+                        <Text className="text-sm font-semibold mb-3" style={{ color: Theme.text.secondary }}>
+                            UNITS
+                        </Text>
+                        <View
+                            className="rounded-2xl p-4 mb-6"
+                            style={{ backgroundColor: Theme.background.secondary }}
+                        >
+                            {units.map((u, i) => {
+                                const quantity = Number(u.quantity) || 0;
+                                const perUnit = Number(u.perUnit) || 0;
+                                const amount = Number(u.amount) || quantity * perUnit;
+                                return (
+                                    <View key={`${u.label}-${i}`}>
+                                        <View className="flex-row items-center justify-between py-2.5">
+                                            <View className="flex-1">
+                                                <View className="flex-row items-center">
+                                                    <Text className="text-sm" style={{ color: Theme.text.secondary }}>
+                                                        {u.label}
+                                                    </Text>
+                                                    <View
+                                                        className="ml-2 px-2 py-0.5 rounded-full"
+                                                        style={{
+                                                            backgroundColor: u.paid
+                                                                ? 'rgba(34,197,94,0.15)'
+                                                                : 'rgba(245,158,11,0.15)',
+                                                        }}
+                                                    >
+                                                        <Text
+                                                            className="text-[10px] font-bold"
+                                                            style={{ color: u.paid ? '#22C55E' : '#F59E0B' }}
+                                                        >
+                                                            {u.paid ? 'PAID' : 'UNPAID'}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <Text className="text-xs mt-0.5" style={{ color: Theme.text.secondary }}>
+                                                    {quantity.toLocaleString()} × ₹{perUnit.toLocaleString()}
+                                                </Text>
+                                            </View>
+                                            <Text
+                                                className="text-sm font-semibold"
+                                                style={{ color: Theme.text.primary }}
+                                            >
+                                                ₹{amount.toLocaleString()}
+                                            </Text>
+                                        </View>
+                                        {i < units.length - 1 && (
+                                            <View style={{ height: 1, backgroundColor: '#2A2A30' }} />
+                                        )}
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </>
+                )}
+
+                <Text className="text-sm font-semibold mb-3" style={{ color: Theme.text.secondary }}>
+                    PAYMENTS
+                </Text>
+                <View
+                    className="rounded-2xl p-4 mb-6"
+                    style={{ backgroundColor: Theme.background.secondary }}
+                >
+                    <View className="flex-row items-center justify-between py-2.5">
+                        <Text className="text-sm" style={{ color: Theme.text.secondary }}>
+                            Total Paid
+                        </Text>
+                        <Text className="text-base font-bold" style={{ color: '#22C55E' }}>
+                            ₹{paidAmount.toLocaleString()}
+                        </Text>
+                    </View>
+                    <View style={{ height: 1, backgroundColor: '#2A2A30' }} />
+                    <View className="flex-row items-center justify-between py-2.5">
+                        <Text className="text-sm" style={{ color: Theme.text.secondary }}>
+                            Balance Due
+                        </Text>
+                        <Text
+                            className="text-base font-bold"
+                            style={{ color: balanceAmount > 0 ? '#F59E0B' : '#22C55E' }}
+                        >
+                            ₹{balanceAmount.toLocaleString()}
+                        </Text>
+                    </View>
+                    {securityDeposit > 0 && (
+                        <>
+                            <View style={{ height: 1, backgroundColor: '#2A2A30' }} />
                             <View className="flex-row items-center justify-between py-2.5">
                                 <View className="flex-row items-center flex-1">
-                                    <View className="mr-2.5">{row.icon}</View>
+                                    <View className="mr-2.5">
+                                        <ShieldCheck size={15} color={Theme.text.secondary} />
+                                    </View>
                                     <Text className="text-sm" style={{ color: Theme.text.secondary }}>
-                                        {row.label}
+                                        Security Deposit (Refundable)
                                     </Text>
                                 </View>
-                                <Text
-                                    className="text-sm font-semibold"
-                                    style={{ color: Theme.text.primary }}
-                                >
-                                    ₹{(Number(row.value) || 0).toLocaleString()}
+                                <Text className="text-sm font-semibold" style={{ color: Theme.text.primary }}>
+                                    ₹{securityDeposit.toLocaleString()}
                                 </Text>
                             </View>
-                            {i < summaryRows.length - 1 && (
-                                <View style={{ height: 1, backgroundColor: '#2A2A30' }} />
-                            )}
-                        </View>
-                    ))}
+                        </>
+                    )}
                 </View>
 
 

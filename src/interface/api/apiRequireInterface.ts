@@ -30,7 +30,6 @@ export interface createDraftBookingInterface {
     eventName: string;
     bookedByStaff: string;
     eventImage?: string;
-    allocatedTeam?: string[];
     token: string;
 }
 

@@ -63,7 +63,7 @@ const Step4AttendanceScreen = () => {
             updateDraft('termsAccepted', true);
 
             navigation.navigate(
-                BookingStepRoute.Step5Requirements,
+                BookingStepRoute.Units,
                 { bookingId }
             );
         } finally {

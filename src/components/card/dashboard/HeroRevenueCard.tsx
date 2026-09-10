@@ -12,11 +12,13 @@ interface HeroRevenueCardProps {
 }
 
 const HeroRevenueCard = React.memo(({ stats, onPress }: HeroRevenueCardProps) => {
-    const total = stats?.totalRevenue ?? 0;
-    const collected = stats?.collectedAmount ?? 0;
+    // Revenue = what customers have actually paid. Pending/due is NOT revenue.
+    const revenue = stats?.totalRevenue ?? 0;
     const today = stats?.todayEvents ?? 0;
     const pending = stats?.pendingPaymentsAmount ?? 0;
-    const pct = total > 0 ? Math.min(100, Math.round((collected / total) * 100)) : 0;
+    const booked = revenue + pending;
+    const pct = booked > 0 ? Math.min(100, Math.round((revenue / booked) * 100)) : 0;
+    const totalBookings = stats?.totalBookings ?? 0;
 
     return (
         <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
@@ -45,13 +47,13 @@ const HeroRevenueCard = React.memo(({ stats, onPress }: HeroRevenueCardProps) =>
                     <ArrowUpRight size={18} color="#3D2400" />
                 </View>
                 <Text className="text-[40px] font-black leading-[44px] mt-1.5" style={{ color: '#221300' }}>
-                    {formatCompactINR(total)}
+                    {formatCompactINR(revenue)}
                 </Text>
 
                 <View className="mt-4">
                     <View className="flex-row items-center justify-between mb-1.5">
                         <Text className="text-xs font-bold" style={{ color: '#3D2400' }}>
-                            {formatCompactINR(collected)} collected
+                            {formatCompactINR(revenue)} received
                         </Text>
                         <Text className="text-xs font-black" style={{ color: '#3D2400' }}>{pct}%</Text>
                     </View>
@@ -67,7 +69,7 @@ const HeroRevenueCard = React.memo(({ stats, onPress }: HeroRevenueCardProps) =>
                     </View>
                     <View className="flex-1 flex-row items-center rounded-xl px-3 py-2 bg-white/90">
                         <Wallet size={13} color={DashboardPalette.goldDeep} />
-                        <Text className="text-xs font-bold ml-1.5" style={{ color: DashboardPalette.ink }}>{formatCompactINR(pending)} due</Text>
+                        <Text className="text-xs font-bold ml-1.5" style={{ color: DashboardPalette.ink }}>{totalBookings} bookings</Text>
                     </View>
                 </View>
             </LinearGradient>

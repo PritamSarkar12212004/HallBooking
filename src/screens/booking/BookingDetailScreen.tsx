@@ -81,6 +81,17 @@ const BookingDetailContent = ({
     statusColor,
 }: any) => {
     const bookingId = booking?._id ?? route.params?.id;
+    const fin = booking?.financial ?? {};
+    const finCharges = Array.isArray(fin.charges) ? fin.charges : [];
+    const finTotalAmount =
+        Number(fin.totalAmount) ||
+        finCharges.reduce((sum: number, c: any) => sum + (Number(c.amount) || 0), 0);
+    const finPaidAmount =
+        Number(fin.advancePaid) ||
+        finCharges.reduce((sum: number, c: any) => sum + (Number(c.paid) || 0), 0);
+    const finBalanceAmount =
+        Number(fin.balanceAmount) || Math.max(0, finTotalAmount - finPaidAmount);
+    const finSecurityDeposit = Number(fin.securityDeposit) || 0;
     return (
         <>
             <SubHeader
@@ -137,13 +148,23 @@ const BookingDetailContent = ({
                                 }}
                             />
 
-                            <View
-                                className="absolute top-4 left-4 px-3 py-1.5 rounded-full flex-row items-center"
-                                style={{ backgroundColor: statusColor }}
-                            >
-                                <Text className="text-xs font-bold text-white">
-                                    {booking.paymentStatus}
-                                </Text>
+                            <View className="absolute top-4 left-4 flex-row items-center" style={{ gap: 6 }}>
+                                <View
+                                    className="px-3 py-1.5 rounded-full flex-row items-center"
+                                    style={{ backgroundColor: statusColor }}
+                                >
+                                    <Text className="text-xs font-bold text-white">
+                                        {booking.paymentStatus}
+                                    </Text>
+                                </View>
+                                <View
+                                    className="px-3 py-1.5 rounded-full flex-row items-center"
+                                    style={{ backgroundColor: '#22C55E' }}
+                                >
+                                    <Text className="text-xs font-bold text-white">
+                                        {booking.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
+                                    </Text>
+                                </View>
                             </View>
 
                             <View
@@ -234,13 +255,29 @@ const BookingDetailContent = ({
                             className="rounded-2xl p-4"
                             style={{ backgroundColor: Dark.surface, borderWidth: 1, borderColor: Dark.border }}
                         >
-                            <InfoRow label="Hall Rent" value={`₹${booking.financial?.hallRent?.toLocaleString()}`} />
-                            <InfoRow label="Security Deposit" value={`₹${booking.financial?.securityDeposit?.toLocaleString()}`} />
-                            <InfoRow label="Total Amount" value={`₹${booking.financial?.totalAmount?.toLocaleString()}`} bold />
-                            <InfoRow label="Advance Paid" value={`₹${booking.financial?.advancePaid?.toLocaleString()}`} />
+                            {booking.financial?.charges?.map(
+                                (c: { label: string; amount?: number; paid?: number }, i: number) => (
+                                    <InfoRow
+                                        key={`${c.label}-${i}`}
+                                        label={c.label}
+                                        value={`₹${(Number(c.amount) || 0).toLocaleString()}`}
+                                    />
+                                ),
+                            )}
+                            {booking.financial?.units?.map(
+                                (u: { label: string; quantity?: number; perUnit?: number; amount?: number; paid?: boolean }, i: number) => (
+                                    <InfoRow
+                                        key={`unit-${u.label}-${i}`}
+                                        label={`${u.label} (Unit)${u.paid ? ' • Paid' : ''}`}
+                                        value={`₹${(Number(u.amount) || 0).toLocaleString()}`}
+                                    />
+                                ),
+                            )}
+                            <InfoRow label="Total Amount" value={`₹${finTotalAmount.toLocaleString()}`} bold />
+                            <InfoRow label="Total Paid" value={`₹${finPaidAmount.toLocaleString()}`} />
                             <InfoRow
-                                label="Final Payment"
-                                value={`₹${(booking.financial?.finalPayment ?? 0).toLocaleString()}`}
+                                label="Security Deposit (Refundable)"
+                                value={`₹${finSecurityDeposit.toLocaleString()}`}
                             />
                             <InfoRow
                                 label="Last Finance Update"
@@ -264,43 +301,12 @@ const BookingDetailContent = ({
                             />
                             <InfoRow
                                 label="Balance"
-                                value={`₹${booking.financial?.balanceAmount?.toLocaleString()}`}
+                                value={`₹${finBalanceAmount.toLocaleString()}`}
                                 valueColor="#F59E0B"
                                 last
                             />
                         </View>
                     </View>
-                    {booking.allocatedTeam?.length > 0 && (
-                        <View className="mt-7">
-                            <Text
-                                className="text-sm font-bold mb-3 tracking-wide"
-                                style={{ color: Dark.textPrimary }}
-                            >
-                                Allocated Team
-                            </Text>
-                            <View
-                                className="rounded-2xl p-4"
-                                style={{ backgroundColor: Dark.surface, borderWidth: 1, borderColor: Dark.border }}
-                            >
-                                {booking.allocatedTeam.map((member: string, index: number) => (
-                                    <View
-                                        key={index}
-                                        className={`flex-row items-center ${index !== booking.allocatedTeam.length - 1 ? 'mb-3' : ''}`}
-                                    >
-                                        <View
-                                            className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                                            style={{ backgroundColor: Dark.accent }}
-                                        >
-                                            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
-                                                {member.charAt(0)}
-                                            </Text>
-                                        </View>
-                                        <Text style={{ color: Dark.textPrimary }}>{member}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
                 </ScrollView>
             )}
             {!isLoading && (
@@ -317,7 +323,7 @@ const BookingDetailContent = ({
                             Balance Due
                         </Text>
                         <Text className="text-xl font-extrabold" style={{ color: '#F59E0B' }}>
-                            ₹{booking.financial?.balanceAmount?.toLocaleString() || 0}
+                            ₹{finBalanceAmount.toLocaleString()}
                         </Text>
                     </View>
 

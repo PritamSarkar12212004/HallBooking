@@ -8,6 +8,7 @@ import Step1ApplicantScreen from '../../screens/booking/steps/Step1ApplicantScre
 import Step2EventScreen from '../../screens/booking/steps/Step2EventScreen';
 import Step3ScheduleScreen from '../../screens/booking/steps/Step3ScheduleScreen';
 import Step4AttendanceScreen from '../../screens/booking/steps/Step4AttendanceScreen';
+import Step5UnitsScreen from '../../screens/booking/steps/Step5UnitsScreen';
 import Step5RequirementsScreen from '../../screens/booking/steps/Step5RequirementsScreen';
 import Step6DecorationScreen from '../../screens/booking/steps/Step6DecorationScreen';
 import Step7PaymentScreen from '../../screens/booking/steps/Step7PaymentScreen';
@@ -45,6 +46,10 @@ const BookingStepStack = () => {
             <Stack.Screen
                 name={BookingStepRoute.Step4Attendance}
                 component={Step4AttendanceScreen}
+            />
+            <Stack.Screen
+                name={BookingStepRoute.Units}
+                component={Step5UnitsScreen}
             />
             <Stack.Screen
                 name={BookingStepRoute.Step5Requirements}

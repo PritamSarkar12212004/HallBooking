@@ -36,6 +36,7 @@ export const BookingStepRoute = {
     Step2Event: "Step2Event",
     Step3Schedule: "Step3Schedule",
     Step4Attendance: "Step4Attendance",
+    Units: "Units",
     Step5Requirements: "Step5Requirements",
     Step6Decoration: "Step6Decoration",
     Step7Payment: "Step7Payment",
@@ -50,6 +51,7 @@ export type BookingStepParamList = {
     [BookingStepRoute.Step2Event]: { applicantData?: any; bookingId?: string };
     [BookingStepRoute.Step3Schedule]: { bookingId?: string };
     [BookingStepRoute.Step4Attendance]: { bookingId?: string };
+    [BookingStepRoute.Units]: { bookingId?: string };
     [BookingStepRoute.Step5Requirements]: { bookingId?: string };
     [BookingStepRoute.Step6Decoration]: { bookingId?: string };
     [BookingStepRoute.Step7Payment]: { bookingId?: string };

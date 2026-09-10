@@ -12,7 +12,6 @@ const createBookingApi = async (data: createDraftBookingInterface) => {
         eventName: data.eventName,
         bookedByStaff: data.bookedByStaff,
         eventImage: data.eventImage,
-        allocatedTeam: data.allocatedTeam ?? [],
     }, {
         headers: {
             Authorization: `Bearer ${data.token}`

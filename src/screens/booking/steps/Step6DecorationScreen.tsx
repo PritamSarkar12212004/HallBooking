@@ -118,7 +118,6 @@ const Step6DecorationScreen = () => {
                 eventName: draft.eventName ?? '',
                 bookedByStaff: draft.bookedByStaff ?? '',
                 eventImage: draft.eventImage,
-                allocatedTeam: draft.allocatedTeam ?? [],
                 token: user.token,
             });
 

@@ -46,15 +46,12 @@ const BookingListScreen = ({ navigation }: any) => {
         }
     }, [refetch]);
 
-    // Auto-loads the next page of bookings once the user scrolls to the end,
-    // then merges it into the list — no manual "Load More" tap needed.
     const onEndReached = useCallback(() => {
         if (hasMore && !isLoadingMore && !isLoading) {
             loadMore();
         }
     }, [hasMore, isLoadingMore, isLoading, loadMore]);
 
-    // Bottom loading indicator (only once there is at least one booking loaded).
     const listFooter = typedBookings.length > 0 ? (
         <View className="flex-row items-center justify-center pt-6" style={{ gap: 8 }}>
             {isLoadingMore ? (
@@ -76,13 +73,9 @@ const BookingListScreen = ({ navigation }: any) => {
         </View>
     ) : undefined;
 
-    // Best-performance filtering: memoized so it only recomputes when the
-    // search term, active chip, or data actually changes (no per-keypress).
     const filteredBookings = useMemo(() => {
         const query = search.trim().toLowerCase();
         let list = typedBookings;
-
-        // Status chip filter
         if (activeFilter === 'Ongoing') {
             list = list.filter((b) => b.status !== 'Cancelled');
         } else if (activeFilter === 'Paid') {
@@ -204,7 +197,7 @@ const BookingListScreen = ({ navigation }: any) => {
                     ListHeaderComponent={
                         <View className=" pt-2">
                             <MainSearchInput
-                                placeholder="Search by name, event, hall, or booking ID..."
+                                placeholder="Search by name, event"
                                 value={search}
                                 setvalue={setSearch}
                             />

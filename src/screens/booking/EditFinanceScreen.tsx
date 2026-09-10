@@ -12,17 +12,30 @@ import InputField from '../../components/input/InputField';
 import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
 import CamGalPickerButton from '../../components/buttons/CamGalPickerButton';
+import FinanceChargesSection, {
+    ChargeRow,
+    chargeRowsToPayload,
+    computeChargeTotals,
+    createDefaultChargeRows,
+    newChargeRow,
+    num,
+} from '../../components/booking/FinanceChargesSection';
+import UnitsSection, {
+    UnitRow,
+    computeUnitsPaidTotal,
+    computeUnitsTotal,
+    createDefaultUnitRows,
+    newUnitRow,
+    unitRowsToPayload,
+} from '../../components/booking/UnitsSection';
 import { Theme } from '../../const/theme/Theme';
 import {
     Camera,
     Check,
     CreditCard,
     GalleryHorizontal,
-    IndianRupee,
     ReceiptText,
-    ShieldCheck,
     Trash2,
-    WalletCards,
 } from 'lucide-react-native';
 import {
     launchCamera,
@@ -48,19 +61,16 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         token: user?.token,
     });
 
-    const financial = booking?.financial || {};
     const upiInfo = useGetBookingMeta(user?.token).meta?.upi;
     const lastPayment =
         booking?.payments && booking.payments.length > 0
             ? booking.payments[booking.payments.length - 1]
             : ({} as any);
 
-    const [totalAmount, setTotalAmount] = useState('');
-    const [hallRent, setHallRent] = useState('');
-    const [instrument, setInstrument] = useState('');
+    // Section 1 (actual amount) + Section 2 (paid per head) share one row list.
+    const [rows, setRows] = useState<ChargeRow[]>(createDefaultChargeRows);
+    const [unitRows, setUnitRows] = useState<UnitRow[]>(createDefaultUnitRows);
     const [securityDeposit, setSecurityDeposit] = useState('');
-    const [advancePaid, setAdvancePaid] = useState('');
-    const [finalPayment, setFinalPayment] = useState('');
     const [paymentMode, setPaymentMode] = useState<string[]>([]);
     const [transactionNumber, setTransactionNumber] = useState('');
     const [photo, setPhoto] = useState<any | null>(null);
@@ -75,30 +85,31 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         );
     };
 
-    // Amount fields accept digits only — alphabets/symbols stripped live.
-    const handleAmountChange = (setter: (v: string) => void) => (text: string) => {
-        setter(text.replace(/[^0-9]/g, ''));
+    // Totals are derived live from the charge rows (see FinanceChargesSection).
+    const unitsTotal = computeUnitsTotal(unitRows);
+    const unitsPaid = computeUnitsPaidTotal(unitRows);
+    const {
+        totalAmount: chargesTotal,
+        totalPaid: chargesPaid,
+    } = computeChargeTotals(rows);
+    const effectiveTotal = chargesTotal + unitsTotal;
+    // Paid = charge payments + units marked paid.
+    const advanceNum = chargesPaid + unitsPaid;
+    const effectiveBalance = Math.max(0, effectiveTotal - advanceNum);
+
+    // "All Paid" = every charge fully paid and every unit marked paid.
+    const chargesAllPaid =
+        rows.length > 0 &&
+        rows.every((r) => num(r.amount) > 0 && num(r.paid) === num(r.amount));
+    const allPaid = chargesAllPaid && unitRows.every((u) => u.paid);
+
+    const handleToggleAllPaid = () => {
+        const next = !allPaid;
+        setRows((prev) =>
+            prev.map((r) => ({ ...r, paid: next ? r.amount : '' })),
+        );
+        setUnitRows((prev) => prev.map((u) => ({ ...u, paid: next })));
     };
-
-    const num = (v: string) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : 0;
-    };
-
-    // Balance auto-calculated live, identical everywhere.
-//   Balance = Total − Advance − Instrument − Hall Rent − Final Payment
-// Security Deposit is a refundable hold, so it is NOT subtracted.
-const instrumentNum = num(instrument);
-    const securityDepositNum = num(securityDeposit);
-    const effectiveTotal = num(totalAmount);
-    const hallRentNum = num(hallRent);
-    const advanceNum = num(advancePaid);
-    const finalNum = num(finalPayment);
-
-    const effectiveBalance = Math.max(
-        0,
-        effectiveTotal - advanceNum - instrumentNum - hallRentNum - finalNum,
-    );
 
     const requiresTransaction =
         paymentMode[0] === 'UPI' ||
@@ -109,7 +120,7 @@ const instrumentNum = num(instrument);
     const requiresProof =
         paymentMode.length > 0 &&
         paymentMode[0] !== 'Cash' &&
-        !lastPayment?.proofPhoto;
+        !lastPayment?.proof;
 
     const formValid = useMemo(() => {
         const totalOk = effectiveTotal > 0;
@@ -134,17 +145,35 @@ const instrumentNum = num(instrument);
         if (prefilled || !booking) return;
         const fin = booking.financial;
         if (fin) {
-            if (fin.totalAmount) setTotalAmount(String(fin.totalAmount));
-            if (fin.hallRent) setHallRent(String(fin.hallRent));
-            if (fin.instrument) setInstrument(String(fin.instrument));
+            if (fin.charges && fin.charges.length > 0) {
+                setRows(
+                    (fin.charges as { label: string; amount?: number; paid?: number }[]).map((c) =>
+                        newChargeRow(
+                            c.label,
+                            c.amount ? String(c.amount) : '',
+                            c.paid ? String(c.paid) : '',
+                        ),
+                    ),
+                );
+            }
+            if (fin.units && fin.units.length > 0) {
+                setUnitRows(
+                    (fin.units as { label: string; quantity?: number; perUnit?: number; paid?: boolean }[]).map((u) =>
+                        newUnitRow(
+                            u.label,
+                            u.quantity ? String(u.quantity) : '',
+                            u.perUnit ? String(u.perUnit) : '',
+                            !!u.paid,
+                        ),
+                    ),
+                );
+            }
             if (fin.securityDeposit) setSecurityDeposit(String(fin.securityDeposit));
-            if (fin.advancePaid) setAdvancePaid(String(fin.advancePaid));
-            if (fin.finalPayment) setFinalPayment(String(fin.finalPayment));
             if (fin.mode) setPaymentMode([fin.mode]);
         }
         const last = booking.payments?.[booking.payments.length - 1];
         if (last?.transactionId) setTransactionNumber(last.transactionId);
-        if (last?.proofPhoto) setPhoto({ uri: last.proofPhoto });
+        if (last?.proof) setPhoto({ uri: last.proof });
         setPrefilled(true);
     }, [booking, prefilled]);
 
@@ -206,7 +235,7 @@ const instrumentNum = num(instrument);
         try {
             // Upload payment proof to Cloudinary if a NEW image was chosen
             // (existing backend proof URLs are kept as-is).
-            let paymentProofPhoto: string | undefined = lastPayment?.proofPhoto;
+            let paymentProofPhoto: string | undefined = lastPayment?.proof;
             if (photo?.uri && !photo.uri.startsWith('http')) {
                 const uploaded = await uploadImage(photo.uri);
                 paymentProofPhoto = uploaded.secure_url;
@@ -217,13 +246,9 @@ const instrumentNum = num(instrument);
                 section: 'payment',
                 token: user.token,
                 data: {
-                    hallRent: hallRentNum || undefined,
-                    instrument: instrumentNum || undefined,
-                    securityDeposit: securityDepositNum || undefined,
-                    totalAmount: effectiveTotal || undefined,
-                    advancePaid: advanceNum || undefined,
-                    finalPayment: finalNum || undefined,
-                    balanceAmount: effectiveBalance || undefined,
+                    charges: chargeRowsToPayload(rows),
+                    units: unitRowsToPayload(unitRows),
+                    securityDeposit: num(securityDeposit) || undefined,
                     mode: paymentMode[0] ?? undefined,
                     transactionNumber: requiresTransaction ? transactionNumber : undefined,
                     paymentProofPhoto,
@@ -285,76 +310,22 @@ const instrumentNum = num(instrument);
                 className="flex-1"
                 contentContainerStyle={{ paddingBottom: 24 }}
             >
-                <View className="flex-row items-center gap-2 mb-4 mt-2">
-                    <IndianRupee size={20} color={Theme.button.primary} />
-                    <Text className="text-white text-base font-semibold">
-                        Payment Summary
-                    </Text>
-                </View>
-
-                {/* Total Amount — manual input, digits only */}
-                <InputField
-                    title="Total Amount *"
-                    value={totalAmount}
-                    setvalue={handleAmountChange(setTotalAmount)}
-                    placeholder={String(financial?.totalAmount ?? '')}
-                    keyType="numeric"
-                    Icon={IndianRupee}
-                />
-                {/* Hall Rent — manual input, digits only */}
-                <InputField
-                    title="Hall Rent *"
-                    value={hallRent}
-                    setvalue={handleAmountChange(setHallRent)}
-                    placeholder={String(financial?.hallRent ?? '')}
-                    keyType="numeric"
-                    Icon={IndianRupee}
-                />
-                <InputField
-                    title="Instrument / Table *"
-                    value={instrument}
-                    setvalue={handleAmountChange(setInstrument)}
-                    placeholder={String(financial?.instrument ?? '')}
-                    keyType="numeric"
-                    Icon={ReceiptText}
-                />
-                <InputField
-                    title="Security Deposit *"
-                    value={securityDeposit}
-                    setvalue={handleAmountChange(setSecurityDeposit)}
-                    placeholder={String(financial?.securityDeposit ?? '')}
-                    keyType="numeric"
-                    Icon={ShieldCheck}
-                />
-                {/* Advance Paid — manual input, digits only */}
-                <InputField
-                    title="Advance Paid *"
-                    value={advancePaid}
-                    setvalue={handleAmountChange(setAdvancePaid)}
-                    placeholder={String(financial?.advancePaid ?? '')}
-                    keyType="numeric"
-                    Icon={WalletCards}
-                />
-                {/* Final Payment — manual input, digits only (optional) */}
-                <InputField
-                    title="Final Payment"
-                    value={finalPayment}
-                    setvalue={handleAmountChange(setFinalPayment)}
-                    placeholder={String(financial?.finalPayment ?? '')}
-                    keyType="numeric"
-                    Icon={IndianRupee}
-                />
-                {/* Balance Amount — always auto-calculated */}
-                <View
-                    className="rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between"
-                    style={{ backgroundColor: Theme.background.secondary }}
-                >
-                    <Text className="text-white text-base font-semibold">
-                        Balance Amount
-                    </Text>
-                    <Text className="text-white text-lg font-bold" style={{ color: Theme.button.primary }}>
-                        ₹{(effectiveBalance || 0).toLocaleString()}
-                    </Text>
+                <View className="mt-2">
+                    <FinanceChargesSection
+                        rows={rows}
+                        setRows={setRows}
+                        securityDeposit={securityDeposit}
+                        setSecurityDeposit={setSecurityDeposit}
+                        extraAmount={unitsTotal}
+                        extraPaid={unitsPaid}
+                        allPaid={allPaid}
+                        onToggleAllPaid={handleToggleAllPaid}
+                    />
+                    <UnitsSection
+                        rows={unitRows}
+                        setRows={setUnitRows}
+                        showPaid
+                    />
                 </View>
 
                 <MultiSelector
