@@ -8,7 +8,6 @@ import Animated, {
     interpolate,
 } from 'react-native-reanimated';
 
-// Mirrors CEODashboardScreen's Colors so the skeleton matches the real design.
 const C = {
     surface: '#1A1D24',
     surfaceLight: '#232733',
@@ -82,7 +81,7 @@ const OverviewSkeleton = () => (
 const StatCardSkeleton = () => (
     <View
         className="w-[158px] rounded-2xl p-4"
-        style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border }}
+        style={{ backgroundColor: C.surfaceLight, borderWidth: 1, borderColor: C.border }}
     >
         <View className="flex-row items-center justify-between mb-3">
             <SkeletonBox width={40} height={40} borderRadius={12} />
@@ -112,7 +111,7 @@ const SectionHeaderSkeleton = ({
 const ChartShellSkeleton = ({ children }: { children: React.ReactNode }) => (
     <View
         className="rounded-2xl p-5"
-        style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border }}
+        style={{ backgroundColor: C.surfaceLight, borderWidth: 1, borderColor: C.border }}
     >
         {children}
     </View>
@@ -221,7 +220,7 @@ const HallDemandSkeleton = () => (
 const EventRowSkeleton = () => (
     <View
         className="rounded-2xl p-4 mb-3"
-        style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border }}
+        style={{ backgroundColor: C.surfaceLight, borderWidth: 1, borderColor: C.border }}
     >
         <View className="flex-row items-start justify-between">
             <View className="flex-1">
@@ -258,7 +257,12 @@ const EventListSkeleton = ({ rows = 3 }: { rows?: number }) => (
 
 // ── Full dashboard skeleton (mirrors CEODashboardScreen layout) ──
 const DashboardSkeleton = () => (
-    <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView
+        className="flex-1 rounded-t-[28px]"
+        style={{ backgroundColor: C.surface }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 28 }}
+    >
         <OverviewSkeleton />
 
         {/* Horizontal stat cards */}

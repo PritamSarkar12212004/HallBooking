@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from '../../../lib/style/withTailwind';
-import { Building2, CalendarCheck2, ChevronRight, Clock3, Users, Wallet } from 'lucide-react-native';
+import { Building2, CalendarCheck2, ChevronRight, Clock3, UserRound, Users, Wallet } from 'lucide-react-native';
 import DashboardPalette from '../../../const/theme/dashboardPalette';
 import { DashboardEventItem } from '../../../interface/api/dashboardInterface';
 import { formatDate, formatTime } from '../../../functions/formate/DateTimeFormate';
@@ -53,6 +53,17 @@ const EventCard = React.memo(({ event, showDate = false, onPress }: EventCardPro
                 <Text className="text-xs font-semibold ml-1.5 flex-1" style={{ color: DashboardPalette.inkSoft }} numberOfLines={1}>
                     {event.applicantName}
                 </Text>
+            </View>
+            <View className="flex-row items-center mt-1.5">
+                <UserRound size={13} color={DashboardPalette.inkMuted} />
+                <Text className="text-xs ml-1.5 flex-1" style={{ color: DashboardPalette.inkMuted }} numberOfLines={1}>
+                    Booked by {event.bookedBy}
+                </Text>
+                {event.expenses > 0 && (
+                    <Text className="text-xs font-bold" style={{ color: DashboardPalette.red }}>
+                        ₹{event.expenses.toLocaleString()} exp
+                    </Text>
+                )}
             </View>
             <View className="flex-row items-center gap-2 mt-2.5">
                 <StatusChip status={event.status as any} Icon={CalendarCheck2} />

@@ -10,6 +10,8 @@ export interface DashboardEventItem {
     totalAmount: number;
     status: string;
     paymentStatus: string;
+    bookedBy: string;
+    expenses: number;
 }
 
 export interface DashboardStats {
@@ -22,12 +24,15 @@ export interface DashboardStats {
     totalBookings: number;
     cancelledCount: number;
     weeklyGrowth: number;
+    totalExpenses: number;
 }
 
 export interface DashboardData {
     stats: DashboardStats;
     weeklyChart: { value: number; label: string }[];
     monthlyRevenue: { value: number; label: string }[];
+    weeklyExpenses: { value: number; label: string }[];
+    monthlyExpenses: { value: number; label: string }[];
     paymentDistribution: { status: string; count: number }[];
     hallStats: { hallName: string; bookings: number; revenue: number }[];
     todayEvents: DashboardEventItem[];
