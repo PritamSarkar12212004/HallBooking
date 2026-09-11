@@ -199,8 +199,6 @@ const CaalenderScreen = ({ navigation }: any) => {
 
     return (
         <Wrapper>
-            <SubHeader title="Calendar" navigation={navigation} />
-
             <View
                 style={[
                     tw`pt-2 pb-2 shadow-sm`,

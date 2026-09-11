@@ -59,11 +59,6 @@ const EventCard = React.memo(({ event, showDate = false, onPress }: EventCardPro
                 <Text className="text-xs ml-1.5 flex-1" style={{ color: DashboardPalette.inkMuted }} numberOfLines={1}>
                     Booked by {event.bookedBy}
                 </Text>
-                {event.expenses > 0 && (
-                    <Text className="text-xs font-bold" style={{ color: DashboardPalette.red }}>
-                        ₹{event.expenses.toLocaleString()} exp
-                    </Text>
-                )}
             </View>
             <View className="flex-row items-center gap-2 mt-2.5">
                 <StatusChip status={event.status as any} Icon={CalendarCheck2} />

@@ -159,10 +159,21 @@ const BookingDetailContent = ({
                                 </View>
                                 <View
                                     className="px-3 py-1.5 rounded-full flex-row items-center"
-                                    style={{ backgroundColor: '#22C55E' }}
+                                    style={{
+                                        backgroundColor:
+                                            booking.status === 'Cancelled'
+                                                ? '#EF4444'
+                                                : booking.status === 'Pending' || booking.status === 'Draft'
+                                                    ? '#F59E0B'
+                                                    : '#22C55E',
+                                    }}
                                 >
                                     <Text className="text-xs font-bold text-white">
-                                        {booking.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
+                                        {booking.status === 'Cancelled'
+                                            ? 'Cancelled'
+                                            : booking.status === 'Confirmed' || booking.status === 'Office-Approved'
+                                                ? 'Confirmed'
+                                                : booking.status || 'Draft'}
                                     </Text>
                                 </View>
                             </View>

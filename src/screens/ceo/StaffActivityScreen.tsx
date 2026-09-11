@@ -1,13 +1,8 @@
 import React from 'react';
-import Wrapper from '../../layouts/wraper/Wraper';
-import MainDerder from '../../components/header/MainDerder';
+import EventsCalendar from '../../components/calendar/EventsCalendar';
 
 const StaffActivityScreen = ({ navigation }: any) => {
-    return (
-        <Wrapper safeBottom>
-            <MainDerder navigation={navigation} title="Staff Activity" />
-        </Wrapper>
-    );
+    return <EventsCalendar navigation={navigation} title="Staff Activity" />;
 };
 
 export default StaffActivityScreen;

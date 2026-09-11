@@ -276,14 +276,14 @@ const CEODashboardScreen = ({ navigation }: any) => {
                             </View>
                         </View>
 
-                        {/* Weekly expenses */}
+                        {/* Weekly revenue */}
                         <View className="mt-7">
                             <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={Wallet2} tint={DashboardPalette.red} title="Weekly Expenses" sub="Expenses added in the last 7 days" />
+                                <SectionTitle icon={Wallet2} tint={DashboardPalette.gold} title="Weekly Revenue" sub="Revenue earned in the last 7 days" />
                                 {stats && (
-                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.redSoft }}>
-                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.red }}>
-                                            ₹{(data?.weeklyExpenses ?? []).reduce((s, d) => s + d.value, 0).toLocaleString()}
+                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.goldSoft }}>
+                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.goldDeep }}>
+                                            ₹{(data?.weeklyRevenue ?? []).reduce((s, d) => s + d.value, 0).toLocaleString()}
                                         </Text>
                                     </View>
                                 )}
@@ -293,16 +293,16 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                 style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
                             >
                                 <BarChart
-                                    data={data?.weeklyExpenses ?? []}
+                                    data={data?.weeklyRevenue ?? []}
                                     barWidth={24}
                                     spacing={14}
                                     initialSpacing={10}
                                     endSpacing={10}
                                     barBorderRadius={6}
-                                    frontColor={DashboardPalette.red}
-                                    gradientColor={DashboardPalette.red}
+                                    frontColor={DashboardPalette.gold}
+                                    gradientColor={DashboardPalette.gold}
                                     noOfSections={4}
-                                    maxValue={Math.max(...(data?.weeklyExpenses ?? []).map((w) => w.value), 100)}
+                                    maxValue={Math.max(...(data?.weeklyRevenue ?? []).map((w) => w.value), 100)}
                                     parentWidth={CHART_WIDTH}
                                     yAxisThickness={0}
                                     xAxisThickness={0}
@@ -317,14 +317,14 @@ const CEODashboardScreen = ({ navigation }: any) => {
                             </View>
                         </View>
 
-                        {/* Monthly expenses */}
+                        {/* Monthly revenue */}
                         <View className="mt-7">
                             <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={ReceiptIndianRupee} tint={DashboardPalette.red} title="Monthly Expenses" sub="Expenses added in the last 6 months" />
+                                <SectionTitle icon={ReceiptIndianRupee} tint={DashboardPalette.gold} title="Monthly Revenue" sub="Revenue earned in the last 6 months" />
                                 {stats && (
-                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.redSoft }}>
-                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.red }}>
-                                            {formatCompactINR((data?.monthlyExpenses ?? []).reduce((s, d) => s + d.value, 0))}
+                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.goldSoft }}>
+                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.goldDeep }}>
+                                            {formatCompactINR((data?.monthlyRevenue ?? []).reduce((s, d) => s + d.value, 0))}
                                         </Text>
                                     </View>
                                 )}
@@ -334,16 +334,16 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                 style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
                             >
                                 <BarChart
-                                    data={data?.monthlyExpenses ?? []}
+                                    data={data?.monthlyRevenue ?? []}
                                     barWidth={30}
                                     spacing={22}
                                     initialSpacing={14}
                                     endSpacing={14}
                                     barBorderRadius={6}
-                                    frontColor={DashboardPalette.red}
-                                    gradientColor={DashboardPalette.red}
+                                    frontColor={DashboardPalette.gold}
+                                    gradientColor={DashboardPalette.gold}
                                     noOfSections={4}
-                                    maxValue={Math.max(...(data?.monthlyExpenses ?? []).map((w) => w.value), 100)}
+                                    maxValue={Math.max(...(data?.monthlyRevenue ?? []).map((w) => w.value), 100)}
                                     parentWidth={CHART_WIDTH}
                                     yAxisThickness={0}
                                     xAxisThickness={0}
