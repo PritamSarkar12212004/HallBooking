@@ -1,7 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
-import OneBoardScreen from '../screens/onboard/OneBoardScreen';
 import { route } from '../const/routes/route';
 import AuthScreen from '../screens/auth/AuthScreen';
 import OtpScreen from '../screens/auth/OtpScreen';
@@ -10,7 +9,6 @@ import MainStack from './mainStack/MainStack';
 import SetupScreen from '../screens/auth/SetupScreen';
 
 export type RootStackParamList = {
-    [route.onboard]: undefined;
     [route.login]: undefined;
     [route.home]: undefined;
     [route.otp]: undefined;
@@ -32,10 +30,6 @@ const RootNavigation = () => {
             <Stack.Screen
                 name={route.splash}
                 component={SplashScreen}
-            />
-            <Stack.Screen
-                name={route.onboard}
-                component={OneBoardScreen}
             />
             <Stack.Screen
                 name={route.login}

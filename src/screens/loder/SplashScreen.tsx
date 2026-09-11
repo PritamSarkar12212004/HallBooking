@@ -1,12 +1,9 @@
 import React, { useEffect } from 'react';
 import {
     View,
-    Text,
-    ActivityIndicator,
 } from '../../lib/style/withTailwind';
 
 import { Theme } from '../../const/theme/Theme';
-import { Building2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { route } from '../../const/routes/route';
 
@@ -16,70 +13,137 @@ import { useAppDispatch } from '../../hooks/redux/redux';
 import { setUser } from '../../store/slices/userSlice';
 import { storageToken } from '../../const/token/storageToken';
 
+import FastImage from 'react-native-fast-image';
+import ImgConst from '../../const/img/ImgConst';
+
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    cancelAnimation,
+} from 'react-native-reanimated';
+
+const AnimatedFastImage =
+    Animated.createAnimatedComponent(FastImage);
+
 const SplashScreen = () => {
     const navigation = useNavigation();
-    const dispatch = useAppDispatch()
+    const dispatch = useAppDispatch();
+
+    // Start from 0
+    const scale = useSharedValue(0);
+
     useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const isAuth = readStorage({
-                    key: token.isAuth,
-                });
-                const tokenKey = readStorage({ key: storageToken })
-                console.log(isAuth)
-                if (isAuth) {
-                    const stored = readStorage({ key: token.isAuthData });
-                    let data: any = null;
-                    try {
-                        data = stored ? JSON.parse(stored) : null;
-                    } catch (e) {
-                        data = null;
-                    }
-                    dispatch(
-                        setUser({
-                            phone: data?.phone,
-                            photo: data?.photo,
-                            name: data?.name,
-                            gender: data?.gender,
-                            email: data?.email,
-                            city: data?.city,
-                            _id: data?._id,
-                            token: tokenKey
-                        }),
-                    );
-                    navigation.reset({
-                        index: 0,
-                        routes: [
-                            {
-                                name: route.home,
-                            },
-                        ],
+        // 0 → 1 : Zoom in only once
+        scale.value = withTiming(
+            1,
+            {
+                duration: 1200,
+            },
+            (finished) => {
+                if (finished) {
+                    // Navigation must happen on JS thread
+                }
+            },
+        );
+
+        // Navigate after animation
+        const timer = setTimeout(() => {
+            cancelAnimation(scale);
+
+            const checkAuth = async () => {
+                try {
+                    const isAuth = readStorage({
+                        key: token.isAuth,
                     });
-                } else {
+
+                    const tokenKey = readStorage({
+                        key: storageToken,
+                    });
+
+                    if (isAuth && tokenKey) {
+                        const stored = readStorage({
+                            key: token.isAuthData,
+                        });
+
+                        let data: any = null;
+
+                        try {
+                            data = stored
+                                ? JSON.parse(stored)
+                                : null;
+                        } catch {
+                            data = null;
+                        }
+
+                        if (data) {
+                            dispatch(
+                                setUser({
+                                    phone: data?.phone,
+                                    photo: data?.photo,
+                                    name: data?.name,
+                                    gender: data?.gender,
+                                    email: data?.email,
+                                    city: data?.city,
+                                    _id: data?._id,
+                                    token: tokenKey,
+                                }),
+                            );
+                        }
+
+                        navigation.reset({
+                            index: 0,
+                            routes: [
+                                {
+                                    name: route.home as never,
+                                },
+                            ],
+                        });
+                    } else {
+                        navigation.reset({
+                            index: 0,
+                            routes: [
+                                {
+                                    name: route.login as never,
+                                },
+                            ],
+                        });
+                    }
+                } catch (error) {
+                    console.log(
+                        'Auth check error:',
+                        error,
+                    );
+
                     navigation.reset({
                         index: 0,
                         routes: [
                             {
-                                name: route.onboard,
+                                name: route.login as never,
                             },
                         ],
                     });
                 }
-            } catch (error) {
-                console.log('Auth check error:', error);
+            };
 
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: route.onboard,
-                        },
-                    ],
-                });
-            }
+            checkAuth();
+        }, 1500);
+
+        return () => {
+            clearTimeout(timer);
+            cancelAnimation(scale);
         };
-        checkAuth();
-    }, [navigation]);
+    }, [navigation, dispatch, scale]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                {
+                    scale: scale.value,
+                },
+            ],
+        };
+    });
 
     return (
         <View
@@ -88,30 +152,18 @@ const SplashScreen = () => {
                 backgroundColor: Theme.background.primary,
             }}
         >
-            <View
-                className="w-24 h-24 rounded-3xl items-center justify-center mb-6"
-                style={{
-                    backgroundColor: Theme.button.primary,
-                }}
-            >
-                <Building2
-                    size={48}
-                    color={Theme.background.primary}
-                />
-            </View>
-
-            <Text className="text-white text-2xl font-bold">
-                Hall Booking
-            </Text>
-
-            <Text className="text-[#8F8B91] text-sm mt-2">
-                Manage your events seamlessly
-            </Text>
-
-            <ActivityIndicator
-                size="large"
-                color={Theme.button.primary}
-                className="mt-8"
+            <AnimatedFastImage
+                source={ImgConst.MainImg}
+                resizeMode={FastImage.resizeMode.contain}
+                style={[
+                    {
+                        width: '55%',
+                        aspectRatio: 1,
+                        maxWidth: 220,
+                        maxHeight: 220,
+                    },
+                    animatedStyle,
+                ]}
             />
         </View>
     );
