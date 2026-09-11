@@ -7,6 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
+    "push:update": "npx @revopush/code-push-cli release-react \"Hall Booking App\" android --deploymentName Production --description \"OTA update\"",
+    "push:update:staging": "npx @revopush/code-push-cli release-react \"Hall Booking App\" android --deploymentName Staging --description \"OTA update (staging)\"",
+    "push:history": "npx +@revopush/code-push-cli deployment history \"Hall Booking App\" Production",
     "test": "jest"
   },
   "dependencies": {

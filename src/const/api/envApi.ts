@@ -1,5 +1,5 @@
 const envApi = {
-    baseUri: "https://hallbooking-backend-ckzm.onrender.com/api/v1",
+    baseUri: "http://192.168.29.124:5000/api/v1",
     Auth: {
         root: "/auth"
     },

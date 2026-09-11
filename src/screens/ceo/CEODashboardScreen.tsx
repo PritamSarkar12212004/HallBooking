@@ -21,6 +21,7 @@ import DashboardSkeleton from '../../ui/Skeleton/DashboardSkeleton';
 import DashHeader from '../../components/header/DashHeader';
 import HeroRevenueCard from '../../components/card/dashboard/HeroRevenueCard';
 import EventCard from '../../components/card/dashboard/EventCard';
+import BookingStatusStrip from '../../components/card/dashboard/BookingStatusStrip';
 import SectionTitle from '../../components/card/dashboard/SectionTitle';
 import DashboardPalette from '../../const/theme/dashboardPalette';
 
@@ -187,6 +188,11 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
+                        </View>
+
+                        {/* Booking status strip — Ended / Today / Confirmed */}
+                        <View className="mt-4">
+                            <BookingStatusStrip onPress={navigateBookings} />
                         </View>
 
                         {/* Revenue trend */}

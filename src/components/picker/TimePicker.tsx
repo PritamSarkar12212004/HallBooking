@@ -9,9 +9,7 @@ interface TimePickerProps {
     title?: string;
     value: string;
     onChange: (time: string) => void;
-    /** When true, the field can't be opened and renders dimmed. */
     disabled?: boolean;
-    /** Earliest selectable time in "HH:MM". The picker enforces a value strictly after this. */
     minTime?: string;
 }
 
@@ -40,6 +38,35 @@ const TimePicker = ({
             : -1;
 
     const startHour = minMinutes >= 0 ? Math.floor(minMinutes / 60) : undefined;
+
+    // "HH:MM" (24h) -> 12-hour display, e.g. "02:30 PM"
+    const to12HourDisplay = (time: string): string => {
+        const mins = parseToMinutes(time);
+        if (mins < 0) return time;
+        const h24 = Math.floor(mins / 60);
+        const m = mins % 60;
+        const period = h24 >= 12 ? 'PM' : 'AM';
+        const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+        return `${pad(h12)}:${pad(m)} ${period}`;
+    };
+
+    // Where the picker wheel should start: the selected value, else now.
+    // Clamped to the hourLimit min so the wheel never conflicts with it.
+    const computeInitialValue = () => {
+        const now = new Date();
+        let h = value && /^\d{2}:\d{2}$/.test(value)
+            ? Math.floor(parseToMinutes(value) / 60)
+            : now.getHours();
+        let m = value && /^\d{2}:\d{2}$/.test(value)
+            ? parseToMinutes(value) % 60
+            : now.getMinutes();
+
+        // Respect the enforced minimum hour (today's passed-time rule).
+        if (startHour !== undefined && h < startHour) {
+            h = startHour;
+        }
+        return { hours: h, minutes: m, seconds: 0 };
+    };
 
     const formatChosen = ({
         hours,
@@ -124,38 +151,45 @@ const TimePicker = ({
                             fontWeight: '600',
                         }}
                     >
-                        {value || (disabled ? 'Select Start Time first' : 'Select time')}
+                        {value
+                            ? to12HourDisplay(value)
+                            : (disabled ? 'Select Start Time first' : 'Select time')}
                     </Text>
                 </View>
             </TouchableOpacity>
 
-            <TimerPickerModal
-                closeOnOverlayPress
-                LinearGradient={LinearGradient}
-                modalProps={{
-                    overlayOpacity: 0.2,
-                }}
-                modalTitle={title}
-                onCancel={() => setShowPicker(false)}
-                onConfirm={(pickedDuration) => {
-                    onChange(formatChosen(pickedDuration));
-                    setShowPicker(false);
-                }}
-                setIsVisible={setShowPicker}
-                hideSeconds
-                padHoursWithZero
-                padMinutesWithZero
-                hourInterval={1}
-                minuteInterval={5}
-                {...(minMinutes >= 0
-                    ? { hourLimit: { min: startHour } }
-                    : {})}
-                styles={{
-                    theme: 'dark',
-                }}
-                use12HourPicker={false}
-                visible={showPicker}
-            />
+            {/* Conditional mount: fresh wheel state on every open so the
+                initialValue (current time) is honoured each time. */}
+            {showPicker && (
+                <TimerPickerModal
+                    closeOnOverlayPress
+                    LinearGradient={LinearGradient}
+                    modalProps={{
+                        overlayOpacity: 0.2,
+                    }}
+                    modalTitle={title}
+                    initialValue={computeInitialValue()}
+                    onCancel={() => setShowPicker(false)}
+                    onConfirm={(pickedDuration) => {
+                        onChange(formatChosen(pickedDuration));
+                        setShowPicker(false);
+                    }}
+                    setIsVisible={setShowPicker}
+                    hideSeconds
+                    padHoursWithZero
+                    padMinutesWithZero
+                    hourInterval={1}
+                    minuteInterval={5}
+                    {...(minMinutes >= 0
+                        ? { hourLimit: { min: startHour } }
+                        : {})}
+                    styles={{
+                        theme: 'dark',
+                    }}
+                    use12HourPicker
+                    visible={showPicker}
+                />
+            )}
         </>
     );
 };

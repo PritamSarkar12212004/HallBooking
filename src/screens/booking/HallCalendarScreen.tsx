@@ -37,6 +37,24 @@ const formatDate = (date: Date) =>
 
 const todayString = formatDate(today);
 
+const pad2 = (n: number) => n.toString().padStart(2, '0');
+
+const toMinutes = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return -1;
+    return h * 60 + m;
+};
+
+const nowTimeString = () => {
+    const d = new Date();
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
+const nowMinutes = () => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+};
+
 const HallCalendarScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
 
@@ -148,6 +166,19 @@ const HallCalendarScreen = ({ navigation }: any) => {
             setEndDate(dateStr);
         }
 
+        // Booking for TODAY: drop any time that has already passed
+        if (dateStr === todayString) {
+            const passed = nowMinutes();
+            if (activeField === 'start') {
+                if (startTime && toMinutes(startTime) <= passed) {
+                    setStartTime('');
+                    setEndTime('');
+                }
+            } else if (endTime && toMinutes(endTime) <= passed) {
+                setEndTime('');
+            }
+        }
+
         closeCalendar();
     };
 
@@ -201,6 +232,24 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
     const actionPress = async () => {
         if (!isFormValid || loader) {
+            return;
+        }
+
+        // TODAY's booking: start time can't be in the past
+        if (startDate === todayString && toMinutes(startTime) <= nowMinutes()) {
+            showMessage({
+                message: 'Invalid Start Time',
+                description: 'This time has already passed. Please select a future time.',
+                type: 'danger',
+            });
+            return;
+        }
+        if (endDate === todayString && toMinutes(endTime) <= nowMinutes()) {
+            showMessage({
+                message: 'Invalid End Time',
+                description: 'This time has already passed. Please select a future time.',
+                type: 'danger',
+            });
             return;
         }
 
@@ -279,6 +328,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             title="Start Time *"
                             value={startTime}
                             onChange={setStartTime}
+                            minTime={startDate === todayString ? nowTimeString() : undefined}
                         />
 
                         <View className="mb-2">
@@ -300,7 +350,12 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             value={endTime}
                             onChange={setEndTime}
                             disabled={!startTime}
-                            minTime={startTime}
+                            minTime={
+                                endDate === todayString &&
+                                toMinutes(startTime) < nowMinutes()
+                                    ? nowTimeString()
+                                    : startTime
+                            }
                         />
 
                         <View className="mb-2">
@@ -323,13 +378,19 @@ const HallCalendarScreen = ({ navigation }: any) => {
                                 title="Start Time *"
                                 value={startTime}
                                 onChange={setStartTime}
+                                minTime={startDate === todayString ? nowTimeString() : undefined}
                             />
                             <TimePicker
                                 title="End Time *"
                                 value={endTime}
                                 onChange={setEndTime}
                                 disabled={!startTime}
-                                minTime={startTime}
+                                minTime={
+                                    endDate === todayString &&
+                                    toMinutes(startTime) < nowMinutes()
+                                        ? nowTimeString()
+                                        : startTime
+                                }
                             />
 
                         </View>

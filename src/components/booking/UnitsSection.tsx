@@ -19,6 +19,8 @@ export interface UnitRow {
     label: string;
     quantity: string;
     perUnit: string;
+    /** Meter reading (e.g. bijli ke meter ki current reading). Recorded only — excluded from payment calculations. */
+    currentUnit: string;
     paid: boolean;
 }
 
@@ -28,14 +30,16 @@ let unitIdCounter = 0;
 
 export const newUnitRow = (
     label = '',
-    quantity = '',
     perUnit = '',
     paid = false,
+    currentUnit = '',
 ): UnitRow => ({
     id: `unit-${Date.now()}-${unitIdCounter++}`,
     label,
-    quantity,
+    // UI me quantity input nahi hai — har row ek unit ki tarah charge hoti hai.
+    quantity: '1',
     perUnit,
+    currentUnit,
     paid,
 });
 
@@ -49,8 +53,8 @@ const num = (v: string) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-export const unitRowAmount = (row: UnitRow) =>
-    num(row.quantity) * num(row.perUnit);
+/** Row ka chargeable amount — sirf Per Unit rate (quantity UI me nahi hai, implicit 1). */
+export const unitRowAmount = (row: UnitRow) => num(row.perUnit);
 
 export const computeUnitsTotal = (rows: UnitRow[]) =>
     rows.reduce((sum, row) => sum + unitRowAmount(row), 0);
@@ -63,13 +67,15 @@ export const unitRowsToPayload = (rows: UnitRow[]) =>
     rows
         .filter((r) => r.label.trim().length > 0)
         .map((r) => {
-            const quantity = num(r.quantity);
             const perUnit = num(r.perUnit);
             return {
                 label: r.label.trim(),
-                quantity,
+                // Quantity UI se hata diya — backend compat ke liye implicit 1 bhejte hain.
+                quantity: 1,
                 perUnit,
-                amount: quantity * perUnit,
+                amount: perUnit,
+                // Current unit (meter reading) is stored but never charged.
+                currentUnit: num(r.currentUnit),
                 paid: r.paid,
             };
         });
@@ -84,16 +90,16 @@ interface UnitsSectionProps {
 const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) => {
     const updateRow = (
         id: string,
-        key: 'label' | 'quantity' | 'perUnit',
+        key: 'label' | 'perUnit' | 'currentUnit',
         value: string,
     ) => {
         setRows((prev) =>
             prev.map((row) =>
                 row.id === id
                     ? {
-                          ...row,
-                          [key]: key === 'label' ? value : digitsOnly(value),
-                      }
+                        ...row,
+                        [key]: key === 'label' ? value : digitsOnly(value),
+                    }
                     : row,
             ),
         );
@@ -115,9 +121,6 @@ const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) =>
         );
     };
 
-    const total = computeUnitsTotal(rows);
-    const paidTotal = computeUnitsPaidTotal(rows);
-
     return (
         <>
             <View className="flex-row items-center gap-2 mb-3">
@@ -130,7 +133,6 @@ const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) =>
                 className="rounded-2xl  mb-5"
             >
                 {rows.map((row) => {
-                    const amount = unitRowAmount(row);
                     return (
                         <View
                             key={row.id}
@@ -161,7 +163,8 @@ const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) =>
                                 </TouchableOpacity>
                             </View>
 
-                            <View className="flex-row items-center gap-2 mt-2.5">
+                            <View className="flex-row items-stretch gap-2 mt-2.5">
+                                {/* Per Unit rate — chargeable */}
                                 <View
                                     className="flex-1 rounded-xl px-3"
                                     style={{
@@ -173,110 +176,93 @@ const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) =>
                                         className="text-[10px] mt-1"
                                         style={{ color: Theme.text.secondary }}
                                     >
-                                        UNITS
+                                        PER UNIT
+                                    </Text>
+                                    <View className="flex-row items-center">
+                                        <IndianRupee
+                                            size={12}
+                                            color="#8F8B91"
+                                        />
+                                        <TextInput
+                                            className="flex-1 py-1.5 px-1 text-white"
+                                            placeholder="0"
+                                            placeholderTextColor="#8F8B91"
+                                            keyboardType="numeric"
+                                            value={row.perUnit}
+                                            onChangeText={(t) =>
+                                                updateRow(row.id, 'perUnit', t)
+                                            }
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Current unit (meter reading) — recorded only, never charged */}
+                                <View
+                                    className="flex-1 rounded-xl px-3"
+                                    style={{
+                                        backgroundColor:
+                                            Theme.background.secondary,
+                                    }}
+                                >
+                                    <Text
+                                        className="text-[10px] mt-1"
+                                        style={{ color: Theme.text.secondary }}
+                                    >
+                                        CURRENT UNIT
                                     </Text>
                                     <TextInput
                                         className="py-1.5 text-white"
                                         placeholder="0"
                                         placeholderTextColor="#8F8B91"
                                         keyboardType="numeric"
-                                        value={row.quantity}
+                                        value={row.currentUnit}
                                         onChangeText={(t) =>
-                                            updateRow(row.id, 'quantity', t)
+                                            updateRow(row.id, 'currentUnit', t)
                                         }
                                     />
                                 </View>
-                                <View
-                                    className="flex-1 flex-row items-center rounded-xl px-3"
-                                    style={{
-                                        backgroundColor:
-                                            Theme.background.secondary,
-                                    }}
-                                >
-                                    <View className="flex-1">
-                                        <Text
-                                            className="text-[10px] mt-1"
-                                            style={{ color: Theme.text.secondary }}
-                                        >
-                                            PER UNIT
-                                        </Text>
-                                        <View className="flex-row items-center">
-                                            <IndianRupee
-                                                size={12}
-                                                color="#8F8B91"
-                                            />
-                                            <TextInput
-                                                className="flex-1 py-1.5 px-1 text-white"
-                                                placeholder="0"
-                                                placeholderTextColor="#8F8B91"
-                                                keyboardType="numeric"
-                                                value={row.perUnit}
-                                                onChangeText={(t) =>
-                                                    updateRow(
-                                                        row.id,
-                                                        'perUnit',
-                                                        t,
-                                                    )
-                                                }
-                                            />
-                                        </View>
-                                    </View>
-                                </View>
                             </View>
 
-                            <View className="flex-row items-center justify-between mt-2.5 pt-2.5"
-                                style={{
-                                    borderTopWidth: 1,
-                                    borderTopColor: Theme.background.secondary,
-                                }}
-                            >
-                                <View className="flex-row items-center">
-                                    {showPaid && (
-                                        <TouchableOpacity
-                                            activeOpacity={0.8}
-                                            onPress={() => togglePaid(row.id)}
-                                            className="flex-row items-center mr-3"
-                                        >
-                                            <View
-                                                className="w-5 h-5 rounded-md items-center justify-center"
-                                                style={{
-                                                    backgroundColor: row.paid
-                                                        ? '#22C55E'
-                                                        : 'transparent',
-                                                    borderWidth: row.paid ? 0 : 1.5,
-                                                    borderColor: '#667085',
-                                                }}
-                                            >
-                                                {row.paid && (
-                                                    <Check size={13} color="#000" />
-                                                )}
-                                            </View>
-                                            <Text
-                                                className="text-xs ml-1.5"
-                                                style={{
-                                                    color: row.paid
-                                                        ? '#22C55E'
-                                                        : Theme.text.secondary,
-                                                }}
-                                            >
-                                                Paid
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    <Text
-                                        className="text-xs"
-                                        style={{ color: Theme.text.secondary }}
-                                    >
-                                        Amount
-                                    </Text>
-                                </View>
-                                <Text
-                                    className="text-sm font-bold"
-                                    style={{ color: Theme.text.primary }}
+                            {showPaid && (
+                                <View
+                                    className="flex-row items-center mt-2.5 pt-2.5"
+                                    style={{
+                                        borderTopWidth: 1,
+                                        borderTopColor: Theme.background.secondary,
+                                    }}
                                 >
-                                    ₹{amount.toLocaleString()}
-                                </Text>
-                            </View>
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() => togglePaid(row.id)}
+                                        className="flex-row items-center"
+                                    >
+                                        <View
+                                            className="w-5 h-5 rounded-md items-center justify-center"
+                                            style={{
+                                                backgroundColor: row.paid
+                                                    ? '#22C55E'
+                                                    : 'transparent',
+                                                borderWidth: row.paid ? 0 : 1.5,
+                                                borderColor: '#667085',
+                                            }}
+                                        >
+                                            {row.paid && (
+                                                <Check size={13} color="#000" />
+                                            )}
+                                        </View>
+                                        <Text
+                                            className="text-xs ml-1.5"
+                                            style={{
+                                                color: row.paid
+                                                    ? '#22C55E'
+                                                    : Theme.text.secondary,
+                                            }}
+                                        >
+                                            Paid
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
                     );
                 })}
@@ -300,33 +286,6 @@ const UnitsSection = ({ rows, setRows, showPaid = false }: UnitsSectionProps) =>
                     </Text>
                 </TouchableOpacity>
 
-                <View
-                    className="flex-row items-center justify-between mt-4 pt-3"
-                    style={{ borderTopWidth: 1, borderTopColor: '#2A2A30' }}
-                >
-                    <Text className="text-sm font-semibold text-white">
-                        Units Total
-                    </Text>
-                    <Text
-                        className="text-lg font-bold"
-                        style={{ color: Theme.button.primary }}
-                    >
-                        ₹{total.toLocaleString()}
-                    </Text>
-                </View>
-                {showPaid && (
-                    <View className="flex-row items-center justify-between mt-2">
-                        <Text
-                            className="text-sm"
-                            style={{ color: Theme.text.secondary }}
-                        >
-                            Units Paid
-                        </Text>
-                        <Text className="text-base font-bold" style={{ color: '#22C55E' }}>
-                            ₹{paidTotal.toLocaleString()}
-                        </Text>
-                    </View>
-                )}
             </View>
         </>
     );

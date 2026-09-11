@@ -25,6 +25,7 @@ import SectionTitle from '../../components/card/dashboard/SectionTitle';
 import EmptyListCard from '../../components/card/dashboard/EmptyListCard';
 import WeeklyBookingsChart from '../../components/charts/WeeklyBookingsChart';
 import HomeScreenSkeleton from '../../ui/Skeleton/HomeScreenSkeleton';
+import BookingStatusStrip from '../../components/card/dashboard/BookingStatusStrip';
 
 const HomeScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);

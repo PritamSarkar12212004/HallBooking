@@ -91,9 +91,9 @@ const Step5RequirementsScreen = () => {
             return d.map((u) =>
                 newUnitRow(
                     u.label,
-                    u.quantity ? String(u.quantity) : '',
                     u.perUnit ? String(u.perUnit) : '',
                     !!u.paid,
+                    u.currentUnit ? String(u.currentUnit) : '',
                 ),
             );
         }
@@ -229,12 +229,12 @@ const Step5RequirementsScreen = () => {
         }
         if (fin.units && fin.units.length > 0) {
             setUnitRows(
-                (fin.units as { label: string; quantity?: number; perUnit?: number; paid?: boolean }[]).map((u) =>
+                (fin.units as { label: string; perUnit?: number; currentUnit?: number; paid?: boolean }[]).map((u) =>
                     newUnitRow(
                         u.label,
-                        u.quantity ? String(u.quantity) : '',
                         u.perUnit ? String(u.perUnit) : '',
                         !!u.paid,
+                        u.currentUnit ? String(u.currentUnit) : '',
                     ),
                 ),
             );

@@ -51,6 +51,8 @@ export interface DraftBookingData {
         label: string;
         quantity: number;
         perUnit: number;
+        /** Meter reading — recorded only, excluded from payment calculations. */
+        currentUnit: number;
         amount: number;
         paid: boolean;
     }[];
@@ -62,6 +64,8 @@ export interface DraftBookingData {
             label: string;
             quantity: number;
             perUnit: number;
+            /** Meter reading — recorded only, excluded from payment calculations. */
+            currentUnit: number;
             amount: number;
             paid: boolean;
         }[];

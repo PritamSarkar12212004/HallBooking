@@ -26,8 +26,9 @@ const Step5UnitsScreen = () => {
             return d.map((u) =>
                 newUnitRow(
                     u.label,
-                    u.quantity ? String(u.quantity) : '',
                     u.perUnit ? String(u.perUnit) : '',
+                    false,
+                    u.currentUnit ? String(u.currentUnit) : '',
                 ),
             );
         }
