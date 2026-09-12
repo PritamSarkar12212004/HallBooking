@@ -10,7 +10,7 @@ import {
 } from '../../lib/style/withTailwind';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../hooks/redux/redux';
-import { MainRoute } from '../../const/routes/route';
+import { BookingStepRoute, MainRoute } from '../../const/routes/route';
 import {
   Calendar,
   Clock,
@@ -58,7 +58,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
   if (isError || (!isLoading && !booking)) {
     return (
       <Wrapper safeBottom style={{ backgroundColor: Dark.bg }}>
-        <SubHeader navigation={navigation} title="Booking Details" dark />
+        <SubHeader navigation={navigation} title="Booking Details" />
         <View className="flex-1 items-center justify-center px-6">
           <Text
             className="text-center mb-2"
@@ -396,7 +396,15 @@ const BookingDetailContent = ({
             </View>
           </View>
           <View className="mt-6">
-            <SwipeButton label="Finalize Event" onComplete={() => {}} />
+            <SwipeButton
+              label="Finalize Event"
+              onComplete={() =>
+                navigation.navigate(MainRoute.NewBooking, {
+                  screen: BookingStepRoute.FainalizeEventPage,
+                  params: { bookingId },
+                })
+              }
+            />
           </View>
         </ScrollView>
       )}
