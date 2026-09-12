@@ -1,5 +1,6 @@
 export interface DashboardEventItem {
     id: string;
+    eventImage: string;
     eventName: string;
     eventType: string;
     hallName: string;

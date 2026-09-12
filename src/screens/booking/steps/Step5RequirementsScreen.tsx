@@ -375,7 +375,6 @@ const Step5RequirementsScreen = () => {
                 <UnitsSection
                     rows={unitRows}
                     setRows={setUnitRows}
-                    showPaid
                 />
 
                 {/* Inline warning when paid exceeds the total (UI jump-free reserved slot) */}

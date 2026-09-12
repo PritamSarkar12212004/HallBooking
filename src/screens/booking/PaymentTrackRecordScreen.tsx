@@ -226,7 +226,7 @@ const PaymentTrackRecordScreen = ({ navigation, route }: any) => {
                 {units.length > 0 && (
                     <>
                         <Text className="text-sm font-semibold mb-3" style={{ color: Theme.text.secondary }}>
-                            UNITS
+                            UNIT CHARGES (PENDING)
                         </Text>
                         <View
                             className="rounded-2xl p-4 mb-6"
@@ -240,28 +240,11 @@ const PaymentTrackRecordScreen = ({ navigation, route }: any) => {
                                     <View key={`${u.label}-${i}`}>
                                         <View className="flex-row items-center justify-between py-2.5">
                                             <View className="flex-1">
-                                                <View className="flex-row items-center">
-                                                    <Text className="text-sm" style={{ color: Theme.text.secondary }}>
-                                                        {u.label}
-                                                    </Text>
-                                                    <View
-                                                        className="ml-2 px-2 py-0.5 rounded-full"
-                                                        style={{
-                                                            backgroundColor: u.paid
-                                                                ? 'rgba(34,197,94,0.15)'
-                                                                : 'rgba(245,158,11,0.15)',
-                                                        }}
-                                                    >
-                                                        <Text
-                                                            className="text-[10px] font-bold"
-                                                            style={{ color: u.paid ? '#22C55E' : '#F59E0B' }}
-                                                        >
-                                                            {u.paid ? 'PAID' : 'UNPAID'}
-                                                        </Text>
-                                                    </View>
-                                                </View>
+                                                <Text className="text-sm" style={{ color: Theme.text.secondary }}>
+                                                    {u.label}
+                                                </Text>
                                                 <Text className="text-xs mt-0.5" style={{ color: Theme.text.secondary }}>
-                                                    {quantity.toLocaleString()} × ₹{perUnit.toLocaleString()}
+                                                    {quantity.toLocaleString()} units × ₹{perUnit.toLocaleString()}/unit
                                                 </Text>
                                             </View>
                                             <Text

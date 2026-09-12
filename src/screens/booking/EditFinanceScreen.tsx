@@ -22,7 +22,6 @@ import FinanceChargesSection, {
 } from '../../components/booking/FinanceChargesSection';
 import UnitsSection, {
     UnitRow,
-    computeUnitsPaidTotal,
     computeUnitsTotal,
     createDefaultUnitRows,
     newUnitRow,
@@ -87,28 +86,29 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
 
     // Totals are derived live from the charge rows (see FinanceChargesSection).
     const unitsTotal = computeUnitsTotal(unitRows);
-    const unitsPaid = computeUnitsPaidTotal(unitRows);
+    // Units are ALWAYS pending — entering currentUnit/perUnit does NOT mean payment received.
+    const unitsPaid = 0;
     const {
         totalAmount: chargesTotal,
         totalPaid: chargesPaid,
     } = computeChargeTotals(rows);
     const effectiveTotal = chargesTotal + unitsTotal;
-    // Paid = charge payments + units marked paid.
+    // Paid = only charge payments (units are always pending)
     const advanceNum = chargesPaid + unitsPaid;
     const effectiveBalance = Math.max(0, effectiveTotal - advanceNum);
 
-    // "All Paid" = every charge fully paid and every unit marked paid.
+    // "All Paid" = every charge fully paid (units are always pending, not considered)
     const chargesAllPaid =
         rows.length > 0 &&
         rows.every((r) => num(r.amount) > 0 && num(r.paid) === num(r.amount));
-    const allPaid = chargesAllPaid && unitRows.every((u) => u.paid);
+    const allPaid = chargesAllPaid;
 
     const handleToggleAllPaid = () => {
         const next = !allPaid;
         setRows((prev) =>
             prev.map((r) => ({ ...r, paid: next ? r.amount : '' })),
         );
-        setUnitRows((prev) => prev.map((u) => ({ ...u, paid: next })));
+        // Do NOT toggle unitRows — units are always pending
     };
 
     const requiresTransaction =
@@ -140,7 +140,6 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         photo,
     ]);
 
-    // Pre-fill all fields from backend booking (editable defaults).
     useEffect(() => {
         if (prefilled || !booking) return;
         const fin = booking.financial;
@@ -324,7 +323,6 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     <UnitsSection
                         rows={unitRows}
                         setRows={setUnitRows}
-                        showPaid
                     />
                 </View>
 
