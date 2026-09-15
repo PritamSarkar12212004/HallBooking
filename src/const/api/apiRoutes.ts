@@ -16,6 +16,9 @@ const apiRoute = {
         arrangements: (id: string) => `/${id}/arrangements`,
         payment: (id: string) => `/${id}/payment`,
         declaration: (id: string) => `/${id}/declaration`,
+    },
+    applicant: {
+        root: "/",
     }
 }
 export default apiRoute

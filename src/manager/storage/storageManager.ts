@@ -21,3 +21,12 @@ export const writeStorage = ({
 export const removeStorage = ({ key }: { key: string }) => {
     mmkv.remove(key);
 };
+
+/**
+ * Wipes EVERY key stored inside the app's MMKV instance.
+ * Used on logout so a fresh sign-in never reads stale data
+ * (old auth flags, token, cached user/profile, custom lists, ...).
+ */
+export const clearAllStorage = (): void => {
+    mmkv.clearAll();
+};

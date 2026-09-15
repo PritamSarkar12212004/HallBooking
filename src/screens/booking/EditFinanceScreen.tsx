@@ -33,6 +33,7 @@ import {
     Check,
     CreditCard,
     GalleryHorizontal,
+    Lock,
     ReceiptText,
     Trash2,
 } from 'lucide-react-native';
@@ -210,7 +211,18 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     const { updateSectionAsync, isLoading: updateLoading } =
         useUpdateBookingSection();
 
+    // Ended event ka finance freeze hai — yahan se koi change nahi hone dena.
+    const isEnded = booking?.status === 'Ended';
+
     const handleSave = async () => {
+        if (isEnded) {
+            showMessage({
+                message: 'Event Already Ended',
+                description: 'This booking is locked. No further changes are allowed.',
+                type: 'warning',
+            });
+            return;
+        }
         if (!formValid || saving || updateLoading) {
             if (!formValid) {
                 showMessage({
@@ -443,13 +455,32 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     ))}
                 </View>
 
-                <MainButton
-                    title="Save Changes"
-                    Icon={Check}
-                    loader={saving || updateLoading}
-                    disabled={!formValid}
-                    actionFunc={handleSave}
-                />
+                {isEnded ? (
+                    <View
+                        className="flex-row items-center rounded-2xl px-4 py-3.5"
+                        style={{
+                            backgroundColor: 'rgba(59,130,246,0.12)',
+                            borderWidth: 1,
+                            borderColor: '#3B82F6',
+                        }}
+                    >
+                        <Lock size={16} color="#3B82F6" />
+                        <Text
+                            className="text-xs font-semibold ml-2 flex-1"
+                            style={{ color: '#3B82F6' }}
+                        >
+                            Event already ended — no further changes are allowed.
+                        </Text>
+                    </View>
+                ) : (
+                    <MainButton
+                        title="Save Changes"
+                        Icon={Check}
+                        loader={saving || updateLoading}
+                        disabled={!formValid}
+                        actionFunc={handleSave}
+                    />
+                )}
             </ScrollView>
         </Wrapper>
     );

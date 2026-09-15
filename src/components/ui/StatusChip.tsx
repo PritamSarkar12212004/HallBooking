@@ -3,7 +3,13 @@ import { View, Text } from '../../lib/style/withTailwind';
 import DashboardPalette from '../../const/theme/dashboardPalette';
 
 // Mirrors the backend Booking.status enum.
-type BookingStatus = 'Draft' | 'Pending' | 'Office-Approved' | 'Confirmed' | 'Cancelled';
+type BookingStatus =
+    | 'Draft'
+    | 'Pending'
+    | 'Office-Approved'
+    | 'Confirmed'
+    | 'Cancelled'
+    | 'Ended';
 
 interface StatusChipProps {
     status: BookingStatus;
@@ -17,12 +23,19 @@ const statusColors: Record<BookingStatus, { bg: string; text: string }> = {
     Pending: { bg: DashboardPalette.blueSoft, text: DashboardPalette.blue },
     Draft: { bg: DashboardPalette.goldSoft, text: DashboardPalette.goldDeep },
     Cancelled: { bg: DashboardPalette.redSoft, text: DashboardPalette.red },
+    Ended: { bg: DashboardPalette.blueSoft, text: DashboardPalette.blue },
 };
 
 const StatusChip = ({ status, Icon }: StatusChipProps) => {
     const colors = statusColors[status] ?? statusColors.Pending;
     // Office-Approved ka matlab bhi confirmed hi hai — user ko same dikhe.
-    const display = status === 'Office-Approved' ? 'Confirmed' : status;
+    // Ended event ko har jagah "Event End" dikhate hain.
+    const display =
+        status === 'Office-Approved'
+            ? 'Confirmed'
+            : status === 'Ended'
+                ? 'Event End'
+                : status;
 
     return (
         <View

@@ -82,6 +82,12 @@ const defaultSections = (navigation: any): AppMenuSection[] => [
                 onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Bookings }),
             },
             {
+                key: 'applicants',
+                icon: 'account-multiple',
+                label: 'Applicants',
+                onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Applicants }),
+            },
+            {
                 key: 'halls',
                 icon: 'office-building',
                 label: 'Halls',

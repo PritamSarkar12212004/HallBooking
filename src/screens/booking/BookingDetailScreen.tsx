@@ -22,6 +22,7 @@ import {
   Tag,
   Pencil,
   Wallet,
+  Lock,
 } from 'lucide-react-native';
 import {
   formatDate,
@@ -46,14 +47,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
     id: route.params?.id,
     token: user?.token,
   });
-
-  const paymentStatus = booking?.paymentStatus ?? 'Pending';
-  const statusColor =
-    paymentStatus === 'Paid'
-      ? '#22C55E'
-      : paymentStatus === 'Partial'
-      ? '#F59E0B'
-      : '#EF4444';
 
   if (isError || (!isLoading && !booking)) {
     return (
@@ -80,7 +73,6 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
         route={route}
         booking={booking}
         isLoading={isLoading}
-        statusColor={statusColor}
       />
     </Wrapper>
   );
@@ -91,7 +83,6 @@ const BookingDetailContent = ({
   route,
   booking,
   isLoading,
-  statusColor,
 }: any) => {
   const bookingId = booking?._id ?? route.params?.id;
   const fin = booking?.financial ?? {};
@@ -108,13 +99,17 @@ const BookingDetailContent = ({
   const finBalanceAmount =
     Number(fin.balanceAmount) || Math.max(0, finTotalAmount - finPaidAmount);
   const finSecurityDeposit = Number(fin.securityDeposit) || 0;
+  // Event khatam ho gaya (status "Ended") to uska hisaab freeze hai — Edit
+  // Finance (pencil) aur "Finalize Event" swipe dono hata dete hain taaki
+  // galti se koi change na ho sake.
+  const isEnded = booking?.status === 'Ended';
   return (
     <>
       <SubHeader
         navigation={navigation}
         title="Booking Details"
         comp={
-          !isLoading && (
+          !isLoading && !isEnded && (
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() =>
@@ -170,18 +165,12 @@ const BookingDetailContent = ({
               >
                 <View
                   className="px-3 py-1.5 rounded-full flex-row items-center"
-                  style={{ backgroundColor: statusColor }}
-                >
-                  <Text className="text-xs font-bold text-white">
-                    {booking.paymentStatus}
-                  </Text>
-                </View>
-                <View
-                  className="px-3 py-1.5 rounded-full flex-row items-center"
                   style={{
                     backgroundColor:
                       booking.status === 'Cancelled'
                         ? '#EF4444'
+                        : booking.status === 'Ended'
+                        ? '#3B82F6'
                         : booking.status === 'Pending' ||
                           booking.status === 'Draft'
                         ? '#F59E0B'
@@ -191,6 +180,8 @@ const BookingDetailContent = ({
                   <Text className="text-xs font-bold text-white">
                     {booking.status === 'Cancelled'
                       ? 'Cancelled'
+                      : booking.status === 'Ended'
+                      ? 'Event End'
                       : booking.status === 'Confirmed' ||
                         booking.status === 'Office-Approved'
                       ? 'Confirmed'
@@ -388,24 +379,44 @@ const BookingDetailContent = ({
                 }
               />
               <InfoRow
-                label="Balance"
+                label="Balance Due"
                 value={`₹${finBalanceAmount.toLocaleString()}`}
-                valueColor="#F59E0B"
+                valueColor={finBalanceAmount > 0 ? '#F59E0B' : '#22C55E'}
                 last
               />
             </View>
           </View>
-          <View className="mt-6">
-            <SwipeButton
-              label="Finalize Event"
-              onComplete={() =>
-                navigation.navigate(MainRoute.NewBooking, {
-                  screen: BookingStepRoute.FainalizeEventPage,
-                  params: { bookingId },
-                })
-              }
-            />
-          </View>
+          {isEnded ? (
+            <View
+              className="mt-6 flex-row items-center rounded-2xl px-4 py-3.5"
+              style={{
+                backgroundColor: 'rgba(59,130,246,0.12)',
+                borderWidth: 1,
+                borderColor: '#3B82F6',
+              }}
+            >
+              <Lock size={16} color="#3B82F6" />
+              <Text
+                className="text-xs font-semibold ml-2 flex-1"
+                style={{ color: '#3B82F6' }}
+              >
+                Event ended — this booking is locked and can no longer be
+                updated.
+              </Text>
+            </View>
+          ) : (
+            <View className="mt-6">
+              <SwipeButton
+                label="Finalize Event"
+                onComplete={() =>
+                  navigation.navigate(MainRoute.NewBooking, {
+                    screen: BookingStepRoute.FainalizeEventPage,
+                    params: { bookingId },
+                  })
+                }
+              />
+            </View>
+          )}
         </ScrollView>
       )}
       {!isLoading && (
@@ -426,9 +437,17 @@ const BookingDetailContent = ({
             </Text>
             <Text
               className="text-xl font-extrabold"
-              style={{ color: '#F59E0B' }}
+              style={{ color: finBalanceAmount > 0 ? '#F59E0B' : '#22C55E' }}
             >
               ₹{finBalanceAmount.toLocaleString()}
+            </Text>
+            <Text
+              className="text-[10px] mt-0.5"
+              style={{ color: Dark.textSecondary }}
+            >
+              {finBalanceAmount > 0
+                ? 'Includes additional charges'
+                : 'All settled ✓'}
             </Text>
           </View>
 

@@ -1,7 +1,8 @@
-import { readStorage, removeStorage, writeStorage } from "./storageManager";
+import { clearAllStorage, readStorage, removeStorage, writeStorage } from "./storageManager";
 
 export const storage = {
     read: readStorage,
     write: writeStorage,
-    remove: removeStorage
+    remove: removeStorage,
+    clearAll: clearAllStorage
 }

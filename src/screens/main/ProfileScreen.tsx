@@ -35,8 +35,9 @@ import { Palette } from '../../components/profile/const/profilePalette';
 import { pickFromGallery, capturePhoto } from '../../module/ImagePickerModule';
 import { route as appRoute } from '../../const/routes/route';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux/redux';
-import { clearUser, updateUser } from '../../store/slices/userSlice';
-import { removeStorage, writeStorage } from '../../manager/storage/storageManager';
+import { updateUser } from '../../store/slices/userSlice';
+import { writeStorage } from '../../manager/storage/storageManager';
+import { clearSession } from '../../manager/session/sessionManager';
 import token from '../../const/token/token';
 import useUpdateProfile from '../../api/auth/hooks/auth/useUpdateProfile';
 import uploadImage from '../../services/Cloudinary/uploadImg';
@@ -140,11 +141,14 @@ const ProfileScreen = ({ navigation }: any) => {
     const closeSheet = useCallback(() => setSheetOpen(false), []);
 
     const handleLogout = useCallback(() => {
-        dispatch(clearUser());
-        removeStorage({ key: token.isAuth });
-        removeStorage({ key: token.isAuthData });
+        // Full wipe: MMKV (auth flag/token/cached profile/custom lists),
+        // in-memory booking draft, React Query cache and Redux state.
+        // Without this the next login kept serving the previous session's
+        // cached API responses (stale dashboard/bookings/applicants data).
+        clearSession();
+        setConfirmLogout(false);
         navigation.reset({ index: 0, routes: [{ name: appRoute.login }] });
-    }, [dispatch, navigation]);
+    }, [navigation]);
 
     return (
         <Wrapper safeBottom>

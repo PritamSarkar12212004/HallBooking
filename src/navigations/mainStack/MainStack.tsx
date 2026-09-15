@@ -8,6 +8,7 @@ import HomeScreen from '../../screens/main/HomeScreen';
 import BookingListScreen from '../../screens/main/BookingListScreen';
 import HallCalendarScreen from '../../screens/booking/HallCalendarScreen';
 import NotificationScreen from '../../screens/main/NotificationScreen';
+import ApplicantListScreen from '../../screens/main/ApplicantListScreen';
 import ProfileScreen from '../../screens/main/ProfileScreen';
 
 import CEODashboardScreen from '../../screens/ceo/CEODashboardScreen';
@@ -38,6 +39,7 @@ const StaffTabs = () => {
             <Tab.Screen name={TabRoute.Home} component={HomeScreen} />
             <Tab.Screen name={TabRoute.Bookings} component={BookingListScreen} />
             <Tab.Screen name={TabRoute.Notification} component={NotificationScreen} />
+            <Tab.Screen name={TabRoute.Applicants} component={ApplicantListScreen} />
             <Tab.Screen name={TabRoute.Profile} component={ProfileScreen} />
         </Tab.Navigator>
     );
@@ -55,7 +57,7 @@ const CEOTabs = () => {
             <Tab.Screen name={TabRoute.Dashboard} component={CEODashboardScreen} />
             <Tab.Screen name={TabRoute.Bookings} component={BookingListScreen} />
             <Tab.Screen name={TabRoute.Notification} component={NotificationScreen} />
-            <Tab.Screen name={TabRoute.Staff} component={StaffActivityScreen} />
+            <Tab.Screen name={TabRoute.Applicants} component={ApplicantListScreen} />
             <Tab.Screen name={TabRoute.Profile} component={ProfileScreen} />
         </Tab.Navigator>
     );
@@ -115,6 +117,12 @@ const MainStack = ({ userRole }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.FeatureCalendar}
                 component={FeatureStack}
+            />
+            {/* Staff Activity calendar — pehle bottom tab tha, ab CEO Dashboard
+                ke card se is stack screen par navigate hota hai. */}
+            <Stack.Screen
+                name={MainRoute.StaffActivity}
+                component={StaffActivityScreen}
             />
         </Stack.Navigator>
     );

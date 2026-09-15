@@ -24,8 +24,12 @@ interface BookingStatusStripProps {
 }
 
 /**
- * ENDED / TODAY / CONFIRMED summary strip — same date-based status logic as
- * the calendar agenda chips, shown as three cards on the Home & CEO dashboards.
+ * ENDED / TODAY / CONFIRMED summary strip — three cards on the CEO dashboard.
+ * Buckets date-based hain (jaise calendar agenda chips), par booking ke apne
+ * status ko date se upar priority milti hai:
+ * - "Cancelled" kabhi kisi bucket me nahi ginte.
+ * - "Ended" (finalize ho chuka event) hamesha Ended me ginte, chahe uski date
+ *   aaj ki ho ya future ki.
  * Reads the shared bookings cache (same query as the Calendar feature), so no
  * duplicate network call when the calendar is already loaded.
  */
@@ -39,12 +43,17 @@ const BookingStatusStrip = ({ onPress }: BookingStatusStripProps) => {
         let confirmed = 0;
 
         (bookings ?? []).forEach((b: bookingListInterface) => {
+            // Cancelled event na "Today" me gine jaye na "Confirmed" me.
+            if (b.status === 'Cancelled') return;
+
             const startKey = toDateKey(b.startDate);
             const endKeyRaw = toDateKey(b.endDate || b.startDate);
             const endKey = !endKeyRaw || endKeyRaw < startKey ? startKey : endKeyRaw;
             if (!startKey) return;
 
-            if (endKey < todayKey) ended += 1;
+            // Finalized event (status "Ended") apni date se haare na — warna aaj
+            // ka ended event "Today" me gine jata.
+            if (b.status === 'Ended' || endKey < todayKey) ended += 1;
             else if (startKey <= todayKey && todayKey <= endKey) today += 1;
             else confirmed += 1;
         });

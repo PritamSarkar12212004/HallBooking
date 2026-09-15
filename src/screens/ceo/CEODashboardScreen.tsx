@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Dimensions } from 'react-native';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity } from '../../lib/style/withTailwind';
+import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, RefreshControl } from '../../lib/style/withTailwind';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 import {
     CalendarCheck,
@@ -61,9 +61,17 @@ const CEODashboardScreen = ({ navigation }: any) => {
     const { dashboard, isLoading, refetch } = useGetDashboard(user?.token);
     const data: DashboardData | undefined = dashboard;
     const stats = data?.stats;
+    const [refreshing, setRefreshing] = useState(false);
 
-    const onRefreshPress = useCallback(() => {
-        refetch();
+    // Pull-to-refresh / refresh button — dashboard ke saare numbers, charts
+    // aur lists fresh hoke aate hain (e.g. event finalize karne ke baad).
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetch();
+        } finally {
+            setRefreshing(false);
+        }
     }, [refetch]);
 
     const navigateBooking = useCallback((id: string) => {
@@ -72,6 +80,12 @@ const CEODashboardScreen = ({ navigation }: any) => {
 
     const navigateBookings = useCallback(() => {
         navigation.navigate(TabRoute.Bookings);
+    }, [navigation]);
+
+    // Staff Activity calendar bottom tabs me nahi hai — CEO Dashboard ke card
+    // se hi khulta hai, isliye stack screen par navigate karte hain.
+    const openStaffActivity = useCallback(() => {
+        navigation.navigate(MainRoute.StaffActivity);
     }, [navigation]);
 
     const statCards = stats ? [
@@ -138,10 +152,50 @@ const CEODashboardScreen = ({ navigation }: any) => {
                         style={{ backgroundColor: DashboardPalette.sheet }}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 28 }}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                tintColor={DashboardPalette.goldDeep}
+                                colors={[DashboardPalette.goldDeep]}
+                                progressBackgroundColor={DashboardPalette.card}
+                            />
+                        }
                     >
                         {/* Revenue hero card (same as Home) */}
                         <View>
                             <HeroRevenueCard stats={stats} onPress={navigateBookings} />
+                        </View>
+
+                        {/* Staff Activity calendar — bottom tab hata diya gaya hai,
+                            ab yahi card calendar kholne ka entry point hai. */}
+                        <View className="mt-4">
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={openStaffActivity}
+                                className="flex-row items-center rounded-2xl p-4"
+                                style={{
+                                    backgroundColor: DashboardPalette.card,
+                                    borderWidth: 1,
+                                    borderColor: DashboardPalette.border,
+                                }}
+                            >
+                                <View
+                                    className="w-11 h-11 rounded-xl items-center justify-center"
+                                    style={{ backgroundColor: DashboardPalette.blueSoft }}
+                                >
+                                    <CalendarDays size={20} color={DashboardPalette.blue} />
+                                </View>
+                                <View className="flex-1 ml-3">
+                                    <Text className="text-[14px] font-extrabold" style={{ color: DashboardPalette.ink }}>
+                                        Staff Activity Calendar
+                                    </Text>
+                                    <Text className="text-[11px] font-medium mt-0.5" style={{ color: DashboardPalette.inkSoft }}>
+                                        Day-wise events, bookings & staff activity
+                                    </Text>
+                                </View>
+                                <ChevronRight size={16} color={DashboardPalette.inkMuted} />
+                            </TouchableOpacity>
                         </View>
 
                         {/* Overview strip */}
@@ -150,7 +204,7 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                 <SectionTitle icon={TrendingUp} tint={DashboardPalette.gold} title="Overview" sub="Live hall overview" />
                                 <TouchableOpacity
                                     activeOpacity={0.7}
-                                    onPress={onRefreshPress}
+                                    onPress={onRefresh}
                                     className="w-9 h-9 rounded-xl items-center justify-center"
                                     style={{ backgroundColor: DashboardPalette.goldSoft }}
                                 >
@@ -161,10 +215,13 @@ const CEODashboardScreen = ({ navigation }: any) => {
 
                         {/* Stat cards */}
                         <View className="mt-2">
+                            {/* Parent ScrollView me already paddingHorizontal 16 hai —
+                                yahan dobara padding dene se cards baaki sections se
+                                16px andar (misaligned) start ho jate the. */}
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, gap: 12 }}
+                                contentContainerStyle={{ paddingTop: 8, gap: 12 }}
                             >
                                 {statCards.map((stat) => (
                                     <TouchableOpacity
@@ -373,7 +430,7 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                     <ChevronRight size={14} color={DashboardPalette.goldDeep} />
                                 </TouchableOpacity>
                             </View>
-                            {data?.todayEvents.length ? (
+                            {data?.todayEvents?.length ? (
                                 data.todayEvents.map((event) => (
                                     <EventCard key={event.id} event={event} onPress={() => navigateBooking(event.id)} />
                                 ))
@@ -395,7 +452,7 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                     <ChevronRight size={14} color={DashboardPalette.goldDeep} />
                                 </TouchableOpacity>
                             </View>
-                            {data?.upcomingEvents.length ? (
+                            {data?.upcomingEvents?.length ? (
                                 data.upcomingEvents.map((event) => (
                                     <EventCard
                                         key={event.id}
@@ -422,7 +479,7 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                     <ChevronRight size={14} color={DashboardPalette.goldDeep} />
                                 </TouchableOpacity>
                             </View>
-                            {data?.recentBookings.length ? (
+                            {data?.recentBookings?.length ? (
                                 data.recentBookings.map((event) => (
                                     <EventCard
                                         key={event.id}

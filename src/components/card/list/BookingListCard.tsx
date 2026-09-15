@@ -23,11 +23,18 @@ interface Props {
 const BookingListCard = React.memo(({ item, actionPress }: Props) => {
     const isPending = (item.balanceAmount || 0) > 0;
     const statusColor = isPending ? '#F59E0B' : '#22C55E';
+    const ended = item.status === 'Ended';
+    const badgeColor =
+        item.status === 'Cancelled'
+            ? '#EF4444'
+            : ended
+                ? '#3B82F6'
+                : statusColor;
     const statusLabel =
         item.status === 'Cancelled'
             ? 'Cancelled'
-            : item.paymentStatus === 'Paid'
-                ? 'Paid'
+            : ended
+                ? 'Event End'
                 : isPending
                     ? 'Balance Due'
                     : 'Confirmed';
@@ -80,15 +87,17 @@ const BookingListCard = React.memo(({ item, actionPress }: Props) => {
                     style={{
                         backgroundColor: 'rgba(0,0,0,0.55)',
                         borderWidth: 1,
-                        borderColor: statusColor,
+                        borderColor: badgeColor,
                     }}
                 >
-                    {isPending ? (
-                        <Wallet2 size={11} color={statusColor} />
+                    {ended ? (
+                        <CheckCircle2 size={11} color={badgeColor} />
+                    ) : isPending ? (
+                        <Wallet2 size={11} color={badgeColor} />
                     ) : (
-                        <CheckCircle2 size={11} color={statusColor} />
+                        <CheckCircle2 size={11} color={badgeColor} />
                     )}
-                    <Text className="text-[10px] font-bold ml-1" style={{ color: statusColor }}>
+                    <Text className="text-[10px] font-bold ml-1" style={{ color: badgeColor }}>
                         {statusLabel}
                     </Text>
                 </View>
@@ -182,10 +191,10 @@ const BookingListCard = React.memo(({ item, actionPress }: Props) => {
                             className="text-[10px] font-semibold mb-0.5"
                             style={{ color: statusColor }}
                         >
-                            {isPending ? 'Balance Due' : 'Received'}
+                            {isPending ? 'Balance Due' : 'Settled'}
                         </Text>
                         <Text className="text-sm font-extrabold" style={{ color: statusColor }}>
-                            ₹{(isPending ? (item.balanceAmount || 0) : (item.totalAmount || 0)).toLocaleString()}
+                            ₹{(item.balanceAmount || 0).toLocaleString()}
                         </Text>
                     </View>
                 </View>

@@ -10,9 +10,9 @@ export const route = {
 export const TabRoute = {
   Home: 'Home',
   Bookings: 'Bookings',
+  Applicants: 'Applicants',
   Notification: 'Notification',
   Profile: 'Profile',
-  Staff: 'Staff',
   Dashboard: 'Dashboard',
   Reports: 'Reports',
 } as const;
@@ -27,6 +27,7 @@ export const MainRoute = {
   Profile: 'Profile',
   HallCalendar: 'HallCalendar',
   FeatureCalendar: 'FeatureCalendar',
+  StaffActivity: 'StaffActivity',
 } as const;
 
 export const BookingStepRoute = {

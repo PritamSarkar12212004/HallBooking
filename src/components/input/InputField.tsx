@@ -16,7 +16,9 @@ type InputFieldProps = {
     keyType: KeyboardTypeOptions;
     title: string;
     Icon?: React.ElementType;
-    edit?: boolean
+    edit?: boolean;
+    /** Draws a subtle border around the field so it reads as an input. */
+    bordered?: boolean;
 };
 
 const InputField = React.memo(({
@@ -26,7 +28,8 @@ const InputField = React.memo(({
     keyType,
     title,
     Icon: Icon,
-    edit = true
+    edit = true,
+    bordered = false,
 }: InputFieldProps) => {
 
     return (
@@ -38,6 +41,8 @@ const InputField = React.memo(({
                 className="flex-row items-center rounded-xl px-4"
                 style={{
                     backgroundColor: Theme.background.secondary,
+                    borderWidth: bordered ? 1 : 0,
+                    borderColor: bordered ? '#3A3A40' : 'transparent',
                 }}
             >
                 {Icon && (

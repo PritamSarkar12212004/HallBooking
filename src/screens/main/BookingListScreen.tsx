@@ -31,7 +31,10 @@ const BookingListScreen = ({ navigation }: any) => {
     const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
     const [refreshing, setRefreshing] = useState(false);
     const { bookings, isLoading, refetch, hasMore, loadMore, isLoadingMore } = useListBookings(user?.token);
-    const typedBookings: bookingListInterface[] = (bookings as bookingListInterface[]) ?? [];
+    const typedBookings = useMemo(
+        () => (bookings as bookingListInterface[]) ?? [],
+        [bookings],
+    );
 
     const navigateDetiles = useCallback((id: string) => {
         navigation.navigate(MainRoute.BookingDetail, { id });
@@ -86,7 +89,9 @@ const BookingListScreen = ({ navigation }: any) => {
             list = list.filter((b) => (b.balanceAmount || 0) > 0);
         } else if (activeFilter === 'Done') {
             list = list.filter(
-                (b) => b.paymentStatus === 'Paid' && (b.balanceAmount || 0) <= 0,
+                (b) =>
+                    b.status === 'Ended' ||
+                    (b.paymentStatus === 'Paid' && (b.balanceAmount || 0) <= 0),
             );
         } else if (activeFilter === 'Cancelled') {
             list = list.filter((b) => b.status === 'Cancelled');

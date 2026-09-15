@@ -23,6 +23,8 @@ type Props = {
   accent?: string;
   border?: string;
   textColor?: string;
+  /** Blocks the swipe gesture and dims the control until the form is valid. */
+  disabled?: boolean;
 };
 
 const SwipeButton = ({
@@ -32,6 +34,7 @@ const SwipeButton = ({
   accent = '#8B5CF6',
   border = '#2A2A36',
   textColor = '#FFFFFF',
+  disabled = false,
 }: Props) => {
   const [trackWidth, setTrackWidth] = useState(0);
   const x = useSharedValue(0);
@@ -54,11 +57,11 @@ const SwipeButton = ({
   const pan = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .onUpdate(e => {
-      if (done.value === 1 || maxX <= 0) return;
+      if (disabled || done.value === 1 || maxX <= 0) return;
       x.value = Math.min(Math.max(0, e.translationX), maxX);
     })
     .onEnd(() => {
-      if (done.value === 1) return;
+      if (disabled || done.value === 1) return;
       if (x.value >= maxX * 0.92) {
         x.value = withTiming(maxX, { duration: 120 }, finished => {
           if (finished) {
@@ -74,6 +77,12 @@ const SwipeButton = ({
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }],
   }));
+
+  // Disabled state: grey everything out so it reads clearly as "locked".
+  const activeBg = disabled ? '#17171F' : bg;
+  const activeAccent = disabled ? '#3F3F4A' : accent;
+  const activeBorder = disabled ? '#2A2A36' : border;
+  const activeText = disabled ? '#6E6E7A' : textColor;
 
   const fillStyle = useAnimatedStyle(() => ({
     width: x.value + THUMB + PAD * 2,
@@ -104,9 +113,9 @@ const SwipeButton = ({
         style={{
           height: THUMB + PAD * 2,
           borderRadius: 999,
-          backgroundColor: bg,
+          backgroundColor: activeBg,
           borderWidth: 1,
-          borderColor: border,
+          borderColor: activeBorder,
           justifyContent: 'center',
           overflow: 'hidden',
         }}
@@ -118,7 +127,7 @@ const SwipeButton = ({
               left: 0,
               top: 0,
               bottom: 0,
-              backgroundColor: accent,
+              backgroundColor: activeAccent,
               borderRadius: 999,
             },
             fillStyle,
@@ -134,7 +143,7 @@ const SwipeButton = ({
         >
           <Text
             style={{
-              color: textColor,
+              color: activeText,
               fontWeight: '700',
               fontSize: 14,
               letterSpacing: 0.4,
@@ -169,7 +178,7 @@ const SwipeButton = ({
               width: THUMB,
               height: THUMB,
               borderRadius: THUMB / 2,
-              backgroundColor: accent,
+              backgroundColor: activeAccent,
               alignItems: 'center',
               justifyContent: 'center',
               marginLeft: PAD,

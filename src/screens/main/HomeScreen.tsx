@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { ScrollView, View, SafeAreaView, Text, TouchableOpacity } from '../../lib/style/withTailwind';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ScrollView, View, SafeAreaView, Text, TouchableOpacity, RefreshControl } from '../../lib/style/withTailwind';
 import {
     Plus,
     CalendarPlus,
@@ -25,19 +25,44 @@ import SectionTitle from '../../components/card/dashboard/SectionTitle';
 import EmptyListCard from '../../components/card/dashboard/EmptyListCard';
 import WeeklyBookingsChart from '../../components/charts/WeeklyBookingsChart';
 import HomeScreenSkeleton from '../../ui/Skeleton/HomeScreenSkeleton';
-import BookingStatusStrip from '../../components/card/dashboard/BookingStatusStrip';
 
 const HomeScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
-    const { dashboard, isLoading } = useGetDashboard(user?.token);
+    const { dashboard, isLoading, refetch } = useGetDashboard(user?.token);
     const stats = dashboard?.stats;
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Scroll down (pull-to-refresh) — dashboard ke saare numbers/lists fresh
+    // hoke aate hain, e.g. event finalize karne ke baad wapas Home par.
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetch();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetch]);
+
+    // Ended event kabhi Home ke lists me na dikhe. Filter backend me bhi laga
+    // hai (dashboard query) — ye client-side guard purane cached payload ke
+    // liye hai.
+    const isHomeVisible = useCallback(
+        (e: DashboardEventItem) => e.status !== 'Ended',
+        []
+    );
     const today = useMemo(
-        () => (dashboard?.todayEvents ?? []) as DashboardEventItem[],
-        [dashboard?.todayEvents]
+        () =>
+            ((dashboard?.todayEvents ?? []) as DashboardEventItem[]).filter(
+                isHomeVisible
+            ),
+        [dashboard?.todayEvents, isHomeVisible]
     );
     const upcoming = useMemo(
-        () => (dashboard?.upcomingEvents ?? []) as DashboardEventItem[],
-        [dashboard?.upcomingEvents]
+        () =>
+            ((dashboard?.upcomingEvents ?? []) as DashboardEventItem[]).filter(
+                isHomeVisible
+            ),
+        [dashboard?.upcomingEvents, isHomeVisible]
     );
     const weeklyChart = useMemo(
         () => dashboard?.weeklyChart ?? [],
@@ -112,6 +137,15 @@ const HomeScreen = ({ navigation }: any) => {
                         style={{ backgroundColor: DashboardPalette.sheet }}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 28 }}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                tintColor={DashboardPalette.goldDeep}
+                                colors={[DashboardPalette.goldDeep]}
+                                progressBackgroundColor={DashboardPalette.card}
+                            />
+                        }
                     >
                         <HeroRevenueCard stats={stats} onPress={openBookings} />
                         <View className="flex-row gap-3 mt-5">
