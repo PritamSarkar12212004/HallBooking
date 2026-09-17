@@ -18,6 +18,11 @@
             // Packages that cannot be autolinked yet can be added manually here, for example:
             // add(MyReactNativePackage())
           },
+        // Let the CodePush runtime decide, on every app start, which JS bundle to
+        // load: an OTA bundle when one is installed, otherwise the bundle shipped
+        // inside the APK. Without this the downloaded updates are never loaded.
+        // Note: must stay AFTER packageList, which creates the CodePush instance.
+        jsBundleFilePath = CodePush.getJSBundleFile(),
       )
     }
 
