@@ -21,14 +21,9 @@ import uploadImage from '../../services/Cloudinary/uploadImg';
 import { startDraft } from '../../manager/draftBookingStore';
 import {
     formatDisplayDate,
-    getEndTimeMin,
-    isEndTimeValid,
     isLaterDay,
-    minutesOfDate,
     monthNames,
     parseDisplayDate,
-    toMinutes,
-    toTimeString,
 } from '../../functions/booking/BookingDateTimeRules';
 
 const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -36,13 +31,15 @@ const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const today = new Date();
 const currentYear = today.getFullYear();
 const currentMonthIndex = today.getMonth();
-const todayDay = today.getDate();
 
+/**
+ * Only used as the *initial* value of the date fields.
+ *
+ * The calendar is intentionally unrestricted now: every day of every month is
+ * selectable (past, today or future) and the time pickers have no minimum, so
+ * the user is free to book any date / time in either "1 Day" or "More Day".
+ */
 const todayString = formatDisplayDate(today);
-
-const nowTimeString = () => toTimeString(new Date());
-
-const nowMinutes = () => minutesOfDate(new Date());
 
 const HallCalendarScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
@@ -149,13 +146,17 @@ const HallCalendarScreen = ({ navigation }: any) => {
             new Date(viewYear, viewMonthIndex, selectedDay)
         );
 
-        // Keep the range sane: the end date can never sit before the start
-        // date, so picking a later start date pushes the end date along.
+        // Dates are never validated: ANY day of ANY month is selectable —
+        // past, today or future — in both "1 Day" and "More Day".
+        //
+        // The only adjustment kept is keeping the range ordered:
+        // - "1 Day" is a single-day booking, so the end date mirrors the pick.
+        // - "More Day" keeps the dates independent, but picking a start date
+        //   later than the current end date pushes the end date along.
+        // No picked time is ever cleared or clamped here.
         const shouldMoveEndDate =
-            activeField === 'start' && isLaterDay(dateStr, endDate);
-        const nextStartDate = activeField === 'start' ? dateStr : startDate;
-        const nextEndDate =
-            activeField === 'end' || shouldMoveEndDate ? dateStr : endDate;
+            activeField === 'start' &&
+            (isOneDayBooking || isLaterDay(dateStr, endDate));
 
         if (activeField === 'start') {
             setStartDate(dateStr);
@@ -164,35 +165,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
             }
         } else {
             setEndDate(dateStr);
-        }
-
-        // "More Day" only: a booking for TODAY drops any time that has passed.
-        // "1 Day" lets the user pick any clock time, so its picks are kept.
-        if (!isOneDayBooking && dateStr === todayString) {
-            const passed = nowMinutes();
-            if (activeField === 'start') {
-                if (startTime && toMinutes(startTime) <= passed) {
-                    setStartTime('');
-                    setEndTime('');
-                }
-            } else if (endTime && toMinutes(endTime) <= passed) {
-                setEndTime('');
-            }
-        }
-
-        // "More Day" only: a range inside the same day must end after it starts
-        // -> drop a time that no longer qualifies. Multi-day ranges always stay
-        // valid, and 1 Day times are free.
-        if (
-            !isOneDayBooking &&
-            !isEndTimeValid({
-                startDate: nextStartDate,
-                startTime,
-                endDate: nextEndDate,
-                endTime,
-            })
-        ) {
-            setEndTime('');
         }
 
         closeCalendar();
@@ -216,8 +188,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
         }
     };
 
-    const isCurrentMonth = viewMonthIndex === currentMonthIndex && viewYear === currentYear;
-
     const monthName = `${monthNames[viewMonthIndex]} ${viewYear}`;
     const daysInMonth = daysInMonths[viewMonthIndex];
 
@@ -236,14 +206,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
         "More Day"
     ]
 
-    // "More Day" only: minimum allowed END time, derived from the picked range
-    // - end date later than start date -> free time, so an earlier clock time
-    //   on the last day is selectable (the whole point of a multi-day range)
-    // - same start & end date -> must stay after the start time
-    const endTimeMinTime = getEndTimeMin({ startDate, startTime, endDate });
-
-    // "1 Day" keeps BOTH time wheels completely free, so no past-time /
-    // after-start-time cleanup is applied to it.
+    // Both modes keep BOTH time wheels completely free: no minimum time, no
+    // "must be after the start time" rule and no past-time cleanup.
+    // "1 Day" additionally mirrors the picked date into the end date.
     const isOneDayBooking = !selectedDayType.includes('More Day');
 
     const isFormValid =
@@ -258,33 +223,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
 
     const actionPress = async () => {
         if (!isFormValid || loader) {
-            return;
-        }
-
-        // TODAY's booking: start time can't be in the past.
-        // "1 Day" allows any clock time to be picked, so it is exempt here too.
-        if (
-            !isOneDayBooking &&
-            startDate === todayString &&
-            toMinutes(startTime) <= nowMinutes()
-        ) {
-            showMessage({
-                message: 'Invalid Start Time',
-                description: 'This time has already passed. Please select a future time.',
-                type: 'danger',
-            });
-            return;
-        }
-        if (
-            !isOneDayBooking &&
-            endDate === todayString &&
-            toMinutes(endTime) <= nowMinutes()
-        ) {
-            showMessage({
-                message: 'Invalid End Time',
-                description: 'This time has already passed. Please select a future time.',
-                type: 'danger',
-            });
             return;
         }
 
@@ -363,7 +301,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             title="Start Time *"
                             value={startTime}
                             onChange={setStartTime}
-                            minTime={startDate === todayString ? nowTimeString() : undefined}
                         />
 
                         <View className="mb-2">
@@ -384,8 +321,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             title="End Time *"
                             value={endTime}
                             onChange={setEndTime}
-                            disabled={!startTime}
-                            minTime={endTimeMinTime}
                         />
 
                         <View className="mb-2">
@@ -404,8 +339,8 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             <Divider />
                         </View>
                         <View className="w-full flex gap-4">
-                            {/* 1 Day: both time wheels are fully free — any
-                                clock time can be picked for start and end. */}
+                            {/* Both time wheels are completely free — any clock
+                                time can be picked for start and end. */}
                             <TimePicker
                                 title="Start Time *"
                                 value={startTime}
@@ -415,7 +350,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                                 title="End Time *"
                                 value={endTime}
                                 onChange={setEndTime}
-                                disabled={!startTime}
                             />
 
                         </View>
@@ -561,7 +495,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 selectedDay={selectedDay}
                 monthName={monthName}
                 daysInMonth={daysInMonth}
-                minDay={isCurrentMonth ? todayDay : undefined}
                 startDay={liveStartDay}
                 endDay={liveEndDay}
                 onClose={closeCalendar}
