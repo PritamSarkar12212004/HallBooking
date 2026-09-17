@@ -19,11 +19,17 @@ import { Theme } from '../../const/theme/Theme';
 import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
 import uploadImage from '../../services/Cloudinary/uploadImg';
 import { startDraft } from '../../manager/draftBookingStore';
-
-const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
+import {
+    formatDisplayDate,
+    getEndTimeMin,
+    isEndTimeValid,
+    isLaterDay,
+    minutesOfDate,
+    monthNames,
+    parseDisplayDate,
+    toMinutes,
+    toTimeString,
+} from '../../functions/booking/BookingDateTimeRules';
 
 const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
@@ -32,28 +38,11 @@ const currentYear = today.getFullYear();
 const currentMonthIndex = today.getMonth();
 const todayDay = today.getDate();
 
-const formatDate = (date: Date) =>
-    `${date.getDate()} ${monthNames[date.getMonth()].slice(0, 3)} ${date.getFullYear()}`;
+const todayString = formatDisplayDate(today);
 
-const todayString = formatDate(today);
+const nowTimeString = () => toTimeString(new Date());
 
-const pad2 = (n: number) => n.toString().padStart(2, '0');
-
-const toMinutes = (time: string) => {
-    const [h, m] = time.split(':').map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return -1;
-    return h * 60 + m;
-};
-
-const nowTimeString = () => {
-    const d = new Date();
-    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-};
-
-const nowMinutes = () => {
-    const d = new Date();
-    return d.getHours() * 60 + d.getMinutes();
-};
+const nowMinutes = () => minutesOfDate(new Date());
 
 const HallCalendarScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
@@ -141,11 +130,9 @@ const HallCalendarScreen = ({ navigation }: any) => {
                 ? startDate
                 : endDate;
 
-        const day = Number(existingDate.split(' ')[0]);
+        const parsed = parseDisplayDate(existingDate);
 
-        setSelectedDay(
-            Number.isNaN(day) ? null : day
-        );
+        setSelectedDay(parsed ? parsed.getDate() : null);
 
         setCalendarVisible(true);
     };
@@ -158,16 +145,30 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const confirmDate = () => {
         if (!selectedDay) return;
 
-        const dateStr = `${selectedDay} ${monthNames[viewMonthIndex].slice(0, 3)} ${viewYear}`;
+        const dateStr = formatDisplayDate(
+            new Date(viewYear, viewMonthIndex, selectedDay)
+        );
+
+        // Keep the range sane: the end date can never sit before the start
+        // date, so picking a later start date pushes the end date along.
+        const shouldMoveEndDate =
+            activeField === 'start' && isLaterDay(dateStr, endDate);
+        const nextStartDate = activeField === 'start' ? dateStr : startDate;
+        const nextEndDate =
+            activeField === 'end' || shouldMoveEndDate ? dateStr : endDate;
 
         if (activeField === 'start') {
             setStartDate(dateStr);
+            if (shouldMoveEndDate) {
+                setEndDate(dateStr);
+            }
         } else {
             setEndDate(dateStr);
         }
 
-        // Booking for TODAY: drop any time that has already passed
-        if (dateStr === todayString) {
+        // "More Day" only: a booking for TODAY drops any time that has passed.
+        // "1 Day" lets the user pick any clock time, so its picks are kept.
+        if (!isOneDayBooking && dateStr === todayString) {
             const passed = nowMinutes();
             if (activeField === 'start') {
                 if (startTime && toMinutes(startTime) <= passed) {
@@ -177,6 +178,21 @@ const HallCalendarScreen = ({ navigation }: any) => {
             } else if (endTime && toMinutes(endTime) <= passed) {
                 setEndTime('');
             }
+        }
+
+        // "More Day" only: a range inside the same day must end after it starts
+        // -> drop a time that no longer qualifies. Multi-day ranges always stay
+        // valid, and 1 Day times are free.
+        if (
+            !isOneDayBooking &&
+            !isEndTimeValid({
+                startDate: nextStartDate,
+                startTime,
+                endDate: nextEndDate,
+                endTime,
+            })
+        ) {
+            setEndTime('');
         }
 
         closeCalendar();
@@ -205,7 +221,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
     const monthName = `${monthNames[viewMonthIndex]} ${viewYear}`;
     const daysInMonth = daysInMonths[viewMonthIndex];
 
-    const startDayNum = Number(startDate.split(' ')[0]);
+    const startDayNum = parseDisplayDate(startDate)?.getDate() ?? null;
     const liveStartDay = activeField === 'end' ? startDayNum : null;
     const liveEndDay = activeField === 'end' ? selectedDay : null;
     const [selectedDayType, setSelectedDayType] =
@@ -219,6 +235,16 @@ const HallCalendarScreen = ({ navigation }: any) => {
         "1 Day",
         "More Day"
     ]
+
+    // "More Day" only: minimum allowed END time, derived from the picked range
+    // - end date later than start date -> free time, so an earlier clock time
+    //   on the last day is selectable (the whole point of a multi-day range)
+    // - same start & end date -> must stay after the start time
+    const endTimeMinTime = getEndTimeMin({ startDate, startTime, endDate });
+
+    // "1 Day" keeps BOTH time wheels completely free, so no past-time /
+    // after-start-time cleanup is applied to it.
+    const isOneDayBooking = !selectedDayType.includes('More Day');
 
     const isFormValid =
         selectedDayType.length > 0 &&
@@ -235,8 +261,13 @@ const HallCalendarScreen = ({ navigation }: any) => {
             return;
         }
 
-        // TODAY's booking: start time can't be in the past
-        if (startDate === todayString && toMinutes(startTime) <= nowMinutes()) {
+        // TODAY's booking: start time can't be in the past.
+        // "1 Day" allows any clock time to be picked, so it is exempt here too.
+        if (
+            !isOneDayBooking &&
+            startDate === todayString &&
+            toMinutes(startTime) <= nowMinutes()
+        ) {
             showMessage({
                 message: 'Invalid Start Time',
                 description: 'This time has already passed. Please select a future time.',
@@ -244,7 +275,11 @@ const HallCalendarScreen = ({ navigation }: any) => {
             });
             return;
         }
-        if (endDate === todayString && toMinutes(endTime) <= nowMinutes()) {
+        if (
+            !isOneDayBooking &&
+            endDate === todayString &&
+            toMinutes(endTime) <= nowMinutes()
+        ) {
             showMessage({
                 message: 'Invalid End Time',
                 description: 'This time has already passed. Please select a future time.',
@@ -350,12 +385,7 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             value={endTime}
                             onChange={setEndTime}
                             disabled={!startTime}
-                            minTime={
-                                endDate === todayString &&
-                                toMinutes(startTime) < nowMinutes()
-                                    ? nowTimeString()
-                                    : startTime
-                            }
+                            minTime={endTimeMinTime}
                         />
 
                         <View className="mb-2">
@@ -374,23 +404,18 @@ const HallCalendarScreen = ({ navigation }: any) => {
                             <Divider />
                         </View>
                         <View className="w-full flex gap-4">
+                            {/* 1 Day: both time wheels are fully free — any
+                                clock time can be picked for start and end. */}
                             <TimePicker
                                 title="Start Time *"
                                 value={startTime}
                                 onChange={setStartTime}
-                                minTime={startDate === todayString ? nowTimeString() : undefined}
                             />
                             <TimePicker
                                 title="End Time *"
                                 value={endTime}
                                 onChange={setEndTime}
                                 disabled={!startTime}
-                                minTime={
-                                    endDate === todayString &&
-                                    toMinutes(startTime) < nowMinutes()
-                                        ? nowTimeString()
-                                        : startTime
-                                }
                             />
 
                         </View>
