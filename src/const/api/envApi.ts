@@ -8,6 +8,9 @@ const envApi = {
     },
     Applicant: {
         root: "/applicants"
+    },
+    PaymentQr: {
+        root: "/payment-qr"
     }
 }
 export default envApi

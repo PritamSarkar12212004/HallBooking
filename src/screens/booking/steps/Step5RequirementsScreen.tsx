@@ -57,7 +57,7 @@ import {
 } from '../../../manager/draftBookingStore';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
-import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
+import useHallQr from '../../../hooks/qr/useHallQr';
 
 const Step5RequirementsScreen = () => {
 
@@ -67,8 +67,8 @@ const Step5RequirementsScreen = () => {
     const user = useAppSelector((state) => state.user.user);
     const { booking: existingBooking, isLoading: loadingBooking } =
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
-    const { meta } = useGetBookingMeta(user?.token);
-    const upiInfo = meta?.upi;
+    // Hall payment QR (CEO upload karta hai) — `null` jab tak set na ho.
+    const { qrUrl, bankHolderName } = useHallQr();
 
     // Section 1 (actual amount) + Section 2 (paid per head) share one row list.
     const [rows, setRows] = useState<ChargeRow[]>(() => {
@@ -399,8 +399,8 @@ const Step5RequirementsScreen = () => {
 
                 </View>
 
-                {/* UPI: inline dummy QR from backend (scan to pay) */}
-                {paymentMode[0] === 'UPI' && upiInfo && (
+                {/* UPI: hall QR uploaded by the CEO (scan to pay) */}
+                {paymentMode[0] === 'UPI' && qrUrl && (
                     <View
                         className="rounded-2xl p-4 items-center mb-6"
                         style={{ backgroundColor: Theme.background.secondary }}
@@ -409,10 +409,10 @@ const Step5RequirementsScreen = () => {
                             Scan to Pay (UPI)
                         </Text>
                         <Text className="text-[#8F8B91] text-xs mb-3">
-                            {upiInfo.name} • {upiInfo.id}
+                            {bankHolderName}
                         </Text>
                         <Image
-                            source={{ uri: upiInfo.qrUrl }}
+                            source={{ uri: qrUrl }}
                             style={{ width: 220, height: 220, borderRadius: 12 }}
                             resizeMode="contain"
                         />

@@ -25,6 +25,7 @@ export const MainRoute = {
   PaymentTrackRecord: 'PaymentTrackRecord',
   Reports: 'Reports',
   Profile: 'Profile',
+  ProfileQr: 'ProfileQr',
   HallCalendar: 'HallCalendar',
   FeatureCalendar: 'FeatureCalendar',
   StaffActivity: 'StaffActivity',

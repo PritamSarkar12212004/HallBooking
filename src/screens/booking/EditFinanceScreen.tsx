@@ -48,7 +48,7 @@ import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSection';
 import { useQueryClient } from '@tanstack/react-query';
 import uploadImage from '../../services/Cloudinary/uploadImg';
-import useGetBookingMeta from '../../api/booking/hooks/useGetBookingMeta';
+import useHallQr from '../../hooks/qr/useHallQr';
 
 const paymentModes = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 
@@ -61,7 +61,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         token: user?.token,
     });
 
-    const upiInfo = useGetBookingMeta(user?.token).meta?.upi;
+    const { qrUrl, bankHolderName } = useHallQr();
     const lastPayment =
         booking?.payments && booking.payments.length > 0
             ? booking.payments[booking.payments.length - 1]
@@ -347,8 +347,8 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     Icon={CreditCard}
                 />
 
-                {/* UPI: inline QR from backend — scan to pay */}
-                {paymentMode[0] === 'UPI' && upiInfo && (
+                {/* UPI: hall QR uploaded by the CEO — scan to pay */}
+                {paymentMode[0] === 'UPI' && qrUrl && (
                     <View
                         className="rounded-2xl p-4 items-center mb-4 mt-3"
                         style={{ backgroundColor: Theme.background.secondary }}
@@ -357,10 +357,10 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                             Scan to Pay (UPI)
                         </Text>
                         <Text className="text-[#8F8B91] text-xs mb-3">
-                            {upiInfo.name} • {upiInfo.id}
+                            {bankHolderName}
                         </Text>
                         <Image
-                            source={{ uri: upiInfo.qrUrl }}
+                            source={{ uri: qrUrl }}
                             style={{ width: 200, height: 200, borderRadius: 12 }}
                             resizeMode="contain"
                         />

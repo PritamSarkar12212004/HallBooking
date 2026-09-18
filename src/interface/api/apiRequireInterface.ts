@@ -44,3 +44,13 @@ export interface getBookingByIdInterface {
     id: string;
     token: string | any
 }
+
+export interface getPaymentQrInterface {
+    token: string | any
+}
+
+export interface savePaymentQrInterface {
+    bankHolderName: string;
+    qrUrl: string;
+    token: string | any
+}

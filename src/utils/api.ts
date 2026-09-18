@@ -13,4 +13,8 @@ export const apiApplicant = axios.create({
     baseURL: `${envApi.baseUri}${envApi.Applicant.root}`
 })
 
+export const apiPaymentQr = axios.create({
+    baseURL: `${envApi.baseUri}${envApi.PaymentQr.root}`
+})
+
 

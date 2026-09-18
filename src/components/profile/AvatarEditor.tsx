@@ -72,9 +72,22 @@ interface ImageSourceSheetProps {
     onCamera: () => void;
     onGallery: () => void;
     onClose: () => void;
+    title?: string;
+    subtitle?: string;
+    cameraLabel?: string;
+    galleryLabel?: string;
 }
 
-const ImageSourceSheet = ({ visible = false, onCamera, onGallery, onClose }: ImageSourceSheetProps) => {
+const ImageSourceSheet = ({
+    visible = false,
+    onCamera,
+    onGallery,
+    onClose,
+    title = 'Change Profile Photo',
+    subtitle = "Choose how you'd like to update your photo.",
+    cameraLabel = 'Camera',
+    galleryLabel = 'Gallery',
+}: ImageSourceSheetProps) => {
     if (!visible) return null;
     return (
         <View className="absolute inset-0 z-50">
@@ -84,8 +97,8 @@ const ImageSourceSheet = ({ visible = false, onCamera, onGallery, onClose }: Ima
                 style={{ backgroundColor: Palette.surface }}
             >
                 <View className="w-10 h-1 rounded-full self-center mb-5" style={{ backgroundColor: Palette.border }} />
-                <Text className="text-lg font-bold" style={{ color: Palette.textPrimary }}>Change Profile Photo</Text>
-                <Text className="text-xs mt-1 mb-5" style={{ color: Palette.textMuted }}>Choose how you'd like to update your photo.</Text>
+                <Text className="text-lg font-bold" style={{ color: Palette.textPrimary }}>{title}</Text>
+                <Text className="text-xs mt-1 mb-5" style={{ color: Palette.textMuted }}>{subtitle}</Text>
                 <View className="flex-row gap-3">
                     <TouchableOpacity
                         activeOpacity={0.8}
@@ -94,7 +107,7 @@ const ImageSourceSheet = ({ visible = false, onCamera, onGallery, onClose }: Ima
                         style={{ backgroundColor: Palette.surfaceLight }}
                     >
                         <Camera size={24} color={Palette.primary} />
-                        <Text className="mt-2 text-sm font-semibold" style={{ color: Palette.textPrimary }}>Camera</Text>
+                        <Text className="mt-2 text-sm font-semibold" style={{ color: Palette.textPrimary }}>{cameraLabel}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         activeOpacity={0.8}
@@ -103,7 +116,7 @@ const ImageSourceSheet = ({ visible = false, onCamera, onGallery, onClose }: Ima
                         style={{ backgroundColor: Palette.surfaceLight }}
                     >
                         <Pencil size={24} color={Palette.primary} />
-                        <Text className="mt-2 text-sm font-semibold" style={{ color: Palette.textPrimary }}>Gallery</Text>
+                        <Text className="mt-2 text-sm font-semibold" style={{ color: Palette.textPrimary }}>{galleryLabel}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

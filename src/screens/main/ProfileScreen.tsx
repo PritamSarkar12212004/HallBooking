@@ -19,6 +19,7 @@ import {
     Pencil,
     PersonStanding,
     Phone,
+    QrCode,
     UserRound,
     ShieldCheck,
     ChevronRight,
@@ -33,7 +34,8 @@ import StatChip from '../../components/profile/StatChip';
 import ProfileMenuItem from '../../components/profile/ProfileMenuItem';
 import { Palette } from '../../components/profile/const/profilePalette';
 import { pickFromGallery, capturePhoto } from '../../module/ImagePickerModule';
-import { route as appRoute } from '../../const/routes/route';
+import { route as appRoute, MainRoute } from '../../const/routes/route';
+import { isCeoPhone } from '../../const/role/role';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux/redux';
 import { updateUser } from '../../store/slices/userSlice';
 import { writeStorage } from '../../manager/storage/storageManager';
@@ -65,6 +67,9 @@ const ProfileScreen = ({ navigation }: any) => {
         role: data?.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : '—',
         email: email || '—',
     }), [number, data?.gender, email]);
+
+    // QR manage option sirf CEO ko dikhta hai — same phone whitelist jo CEO tabs deti hai.
+    const isCeo = useMemo(() => isCeoPhone(data?.phone), [data?.phone]);
 
     const handleEdit = useCallback(() => setActiveEdit((p) => !p), []);
 
@@ -139,6 +144,9 @@ const ProfileScreen = ({ navigation }: any) => {
 
     const openSheet = useCallback(() => setSheetOpen(true), []);
     const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+    // Dynamic hall QR screen — yahan upload kiya QR har payment screen par lagta hai.
+    const openQrScreen = useCallback(() => navigation.navigate(MainRoute.ProfileQr), [navigation]);
 
     const handleLogout = useCallback(() => {
         // Full wipe: MMKV (auth flag/token/cached profile/custom lists),
@@ -236,6 +244,14 @@ const ProfileScreen = ({ navigation }: any) => {
                     className="mt-5 rounded-3xl overflow-hidden"
                     style={{ backgroundColor: Palette.surface, borderWidth: 1, borderColor: Palette.border }}
                 >
+                    {isCeo && (
+                        <ProfileMenuItem
+                            icon={QrCode}
+                            label="QR Code"
+                            right="Manage"
+                            onPress={openQrScreen}
+                        />
+                    )}
                     <ProfileMenuItem icon={UserRound} label="Account" right="View / edit" />
                     <ProfileMenuItem icon={ShieldCheck} label="Privacy & Security" right="Manage" />
                     <ProfileMenuItem

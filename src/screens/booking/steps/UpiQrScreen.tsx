@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image } from 'react-native';
+import { ActivityIndicator, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { QrCode, CheckCircle2 } from 'lucide-react-native';
 
@@ -8,25 +8,37 @@ import SubHeader from '../../../components/header/SubHeader';
 import { ScrollView, Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import MainButton from '../../../components/buttons/MainButton';
 import { Theme } from '../../../const/theme/Theme';
-import useGetBookingMeta from '../../../api/booking/hooks/useGetBookingMeta';
-import { useAppSelector } from '../../../hooks/redux/redux';
+import useHallQr from '../../../hooks/qr/useHallQr';
 
 const UpiQrScreen = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const amount = route?.params?.amount as number | undefined;
-    const user = useAppSelector((state) => state.user.user);
-    const { meta } = useGetBookingMeta(user?.token);
+    // QR backend se aata hai — jab tak CEO upload nahi karta `qrUrl` null hai.
+    const { qrUrl, bankHolderName, isLoading } = useHallQr();
 
-    const upi = meta?.upi;
+    if (isLoading && !qrUrl) {
+        return (
+            <Wrapper safeBottom>
+                <SubHeader navigation={navigation} title="UPI Payment" />
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator color={Theme.button.primary} />
+                </View>
+            </Wrapper>
+        );
+    }
 
-    if (!upi) {
+    if (!qrUrl) {
         return (
             <Wrapper safeBottom>
                 <SubHeader navigation={navigation} title="UPI Payment" />
                 <View className="flex-1 items-center justify-center px-8">
-                    <Text className="text-center" style={{ color: Theme.text.secondary }}>
-                        UPI details could not be loaded.
+                    <QrCode size={30} color={Theme.text.tertiary} />
+                    <Text className="text-white text-base font-semibold mt-3 text-center">
+                        Payment QR not available
+                    </Text>
+                    <Text className="text-center mt-2" style={{ color: Theme.text.secondary }}>
+                        The hall payment QR has not been uploaded yet. Please contact the hall office.
                     </Text>
                 </View>
             </Wrapper>
@@ -62,7 +74,7 @@ const UpiQrScreen = () => {
                     style={{ backgroundColor: '#FFFFFF' }}
                 >
                     <Image
-                        source={{ uri: upi.qrUrl }}
+                        source={{ uri: qrUrl }}
                         style={{ width: 240, height: 240 }}
                         resizeMode="contain"
                     />
@@ -70,12 +82,8 @@ const UpiQrScreen = () => {
 
                 <View className="px-8">
                     <View className="flex-row justify-between py-2">
-                        <Text className="text-[#8F8B91] text-sm">UPI ID</Text>
-                        <Text className="text-white text-sm font-medium">{upi.id}</Text>
-                    </View>
-                    <View className="flex-row justify-between py-2">
-                        <Text className="text-[#8F8B91] text-sm">Payee</Text>
-                        <Text className="text-white text-sm font-medium">{upi.name}</Text>
+                        <Text className="text-[#8F8B91] text-sm">Account Name</Text>
+                        <Text className="text-white text-sm font-medium">{bankHolderName}</Text>
                     </View>
                 </View>
 

@@ -6,11 +6,6 @@ export interface BookingMeta {
     hallRequirements: string[];
     governmentIdTypes: string[];
     terms: string[];
-    upi?: {
-        id: string;
-        name: string;
-        qrUrl: string;
-    };
 }
 
 interface ListBookingsParams {

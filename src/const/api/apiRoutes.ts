@@ -19,6 +19,9 @@ const apiRoute = {
     },
     applicant: {
         root: "/",
+    },
+    paymentQr: {
+        root: "/",
     }
 }
 export default apiRoute

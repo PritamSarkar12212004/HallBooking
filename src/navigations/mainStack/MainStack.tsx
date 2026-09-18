@@ -10,6 +10,7 @@ import HallCalendarScreen from '../../screens/booking/HallCalendarScreen';
 import NotificationScreen from '../../screens/main/NotificationScreen';
 import ApplicantListScreen from '../../screens/main/ApplicantListScreen';
 import ProfileScreen from '../../screens/main/ProfileScreen';
+import ProfileQrScreen from '../../screens/main/ProfileQrScreen';
 
 import CEODashboardScreen from '../../screens/ceo/CEODashboardScreen';
 import StaffActivityScreen from '../../screens/ceo/StaffActivityScreen';
@@ -109,6 +110,11 @@ const MainStack = ({ userRole }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.Profile}
                 component={ProfileScreen}
+            />
+            {/* CEO Profile → QR Code (dynamic hall payment QR) */}
+            <Stack.Screen
+                name={MainRoute.ProfileQr}
+                component={ProfileQrScreen}
             />
             <Stack.Screen
                 name={MainRoute.HallCalendar}
