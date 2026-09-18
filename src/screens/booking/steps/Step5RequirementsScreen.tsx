@@ -49,6 +49,7 @@ import UnitsSection, {
 
 import { Theme } from '../../../const/theme/Theme';
 import { BookingStepRoute } from '../../../const/routes/route';
+import FullScreenImage from '../../../components/ui/FullScreenImage';
 import uploadImage from '../../../services/Cloudinary/uploadImg';
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
 import {
@@ -69,6 +70,8 @@ const Step5RequirementsScreen = () => {
         useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
     // Hall payment QR (CEO upload karta hai) — `null` jab tak set na ho.
     const { qrUrl, bankHolderName } = useHallQr();
+    // QR par tap karne par full screen preview khulta hai.
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
 
     // Section 1 (actual amount) + Section 2 (paid per head) share one row list.
     const [rows, setRows] = useState<ChargeRow[]>(() => {
@@ -409,13 +412,22 @@ const Step5RequirementsScreen = () => {
                             Scan to Pay (UPI)
                         </Text>
                         <Text className="text-[#8F8B91] text-xs mb-3">
-                            {bankHolderName}
+                            {bankHolderName ? `Bank Holder: ${bankHolderName}` : ''}
                         </Text>
-                        <Image
-                            source={{ uri: qrUrl }}
-                            style={{ width: 220, height: 220, borderRadius: 12 }}
-                            resizeMode="contain"
-                        />
+                        {/* Tap QR → full screen preview */}
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => setQrPreview(qrUrl)}
+                        >
+                            <Image
+                                source={{ uri: qrUrl }}
+                                style={{ width: 220, height: 220, borderRadius: 12 }}
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                        <Text className="text-[10px] mt-2" style={{ color: Theme.text.tertiary }}>
+                            Tap QR to view full screen
+                        </Text>
                         <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
                             Amount: ₹{(effectiveTotal || 0).toLocaleString()}
                         </Text>
@@ -559,6 +571,13 @@ const Step5RequirementsScreen = () => {
                 actionFunc={handleNext}
                 loader={loadingBooking}
                 disabled={!formValid}
+            />
+
+            <FullScreenImage
+                uri={qrPreview}
+                visible={!!qrPreview}
+                onClose={() => setQrPreview(null)}
+                caption={bankHolderName}
             />
 
         </Wrapper>

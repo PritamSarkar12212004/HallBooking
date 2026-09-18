@@ -49,6 +49,7 @@ import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSec
 import { useQueryClient } from '@tanstack/react-query';
 import uploadImage from '../../services/Cloudinary/uploadImg';
 import useHallQr from '../../hooks/qr/useHallQr';
+import FullScreenImage from '../../components/ui/FullScreenImage';
 
 const paymentModes = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 
@@ -62,6 +63,8 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     });
 
     const { qrUrl, bankHolderName } = useHallQr();
+    // QR par tap karne par full screen preview khulta hai.
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
     const lastPayment =
         booking?.payments && booking.payments.length > 0
             ? booking.payments[booking.payments.length - 1]
@@ -357,13 +360,22 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                             Scan to Pay (UPI)
                         </Text>
                         <Text className="text-[#8F8B91] text-xs mb-3">
-                            {bankHolderName}
+                            {bankHolderName ? `Bank Holder: ${bankHolderName}` : ''}
                         </Text>
-                        <Image
-                            source={{ uri: qrUrl }}
-                            style={{ width: 200, height: 200, borderRadius: 12 }}
-                            resizeMode="contain"
-                        />
+                        {/* Tap QR → full screen preview */}
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => setQrPreview(qrUrl)}
+                        >
+                            <Image
+                                source={{ uri: qrUrl }}
+                                style={{ width: 200, height: 200, borderRadius: 12 }}
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                        <Text className="text-[10px] mt-2" style={{ color: Theme.text.tertiary }}>
+                            Tap QR to view full screen
+                        </Text>
                         <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
                             Amount: ₹{(effectiveBalance || 0).toLocaleString()}
                         </Text>
@@ -482,6 +494,13 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     />
                 )}
             </ScrollView>
+
+            <FullScreenImage
+                uri={qrPreview}
+                visible={!!qrPreview}
+                onClose={() => setQrPreview(null)}
+                caption={bankHolderName}
+            />
         </Wrapper>
     );
 };

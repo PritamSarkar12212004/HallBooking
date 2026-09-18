@@ -45,6 +45,7 @@ import { useAppSelector } from '../../hooks/redux/redux';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSection';
 import useHallQr from '../../hooks/qr/useHallQr';
+import FullScreenImage from '../../components/ui/FullScreenImage';
 import uploadImage from '../../services/Cloudinary/uploadImg';
 import { formatDate } from '../../functions/formate/DateTimeFormate';
 import { MainRoute, TabRoute } from '../../const/routes/route';
@@ -72,6 +73,8 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
     token: user?.token,
   });
   const { qrUrl, bankHolderName } = useHallQr();
+  // QR par tap karne par full screen preview khulta hai.
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
 
   const fin = booking?.financial ?? {};
   // Event pehle hi end ho chuka hai to is page se kuch bhi change nahi hone
@@ -1265,13 +1268,25 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
                 Scan to Pay (UPI)
               </Text>
               <Text className="text-xs mb-3" style={{ color: '#8F8B91' }}>
-                {bankHolderName}
+                {bankHolderName ? `Bank Holder: ${bankHolderName}` : ''}
               </Text>
-              <Image
-                source={{ uri: qrUrl }}
-                style={{ width: 180, height: 180, borderRadius: 12 }}
-                resizeMode="contain"
-              />
+              {/* Tap QR → full screen preview */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setQrPreview(qrUrl)}
+              >
+                <Image
+                  source={{ uri: qrUrl }}
+                  style={{ width: 180, height: 180, borderRadius: 12 }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+              <Text
+                className="text-[10px] mt-2 text-center"
+                style={{ color: Theme.text.tertiary }}
+              >
+                Tap QR to view full screen
+              </Text>
               <Text
                 className="text-sm mt-3 font-semibold"
                 style={{ color: Theme.button.primary }}
@@ -1461,6 +1476,13 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
           </View>
         </View>
       ) : null}
+
+      <FullScreenImage
+        uri={qrPreview}
+        visible={!!qrPreview}
+        onClose={() => setQrPreview(null)}
+        caption={bankHolderName}
+      />
     </Wrapper>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { QrCode, CheckCircle2 } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import Wrapper from '../../../layouts/wraper/Wraper';
 import SubHeader from '../../../components/header/SubHeader';
 import { ScrollView, Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import MainButton from '../../../components/buttons/MainButton';
+import FullScreenImage from '../../../components/ui/FullScreenImage';
 import { Theme } from '../../../const/theme/Theme';
 import useHallQr from '../../../hooks/qr/useHallQr';
 
@@ -16,6 +17,8 @@ const UpiQrScreen = () => {
     const amount = route?.params?.amount as number | undefined;
     // QR backend se aata hai — jab tak CEO upload nahi karta `qrUrl` null hai.
     const { qrUrl, bankHolderName, isLoading } = useHallQr();
+    // QR par tap karne par full screen preview khulta hai.
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
 
     if (isLoading && !qrUrl) {
         return (
@@ -73,16 +76,29 @@ const UpiQrScreen = () => {
                     className="items-center justify-center mx-8 my-6 p-4 rounded-3xl"
                     style={{ backgroundColor: '#FFFFFF' }}
                 >
-                    <Image
-                        source={{ uri: qrUrl }}
-                        style={{ width: 240, height: 240 }}
-                        resizeMode="contain"
-                    />
+                    {/* Tap QR → full screen preview */}
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => setQrPreview(qrUrl)}
+                    >
+                        <Image
+                            source={{ uri: qrUrl }}
+                            style={{ width: 240, height: 240 }}
+                            resizeMode="contain"
+                        />
+                    </TouchableOpacity>
                 </View>
+
+                <Text
+                    className="text-[10px] text-center px-8"
+                    style={{ color: Theme.text.tertiary }}
+                >
+                    Tap the QR to view it full screen
+                </Text>
 
                 <View className="px-8">
                     <View className="flex-row justify-between py-2">
-                        <Text className="text-[#8F8B91] text-sm">Account Name</Text>
+                        <Text className="text-[#8F8B91] text-sm">Bank Holder</Text>
                         <Text className="text-white text-sm font-medium">{bankHolderName}</Text>
                     </View>
                 </View>
@@ -105,6 +121,13 @@ const UpiQrScreen = () => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <FullScreenImage
+                uri={qrPreview}
+                visible={!!qrPreview}
+                onClose={() => setQrPreview(null)}
+                caption={bankHolderName}
+            />
         </Wrapper>
     );
 };
