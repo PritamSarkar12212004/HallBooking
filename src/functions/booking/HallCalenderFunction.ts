@@ -13,6 +13,7 @@ import type { Asset } from 'react-native-image-picker';
 import { showMessage } from 'react-native-flash-message';
 
 import uploadImage from '../../services/Cloudinary/uploadImg';
+import { compressImage } from '../../services/Compressor/ImgCompressor';
 import type { DraftBookingData } from '../../manager/draftBookingStore';
 import {
   formatDisplayDate,
@@ -190,6 +191,17 @@ export interface HallPhotoSetters {
   setUploadingImage: (uploading: boolean) => void;
 }
 
+/**
+ * Pick ki gayi photo ka local preview dikhata hai, compress karke Cloudinary par
+ * upload karta hai aur final URL setter me daal deta hai.
+ *
+ * Preview original local file ka hota hai (turant dikhe), par upload compressed
+ * file se hota hai — `react-native-compressor` (max 1200x1200, quality 0.5),
+ * taaki camera ki bhaari photo chhoti ho kar tez upload ho.
+ *
+ * Photo cancel ho (null) to kuch nahi hota; upload fail hone par preview hata
+ * diya jaata hai aur error banner dikhta hai.
+ */
 export const processPhoto = async (
   photo: Asset | null,
   { setEventPhotoUri, setEventImageUrl, setUploadingImage }: HallPhotoSetters,
@@ -202,7 +214,9 @@ export const processPhoto = async (
   setUploadingImage(true);
 
   try {
-    const uploaded = await uploadImage(localUri);
+    // Cloudinary se pehle image compress — bhaari photo slow upload karti hai.
+    const compressedUri = await compressImage(localUri);
+    const uploaded = await uploadImage(compressedUri ?? localUri);
     setEventImageUrl(uploaded.secure_url);
   } catch (error: any) {
     console.log('Upload Error:', error);

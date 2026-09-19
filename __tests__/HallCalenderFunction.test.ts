@@ -10,9 +10,21 @@ jest.mock('../src/services/Cloudinary/uploadImg', () => ({
   })),
 }));
 
+// react-native-compressor ek native module hai — test me stub kar diya jaata hai.
+jest.mock('react-native-compressor', () => ({
+  Image: {
+    compress: jest.fn(async (uri: string) => `compressed-${uri}`),
+  },
+}));
+
 import { showMessage } from 'react-native-flash-message';
+import { Image as CompressorImage } from 'react-native-compressor';
 
 import uploadImage from '../src/services/Cloudinary/uploadImg';
+import {
+  IMAGE_COMPRESSION_OPTIONS,
+  compressImage,
+} from '../src/services/Compressor/ImgCompressor';
 import {
   buildHallBookingDraft,
   getDaysInMonth,
@@ -212,6 +224,49 @@ describe('buildHallBookingDraft', () => {
   });
 });
 
+describe('compressImage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('compresses with the tuned defaults (1200x1200 @ quality 0.5)', async () => {
+    const compressed = await compressImage('file:///event.jpg');
+
+    expect(CompressorImage.compress).toHaveBeenCalledWith(
+      'file:///event.jpg',
+      IMAGE_COMPRESSION_OPTIONS,
+    );
+    expect(compressed).toBe('compressed-file:///event.jpg');
+  });
+
+  it('accepts custom options', async () => {
+    await compressImage('file:///event.jpg', {
+      compressionMethod: 'manual',
+      maxWidth: 800,
+      maxHeight: 800,
+      quality: 0.8,
+    });
+
+    expect(CompressorImage.compress).toHaveBeenCalledWith(
+      'file:///event.jpg',
+      expect.objectContaining({ maxWidth: 800, quality: 0.8 }),
+    );
+  });
+
+  it('returns null for an empty uri', async () => {
+    expect(await compressImage(null)).toBeNull();
+    expect(CompressorImage.compress).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the original uri when compression fails', async () => {
+    (CompressorImage.compress as jest.Mock).mockRejectedValueOnce(
+      new Error('native failure'),
+    );
+
+    expect(await compressImage('file:///event.jpg')).toBe('file:///event.jpg');
+  });
+});
+
 describe('processPhoto / removePhoto', () => {
   const createSetters = () => ({
     setEventPhotoUri: jest.fn(),
@@ -223,13 +278,18 @@ describe('processPhoto / removePhoto', () => {
     jest.clearAllMocks();
   });
 
-  it('previews the local uri, uploads it and stores the Cloudinary url', async () => {
+  it('previews the local uri, compresses it, uploads it and stores the url', async () => {
     const setters = createSetters();
 
     await processPhoto({ uri: 'file:///event.jpg' } as any, setters);
 
     expect(setters.setEventPhotoUri).toHaveBeenCalledWith('file:///event.jpg');
-    expect(uploadImage).toHaveBeenCalledWith('file:///event.jpg');
+    expect(CompressorImage.compress).toHaveBeenCalledWith(
+      'file:///event.jpg',
+      IMAGE_COMPRESSION_OPTIONS,
+    );
+    // Upload compressed file se hota hai, original bhaari file se nahi.
+    expect(uploadImage).toHaveBeenCalledWith('compressed-file:///event.jpg');
     expect(setters.setEventImageUrl).toHaveBeenCalledWith(
       'https://cdn.test/event.jpg',
     );
