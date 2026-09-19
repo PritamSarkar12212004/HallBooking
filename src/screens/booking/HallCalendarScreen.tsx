@@ -27,8 +27,6 @@ import SubHeader from '../../components/header/SubHeader';
 import { Theme } from '../../const/theme/Theme';
 import useHallCalendarForm from '../../hooks/booking/useHallCalendarForm';
 
-
-
 const HallCalendarScreen = ({ navigation }: any) => {
   const {
     dayTypes,
@@ -135,8 +133,6 @@ const HallCalendarScreen = ({ navigation }: any) => {
               <Divider />
             </View>
             <View className="w-full flex gap-4">
-              {/* Both time wheels are completely free — any clock
-                                time can be picked for start and end. */}
               <TimePicker
                 title="Start Time *"
                 value={startTime}

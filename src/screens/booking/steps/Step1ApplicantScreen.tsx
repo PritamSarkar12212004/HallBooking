@@ -54,7 +54,6 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
     const [selectedId, setSelectedId] =
         useState<any | null>(draftApplicant?.governmentIdType ?? null);
 
-    // Mobile: allow digits only, capped at 10.
     const handleMobileChange = useCallback((text: string) => {
         setMobileNumber(text.replace(/[^0-9]/g, '').slice(0, 10));
     }, []);
