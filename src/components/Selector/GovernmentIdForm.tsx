@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Camera,
   Check,
@@ -15,30 +15,30 @@ import { Theme } from '../../const/theme/Theme';
 import { Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
 import CamGalPickerButton from '../buttons/CamGalPickerButton';
 import InputField from '../input/InputField';
+import type { GovernmentIdType } from '../../functions/booking/ApplicantFormFunction';
 
-export type GovernmentIdType =
-  | 'Aadhaar Card'
-  | 'PAN Card'
-  | 'Driving Licence'
-  | 'Passport'
-  | 'ID Card';
+/** Purane imports ke liye wahi type — canonical list ApplicantFormFunction me hai. */
+export type { GovernmentIdType };
 
 type GovernmentIdFormProps = {
-  selectedId: GovernmentIdType | null;
-  onSelectId: (id: GovernmentIdType) => void;
+  /** Fixed ID card ka naam ya manually typed "Other ID" naam. */
+  selectedId: string | null;
+  onSelectId: (id: string) => void;
 
   photo: any | null;
   onCapturePhoto: () => void;
   onSelectPhoto: () => void;
   onRemovePhoto: () => void;
 
-  /** ID number — manually type kiya jaata hai (optional). */
-  idNumber: string;
-  onChangeIdNumber: (text: string) => void;
+  /** "Other ID" input — manually type kiya gaya ID ka naam. */
+  otherIdName: string;
+  onChangeOtherIdName: (text: string) => void;
+  /** Validation message (khaali hone par kuch nahi dikhta). */
+  otherIdError?: string;
 };
 
 const idOptions: {
-  label: GovernmentIdType;
+  label: string;
   icon: React.ElementType;
 }[] = [
   {
@@ -66,9 +66,24 @@ const GovernmentIdForm = ({
   onCapturePhoto,
   onSelectPhoto,
   onRemovePhoto,
-  idNumber,
-  onChangeIdNumber,
+  otherIdName,
+  onChangeOtherIdName,
+  otherIdError,
 }: GovernmentIdFormProps) => {
+  /**
+   * Manually type kiya gaya "Other ID" naam bhi ID Proof card ki tarah list me
+   * dikhta hai — aur us par tap karne se wahi ID select ho jaati hai.
+   */
+  const options = useMemo(() => {
+    const typedName = otherIdName.trim();
+
+    if (!typedName || idOptions.some((option) => option.label === typedName)) {
+      return idOptions;
+    }
+
+    return [...idOptions, { label: typedName, icon: Contact }];
+  }, [otherIdName]);
+
   return (
     <View className="mb-6">
       <Text className="text-white text-base font-semibold mb-1">
@@ -78,7 +93,7 @@ const GovernmentIdForm = ({
         Select any one valid government ID
       </Text>
       <View className="gap-2">
-        {idOptions.map(({ label, icon: Icon }) => {
+        {options.map(({ label, icon: Icon }) => {
           const isSelected = selectedId === label;
 
           return (
@@ -125,13 +140,21 @@ const GovernmentIdForm = ({
       <View className="mt-5">
         <InputField
           title="Other ID"
-          value={idNumber}
-          setvalue={onChangeIdNumber}
+          value={otherIdName}
+          setvalue={onChangeOtherIdName}
           placeholder="Enter ID Name"
           keyType="default"
           Icon={Hash}
           bordered
         />
+        {/* Reserved error slot keeps layout stable (no UI jump) */}
+        <View style={{ minHeight: 16, justifyContent: 'center' }}>
+          {otherIdError ? (
+            <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+              {otherIdError}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       <Text className="text-white text-sm font-semibold mt-4 mb-3">

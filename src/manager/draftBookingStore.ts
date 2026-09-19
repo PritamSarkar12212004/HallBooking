@@ -24,6 +24,7 @@ export interface DraftBookingData {
         address: string;
         email: string;
         governmentIdType?: string;
+        governmentIdName?: string;
         governmentIdNumber?: string;
         governmentIdPhoto?: string;
     };
@@ -32,7 +33,13 @@ export interface DraftBookingData {
     event?: {
         expectedAttendance?: number;
         type?: string;
+        /** "Other" event type ka manually type kiya gaya naam. */
+        customType?: string;
         requirements?: string[];
+        /** Har selected hall requirement ki quantity. */
+        requirementQuantities?: { label: string; quantity: number }[];
+        /** Evidence / reference photo (Cloudinary URL). */
+        evidencePhoto?: string;
     };
 
     // Step3 — arrangements

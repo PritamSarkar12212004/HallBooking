@@ -8,16 +8,18 @@ import {
   buildApplicantStepPayload,
   getEmailError,
   getMobileError,
+  getOtherIdError,
   isApplicantFormValid,
+  isFixedGovernmentIdType,
+  isValidOtherIdName,
   resolveGovernmentIdPhotoUrl,
-  sanitizeGovernmentIdNumber,
   sanitizeMobileNumber,
+  sanitizeOtherIdName,
 } from '../../functions/booking/ApplicantFormFunction';
 import type {
   ApplicantFormValues,
   ApplicantStepPayload,
 } from '../../functions/booking/ApplicantFormFunction';
-import type { GovernmentIdType } from '../../components/Selector/GovernmentIdForm';
 
 /** GovernmentIdForm ko sirf `uri` chahiye — picker asset ya draft URL. */
 export type ApplicantPhoto = { uri?: string } | null;
@@ -52,15 +54,21 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
       ? { uri: draftApplicant.governmentIdPhoto }
       : null,
   );
-  const [selectedId, setSelectedId] = useState<GovernmentIdType | null>(
-    (draftApplicant?.governmentIdType as GovernmentIdType) ?? null,
+  // Custom "Other ID" naam draft me `governmentIdName` ke roop me save hota hai.
+  const [otherIdName, setOtherIdName] = useState(
+    draftApplicant?.governmentIdName ?? '',
   );
-  const [governmentIdNumber, setGovernmentIdNumber] = useState(
-    draftApplicant?.governmentIdNumber ?? '',
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const draftName = draftApplicant?.governmentIdName ?? '';
+    if (draftName) return draftName;
+
+    const draftType = draftApplicant?.governmentIdType ?? '';
+    return isFixedGovernmentIdType(draftType) ? draftType : null;
+  });
 
   const [mobileTouched, setMobileTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [otherIdTouched, setOtherIdTouched] = useState(false);
   const [loader, setloader] = useState(false);
 
   const handleMobileChange = useCallback((text: string) => {
@@ -71,8 +79,21 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
     setEmail(text.trim());
   }, []);
 
-  const handleIdNumberChange = useCallback((text: string) => {
-    setGovernmentIdNumber(sanitizeGovernmentIdNumber(text));
+  /**
+   * "Other ID" naam type karte hi wo ID Proof card ban jaata hai aur (jab tak
+   * koi fixed card select na ho) wahi select ho jaata hai.
+   */
+  const handleOtherIdNameChange = useCallback((text: string) => {
+    const name = sanitizeOtherIdName(text);
+
+    setOtherIdName(name);
+    setSelectedId((prev) =>
+      prev !== null && isFixedGovernmentIdType(prev)
+        ? prev
+        : isValidOtherIdName(name)
+        ? name
+        : null,
+    );
   }, []);
 
   const handleCapturePhoto = useCallback(async () => {
@@ -103,7 +124,7 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
       address,
       email,
       selectedId,
-      governmentIdNumber,
+      otherIdName,
       photoUri: photo?.uri,
     }),
     [
@@ -113,13 +134,14 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
       address,
       email,
       selectedId,
-      governmentIdNumber,
+      otherIdName,
       photo?.uri,
     ],
   );
 
   const mobileError = getMobileError(mobileNumber, mobileTouched);
   const emailError = getEmailError(email, emailTouched);
+  const otherIdError = getOtherIdError(otherIdName, otherIdTouched);
   const formValid = isApplicantFormValid(values);
 
   /** Next — validation, ID photo upload, draft save, phir `onSubmit`. */
@@ -129,6 +151,7 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
     if (!formValid) {
       setMobileTouched(true);
       setEmailTouched(true);
+      setOtherIdTouched(true);
       showMessage({
         message: 'Complete Required Fields',
         description: 'Please fill all required fields with valid details.',
@@ -178,8 +201,8 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
     /* government id + photo */
     selectedId,
     setSelectedId,
-    governmentIdNumber,
-    handleIdNumberChange,
+    otherIdName,
+    handleOtherIdNameChange,
     photo,
     handleCapturePhoto,
     handleGalleryPhoto,
@@ -188,6 +211,7 @@ const useApplicantForm = ({ onSubmit }: UseApplicantFormOptions = {}) => {
     /* validation */
     mobileError,
     emailError,
+    otherIdError,
     formValid,
 
     /* submit */

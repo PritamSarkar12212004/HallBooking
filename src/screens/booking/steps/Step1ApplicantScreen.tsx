@@ -29,8 +29,9 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
     handleEmailChange,
     selectedId,
     setSelectedId,
-    governmentIdNumber,
-    handleIdNumberChange,
+    otherIdName,
+    handleOtherIdNameChange,
+    otherIdError,
     photo,
     handleCapturePhoto,
     handleGalleryPhoto,
@@ -125,8 +126,9 @@ const Step1ApplicantScreen = ({ navigation, route }: any) => {
         <GovernmentIdForm
           selectedId={selectedId}
           onSelectId={setSelectedId}
-          idNumber={governmentIdNumber}
-          onChangeIdNumber={handleIdNumberChange}
+          otherIdName={otherIdName}
+          onChangeOtherIdName={handleOtherIdNameChange}
+          otherIdError={otherIdError}
           photo={photo}
           onCapturePhoto={handleCapturePhoto}
           onSelectPhoto={handleGalleryPhoto}
