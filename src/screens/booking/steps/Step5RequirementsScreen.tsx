@@ -43,7 +43,10 @@ import UnitsSection, {
     computeUnitsPaidTotal,
     computeUnitsTotal,
     createDefaultUnitRows,
+    draftItemsToUnitRows,
     newUnitRow,
+    resolveUnitMeterPhotoUrl,
+    setUnitRowPhoto,
     unitRowsToPayload,
 } from '../../../components/booking/UnitsSection';
 
@@ -231,14 +234,16 @@ const Step5RequirementsScreen = () => {
             );
         }
         if (fin.units && fin.units.length > 0) {
+            // Draft items -> rows (reading + optional meter photo carry hote hain).
             setUnitRows(
-                (fin.units as { label: string; perUnit?: number; currentUnit?: number; paid?: boolean }[]).map((u) =>
-                    newUnitRow(
-                        u.label,
-                        u.perUnit ? String(u.perUnit) : '',
-                        !!u.paid,
-                        u.currentUnit ? String(u.currentUnit) : '',
-                    ),
+                draftItemsToUnitRows(
+                    fin.units as {
+                        label: string;
+                        perUnit?: number;
+                        currentUnit?: number;
+                        meterPhoto?: string;
+                        paid?: boolean;
+                    }[],
                 ),
             );
         }
@@ -304,6 +309,55 @@ const Step5RequirementsScreen = () => {
 
     const removePhoto = () => {
         setPhoto(null);
+    };
+
+    /* ------------------------- unit meter photo (optional) ------------------------- */
+
+    const [uploadingUnitRowId, setUploadingUnitRowId] = useState<string | null>(null);
+
+    /** Local preview turant, phir compress + Cloudinary upload. */
+    const applyUnitPhoto = async (rowId: string, uri: string) => {
+        setUnitRows((prev) => setUnitRowPhoto(prev, rowId, uri));
+        setUploadingUnitRowId(rowId);
+        try {
+            const url = await resolveUnitMeterPhotoUrl(uri);
+            setUnitRows((prev) => setUnitRowPhoto(prev, rowId, uri, url || null));
+        } catch (error: any) {
+            console.log('Meter photo upload failed', error);
+            setUnitRows((prev) => setUnitRowPhoto(prev, rowId, null));
+            showMessage({
+                message: 'Upload Failed',
+                description: 'Meter photo upload nahi ho paayi. Please try again.',
+                type: 'danger',
+            });
+        } finally {
+            setUploadingUnitRowId(null);
+        }
+    };
+
+    const captureUnitPhoto = async (row: UnitRow) => {
+        const result = await launchCamera({
+            mediaType: 'photo',
+            cameraType: 'back',
+            quality: 0.8,
+            saveToPhotos: false,
+        });
+        const picked = result.assets?.[0];
+        if (picked?.uri) await applyUnitPhoto(row.id, picked.uri);
+    };
+
+    const pickUnitPhoto = async (row: UnitRow) => {
+        const result = await launchImageLibrary({
+            mediaType: 'photo',
+            quality: 0.8,
+            selectionLimit: 1,
+        });
+        const picked = result.assets?.[0];
+        if (picked?.uri) await applyUnitPhoto(row.id, picked.uri);
+    };
+
+    const removeUnitPhoto = (row: UnitRow) => {
+        setUnitRows((prev) => setUnitRowPhoto(prev, row.id, null));
     };
 
     const handleNext = async () => {
@@ -378,6 +432,10 @@ const Step5RequirementsScreen = () => {
                 <UnitsSection
                     rows={unitRows}
                     setRows={setUnitRows}
+                    onCapturePhoto={captureUnitPhoto}
+                    onPickPhoto={pickUnitPhoto}
+                    onRemovePhoto={removeUnitPhoto}
+                    uploadingRowId={uploadingUnitRowId}
                 />
 
                 {/* Inline warning when paid exceeds the total (UI jump-free reserved slot) */}

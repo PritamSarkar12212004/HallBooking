@@ -61,6 +61,8 @@ export interface DraftBookingData {
         perUnit: number;
         /** Meter reading — recorded only, excluded from payment calculations. */
         currentUnit: number;
+        /** Optional meter photo (Cloudinary URL) — reading ka evidence. */
+        meterPhoto?: string;
         amount: number;
         paid: boolean;
     }[];
