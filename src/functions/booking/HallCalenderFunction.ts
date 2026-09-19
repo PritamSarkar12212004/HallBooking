@@ -1,14 +1,3 @@
-/**
- * Halls screen (HallCalendarScreen) ke saare reusable rules.
- *
- * Screen me sirf UI rehna chahiye, isliye yahan export hote hain:
- *  - calendar/date helpers (pure — koi state touch nahi karte, isliye testable)
- *  - form validation + draft builder
- *  - event photo upload / remove helpers
- *
- * `useHallCalendarForm` inhi helpers par bana hai, aur koi bhi doosri screen
- * (edit flow, payment proof, etc.) inhe seedha import kar sakti hai.
- */
 import type { Asset } from 'react-native-image-picker';
 import { showMessage } from 'react-native-flash-message';
 
@@ -22,25 +11,17 @@ import {
   parseDisplayDate,
 } from './BookingDateTimeRules';
 
-/* ------------------------------ constants ------------------------------ */
-
-/** Halls screen ke booking-type chips. */
 export const HALL_DAY_TYPES: string[] = ['1 Day', 'More Day'];
 
 export const ONE_DAY_BOOKING_TYPE = '1 Day';
 export const MORE_DAY_BOOKING_TYPE = 'More Day';
 
-/** Selector khaali ho to yahi type use hota hai. */
 export const DEFAULT_BOOKING_TYPE = ONE_DAY_BOOKING_TYPE;
 
-/** Days per month (index 0 = January; February 28 maana gaya hai). */
 export const daysInMonths: number[] = [
   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
 ];
 
-/* -------------------------------- types -------------------------------- */
-
-/** Calendar ka konsa field edit ho raha hai. */
 export type HallCalendarField = 'start' | 'end';
 
 export interface HallCalendarSelection {
@@ -60,11 +41,9 @@ export interface HallConfirmedRangeArgs {
   viewYear: number;
   startDate: string;
   endDate: string;
-  /** "1 Day" me end date start date ke saath hi move hoti hai. */
   isOneDayBooking: boolean;
 }
 
-/** Halls screen ke saare form fields ek jagah. */
 export interface HallBookingFormValues {
   selectedDayType: string[];
   startDate: string;
@@ -76,8 +55,6 @@ export interface HallBookingFormValues {
   eventImageUrl: string | null;
 }
 
-/* --------------------------- calendar helpers --------------------------- */
-
 const normalizeMonthIndex = (monthIndex: number) =>
   ((monthIndex % 12) + 12) % 12;
 
@@ -87,19 +64,16 @@ export const getDaysInMonth = (monthIndex: number): number =>
 export const getMonthLabel = (monthIndex: number, year: number): string =>
   `${monthNames[normalizeMonthIndex(monthIndex)]} ${year}`;
 
-/** January se peeche jaane par December + pichla saal. */
 export const getPreviousMonth = (monthIndex: number, year: number) =>
   monthIndex === 0
     ? { monthIndex: 11, year: year - 1 }
     : { monthIndex: monthIndex - 1, year };
 
-/** December se aage jaane par January + agla saal. */
 export const getNextMonth = (monthIndex: number, year: number) =>
   monthIndex === 11
     ? { monthIndex: 0, year: year + 1 }
     : { monthIndex: monthIndex + 1, year };
 
-/** Selected start date ka din (calendar me highlight karne ke liye). */
 export const getStartDayOfRange = (startDate: string): number | null =>
   parseDisplayDate(startDate)?.getDate() ?? null;
 
@@ -139,7 +113,6 @@ export const resolveConfirmedRange = ({
 
   return { startDate: dateStr, endDate: shouldMoveEndDate ? dateStr : endDate };
 };
-
 
 export const isOneDayBookingType = (selectedDayType: string[]): boolean =>
   !selectedDayType?.includes(MORE_DAY_BOOKING_TYPE);
@@ -191,17 +164,6 @@ export interface HallPhotoSetters {
   setUploadingImage: (uploading: boolean) => void;
 }
 
-/**
- * Pick ki gayi photo ka local preview dikhata hai, compress karke Cloudinary par
- * upload karta hai aur final URL setter me daal deta hai.
- *
- * Preview original local file ka hota hai (turant dikhe), par upload compressed
- * file se hota hai — `react-native-compressor` (max 1200x1200, quality 0.5),
- * taaki camera ki bhaari photo chhoti ho kar tez upload ho.
- *
- * Photo cancel ho (null) to kuch nahi hota; upload fail hone par preview hata
- * diya jaata hai aur error banner dikhta hai.
- */
 export const processPhoto = async (
   photo: Asset | null,
   { setEventPhotoUri, setEventImageUrl, setUploadingImage }: HallPhotoSetters,
@@ -214,7 +176,6 @@ export const processPhoto = async (
   setUploadingImage(true);
 
   try {
-    // Cloudinary se pehle image compress — bhaari photo slow upload karti hai.
     const compressedUri = await compressImage(localUri);
     const uploaded = await uploadImage(compressedUri ?? localUri);
     setEventImageUrl(uploaded.secure_url);

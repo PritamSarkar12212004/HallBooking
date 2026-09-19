@@ -24,6 +24,7 @@ export interface DraftBookingData {
         address: string;
         email: string;
         governmentIdType?: string;
+        governmentIdNumber?: string;
         governmentIdPhoto?: string;
     };
 
