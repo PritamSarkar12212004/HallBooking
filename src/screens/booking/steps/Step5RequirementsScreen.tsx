@@ -1,446 +1,119 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Image } from 'react-native';
+import React, { useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
-
-import {
-    Camera,
-    CreditCard,
-    GalleryHorizontal,
-    ReceiptText,
-    Trash2,
-} from 'lucide-react-native';
-
-import {
-    launchCamera,
-    launchImageLibrary,
-    ImagePickerResponse,
-} from 'react-native-image-picker';
+import { CreditCard, ReceiptText } from 'lucide-react-native';
 
 import Wrapper from '../../../layouts/wraper/Wraper';
 import SubHeader from '../../../components/header/SubHeader';
-
-import {
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
-} from '../../../lib/style/withTailwind';
+import { ScrollView, Text, View } from '../../../lib/style/withTailwind';
 
 import InputField from '../../../components/input/InputField';
 import MultiSelector from '../../../components/Selector/MultiSelector';
 import MainButton from '../../../components/buttons/MainButton';
-import CamGalPickerButton from '../../../components/buttons/CamGalPickerButton';
-import FinanceChargesSection, {
-    ChargeRow,
-    chargeRowsToPayload,
-    computeChargeTotals,
-    createDefaultChargeRows,
-    newChargeRow,
-    num,
-} from '../../../components/booking/FinanceChargesSection';
-import UnitsSection, {
-    UnitRow,
-    computeUnitsPaidTotal,
-    computeUnitsTotal,
-    createDefaultUnitRows,
-    draftItemsToUnitRows,
-    newUnitRow,
-    resolveUnitMeterPhotoUrl,
-    setUnitRowPhoto,
-    unitRowsToPayload,
-} from '../../../components/booking/UnitsSection';
-
-import { Theme } from '../../../const/theme/Theme';
-import { BookingStepRoute } from '../../../const/routes/route';
+import FinanceChargesSection from '../../../components/booking/FinanceChargesSection';
+import LockedUnitsList from '../../../components/booking/LockedUnitsList';
+import PaymentProofSection from '../../../components/booking/PaymentProofSection';
+import UpiQrCard from '../../../components/booking/UpiQrCard';
 import FullScreenImage from '../../../components/ui/FullScreenImage';
-import uploadImage from '../../../services/Cloudinary/uploadImg';
-import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
-import {
-    getDraft,
-    updateDraft,
-} from '../../../manager/draftBookingStore';
-import { useAppSelector } from '../../../hooks/redux/redux';
-import { showMessage } from 'react-native-flash-message';
-import useHallQr from '../../../hooks/qr/useHallQr';
 
+import { BookingStepRoute } from '../../../const/routes/route';
+import usePaymentForm from '../../../hooks/booking/usePaymentForm';
+
+/**
+ * Payment Details (Step5) — sirf UI.
+ *
+ * Charges + deposit bharna, mode of payment chunna, UPI par hall ka QR dikhana,
+ * transaction number aur payment proof — sab `usePaymentForm`
+ * (src/hooks/booking/usePaymentForm.ts) me hai; rules `PaymentFunction.ts`,
+ * charges `ChargeFunction.ts` aur units `UnitsFunction.ts` me.
+ *
+ * Units is step par LOCKED hain — rate/reading Units screen par set hote hain,
+ * isliye `LockedUnitsList` sirf dikhata hai.
+ */
 const Step5RequirementsScreen = () => {
-
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const bookingId = route?.params?.bookingId as string | undefined;
-    const user = useAppSelector((state) => state.user.user);
-    const { booking: existingBooking, isLoading: loadingBooking } =
-        useGetBookingById(bookingId && user?.token ? { id: bookingId, token: user.token } : null);
-    // Hall payment QR (CEO upload karta hai) — `null` jab tak set na ho.
-    const { qrUrl, bankHolderName } = useHallQr();
-    // QR par tap karne par full screen preview khulta hai.
-    const [qrPreview, setQrPreview] = useState<string | null>(null);
 
-    // Section 1 (actual amount) + Section 2 (paid per head) share one row list.
-    const [rows, setRows] = useState<ChargeRow[]>(() => {
-        const d = getDraft()?.payment;
-        if (d?.charges && d.charges.length > 0) {
-            return d.charges.map((c) =>
-                newChargeRow(
-                    c.label,
-                    c.amount ? String(c.amount) : '',
-                    c.paid ? String(c.paid) : '',
-                ),
-            );
-        }
-        return createDefaultChargeRows();
-    });
-    // Units captured on the previous step (editable + paid toggle here).
-    const [unitRows, setUnitRows] = useState<UnitRow[]>(() => {
-        const d = getDraft()?.units;
-        if (d && d.length > 0) {
-            return d.map((u) =>
-                newUnitRow(
-                    u.label,
-                    u.perUnit ? String(u.perUnit) : '',
-                    !!u.paid,
-                    u.currentUnit ? String(u.currentUnit) : '',
-                ),
-            );
-        }
-        return createDefaultUnitRows();
-    });
-    const [securityDeposit, setSecurityDeposit] = useState(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.securityDeposit ? String(d.securityDeposit) : '';
-        },
-    );
-    const [paymentMode, setPaymentMode] = useState<string[]>(
-        () => {
-            const d = getDraft()?.payment;
-            return d?.mode ? [d.mode] : [];
-        },
-    );
-    const [, setloader] = useState(false);
-
-    const paymentModes = [
-        'Cash',
-        'UPI',
-        'Cheque',
-        'NEFT/RTGS',
-    ];
-
-    const selectPaymentMode = (mode: string) => {
-        setPaymentMode(prev =>
-            prev[0] === mode
-                ? []
-                : [mode]
-        );
-    };
-
-    const [transactionNumber, setTransactionNumber] =
-        useState('');
-
-    const [photo, setPhoto] = useState<any | null>(null);
-
-    // Totals are derived live from the charge rows + units.
     const {
-        totalAmount: chargesTotal,
-        totalPaid: chargesPaid,
-    } = computeChargeTotals(rows);
-    const unitsTotal = computeUnitsTotal(unitRows);
-    const unitsPaid = computeUnitsPaidTotal(unitRows);
-    const effectiveTotal = chargesTotal + unitsTotal;
-    // Paid = charge payments + units marked paid.
-    const paidTotal = chargesPaid + unitsPaid;
-    const securityDepositNum = num(securityDeposit);
+        /* charges + refundable deposit */
+        rows,
+        setRows,
+        summary,
+        allPaid,
+        toggleAllPaid,
+        securityDeposit,
+        setSecurityDeposit,
 
-    // "All Paid" = every charge fully paid and every unit marked paid.
-    const chargesAllPaid =
-        rows.length > 0 &&
-        rows.every((r) => num(r.amount) > 0 && num(r.paid) === num(r.amount));
-    const allPaid = chargesAllPaid && unitRows.every((u) => u.paid);
+        /* units (read-only is step par) */
+        unitRows,
 
-    const handleToggleAllPaid = () => {
-        const next = !allPaid;
-        setRows((prev) =>
-            prev.map((r) => ({ ...r, paid: next ? r.amount : '' })),
-        );
-        setUnitRows((prev) => prev.map((u) => ({ ...u, paid: next })));
-    };
-
-    // Warning: total paid exceeds the total amount.
-    const amountsExceed = effectiveTotal > 0 && paidTotal > effectiveTotal;
-
-    // Popup warning once, when the paid amount starts exceeding the total.
-    const warnedRef = React.useRef(false);
-    useEffect(() => {
-        if (amountsExceed && !warnedRef.current) {
-            warnedRef.current = true;
-            showMessage({
-                message: 'Invalid Amounts',
-                description: 'Total paid is more than the Total Amount.',
-                type: 'warning',
-                duration: 3500,
-            });
-        }
-        if (!amountsExceed) {
-            warnedRef.current = false;
-        }
-    }, [amountsExceed]);
-
-    const requiresTransaction =
-        paymentMode[0] === 'UPI' ||
-        paymentMode[0] === 'Cheque' ||
-        paymentMode[0] === 'NEFT/RTGS';
-
-    // Payment proof required for non-cash modes.
-    const requiresProof = paymentMode.length > 0 && paymentMode[0] !== 'Cash';
-
-    // Form valid when total>0, some payment received, mode chosen, and (if
-    // needed) transaction no + proof provided. UPI shows an inline QR to scan.
-
-    const formValid = useMemo(() => {
-        const totalOk = effectiveTotal > 0;
-        const paidOk = paidTotal > 0 && paidTotal <= effectiveTotal;
-        const modeOk = paymentMode.length > 0;
-        if (!totalOk || !paidOk || !modeOk) return false;
-        if (amountsExceed) return false;
-        if (requiresTransaction && transactionNumber.trim().length === 0) return false;
-        if (requiresProof && !photo?.uri) return false;
-        return true;
-    }, [
-        effectiveTotal,
-        paidTotal,
-        amountsExceed,
+        /* mode of payment */
+        paymentModes,
         paymentMode,
+        selectPaymentMode,
+
+        /* transaction / cheque number */
         requiresTransaction,
         transactionNumber,
-        requiresProof,
+        setTransactionNumber,
+        transactionTitle,
+        transactionPlaceholder,
+
+        /* payment proof */
         photo,
-    ]);
+        proofHint,
+        requiresProof,
+        captureProof,
+        pickProof,
+        removeProof,
 
-    // Pre-fill from backend when screen mounts.
-    useEffect(() => {
-        const fin = existingBooking?.financial;
-        if (!fin) {
-            return;
-        }
-        if (fin.charges && fin.charges.length > 0) {
-            setRows(
-                (fin.charges as { label: string; amount?: number; paid?: number }[]).map((c) =>
-                    newChargeRow(
-                        c.label,
-                        c.amount ? String(c.amount) : '',
-                        c.paid ? String(c.paid) : '',
-                    ),
-                ),
-            );
-        }
-        if (fin.units && fin.units.length > 0) {
-            // Draft items -> rows (reading + optional meter photo carry hote hain).
-            setUnitRows(
-                draftItemsToUnitRows(
-                    fin.units as {
-                        label: string;
-                        perUnit?: number;
-                        currentUnit?: number;
-                        meterPhoto?: string;
-                        paid?: boolean;
-                    }[],
-                ),
-            );
-        }
-        if (fin.securityDeposit) setSecurityDeposit(String(fin.securityDeposit));
-        if (fin.mode) setPaymentMode([fin.mode]);
-        if (existingBooking?.payments?.[0]?.transactionId) {
-            setTransactionNumber(existingBooking.payments[0].transactionId);
-        }
-    }, [existingBooking]);
+        /* UPI QR (CEO upload karta hai) */
+        qrUrl,
+        bankHolderName,
 
+        /* submit */
+        formValid,
+        loader,
+        handleNext,
+    } = usePaymentForm({
+        bookingId,
+        onNext: () =>
+            navigation.navigate(BookingStepRoute.Step6Decoration, { bookingId }),
+    });
 
-    const capturePhoto = async () => {
+    // Sirf view state — full screen previews.
+    const [qrPreview, setQrPreview] = useState<string | null>(null);
+    const [proofPreview, setProofPreview] = useState<string | null>(null);
 
-        const result = await launchCamera({
-            mediaType: 'photo',
-            cameraType: 'back',
-            quality: 0.8,
-            saveToPhotos: false,
-        });
-
-        handleImageResult(result);
+    const proofUri: string | null = photo?.uri ?? null;
+    const viewProof = () => {
+        if (proofUri) setProofPreview(proofUri);
     };
 
-    const selectPhoto = async () => {
-
-        const result = await launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.8,
-            selectionLimit: 1,
-        });
-
-        handleImageResult(result);
-    };
-
-    const handleImageResult = (
-        result: ImagePickerResponse
-    ) => {
-
-        if (result.didCancel) {
-            return;
-        }
-
-        if (result.errorCode) {
-
-            console.log(
-                'Image Picker Error:',
-                result.errorCode,
-                result.errorMessage
-            );
-
-            return;
-        }
-
-        const selectedPhoto = result.assets?.[0];
-
-        if (!selectedPhoto?.uri) {
-            return;
-        }
-
-        setPhoto(selectedPhoto);
-    };
-
-
-    const removePhoto = () => {
-        setPhoto(null);
-    };
-
-    /* ------------------------- unit meter photo (optional) ------------------------- */
-
-    const [uploadingUnitRowId, setUploadingUnitRowId] = useState<string | null>(null);
-
-    /** Local preview turant, phir compress + Cloudinary upload. */
-    const applyUnitPhoto = async (rowId: string, uri: string) => {
-        setUnitRows((prev) => setUnitRowPhoto(prev, rowId, uri));
-        setUploadingUnitRowId(rowId);
-        try {
-            const url = await resolveUnitMeterPhotoUrl(uri);
-            setUnitRows((prev) => setUnitRowPhoto(prev, rowId, uri, url || null));
-        } catch (error: any) {
-            console.log('Meter photo upload failed', error);
-            setUnitRows((prev) => setUnitRowPhoto(prev, rowId, null));
-            showMessage({
-                message: 'Upload Failed',
-                description: 'Meter photo upload nahi ho paayi. Please try again.',
-                type: 'danger',
-            });
-        } finally {
-            setUploadingUnitRowId(null);
-        }
-    };
-
-    const captureUnitPhoto = async (row: UnitRow) => {
-        const result = await launchCamera({
-            mediaType: 'photo',
-            cameraType: 'back',
-            quality: 0.8,
-            saveToPhotos: false,
-        });
-        const picked = result.assets?.[0];
-        if (picked?.uri) await applyUnitPhoto(row.id, picked.uri);
-    };
-
-    const pickUnitPhoto = async (row: UnitRow) => {
-        const result = await launchImageLibrary({
-            mediaType: 'photo',
-            quality: 0.8,
-            selectionLimit: 1,
-        });
-        const picked = result.assets?.[0];
-        if (picked?.uri) await applyUnitPhoto(row.id, picked.uri);
-    };
-
-    const removeUnitPhoto = (row: UnitRow) => {
-        setUnitRows((prev) => setUnitRowPhoto(prev, row.id, null));
-    };
-
-    const handleNext = async () => {
-        if (!formValid) {
-            showMessage({
-                message: 'Complete Required Fields',
-                description: 'Please fill payment details, select mode, and add proof (if needed).',
-                type: 'warning',
-            });
-            return;
-        }
-
-        setloader(true);
-        try {
-            // Upload payment proof to Cloudinary if a new image was chosen.
-            let paymentProofPhoto = '';
-            if (photo?.uri) {
-                const uploaded = await uploadImage(photo.uri);
-                paymentProofPhoto = uploaded.secure_url;
-            }
-
-            // DRAFT SYSTEM: save the payment section locally — no API call.
-            // Units (with their paid flags) are saved to the draft as well.
-            updateDraft('units', unitRowsToPayload(unitRows));
-            updateDraft('payment', {
-                charges: chargeRowsToPayload(rows),
-                units: unitRowsToPayload(unitRows),
-                securityDeposit: securityDepositNum || undefined,
-                mode: paymentMode[0] ?? undefined,
-                transactionNumber: requiresTransaction ? transactionNumber : undefined,
-                paymentProofPhoto,
-            });
-
-            navigation.navigate(BookingStepRoute.Step6Decoration, {
-                bookingId,
-            });
-        } catch (error: any) {
-            showMessage({
-                message: 'Upload Failed',
-                description:
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    'Please try again.',
-                type: 'danger',
-                duration: 3000,
-            });
-        } finally {
-            setloader(false);
-        }
-    };
     return (
         <Wrapper safeBottom>
-            <SubHeader
-                navigation={navigation}
-                title="Payment Details"
-            />
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                className="flex-1"
-            >
+            <SubHeader navigation={navigation} title="Payment Details" />
+
+            <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
                 <FinanceChargesSection
                     rows={rows}
                     setRows={setRows}
                     securityDeposit={securityDeposit}
                     setSecurityDeposit={setSecurityDeposit}
-                    extraAmount={unitsTotal}
-                    extraPaid={unitsPaid}
+                    extraAmount={summary.unitsTotal}
+                    extraPaid={summary.unitsPaid}
                     allPaid={allPaid}
-                    onToggleAllPaid={handleToggleAllPaid}
+                    onToggleAllPaid={toggleAllPaid}
                 />
 
-                <UnitsSection
-                    rows={unitRows}
-                    setRows={setUnitRows}
-                    onCapturePhoto={captureUnitPhoto}
-                    onPickPhoto={pickUnitPhoto}
-                    onRemovePhoto={removeUnitPhoto}
-                    uploadingRowId={uploadingUnitRowId}
-                />
+                {/* Units screen par set kiye gaye units — yahan LOCKED. */}
+                {unitRows.length > 0 && (
+                    <LockedUnitsList rows={unitRows} onViewPhoto={setProofPreview} />
+                )}
 
-                {/* Inline warning when paid exceeds the total (UI jump-free reserved slot) */}
+                {/* Paid > total par inline warning (jump-free reserved slot) */}
                 <View style={{ minHeight: 18, justifyContent: 'center' }}>
-                    {amountsExceed ? (
+                    {summary.amountsExceed ? (
                         <Text className="text-xs mb-3" style={{ color: '#FF6B6B' }}>
                             Total paid is more than the Total Amount
                         </Text>
@@ -448,7 +121,6 @@ const Step5RequirementsScreen = () => {
                 </View>
 
                 <View className="mb-3 mt-3">
-
                     <MultiSelector
                         title="Mode of Payment"
                         list={paymentModes}
@@ -457,177 +129,47 @@ const Step5RequirementsScreen = () => {
                         selection="Single select"
                         Icon={CreditCard}
                     />
-
                 </View>
 
-                {/* UPI: hall QR uploaded by the CEO (scan to pay) */}
-                {paymentMode[0] === 'UPI' && qrUrl && (
-                    <View
-                        className="rounded-2xl p-4 items-center mb-6"
-                        style={{ backgroundColor: Theme.background.secondary }}
-                    >
-                        <Text className="text-white text-base font-semibold mb-1">
-                            Scan to Pay (UPI)
-                        </Text>
-                        <Text className="text-[#8F8B91] text-xs mb-3">
-                            {bankHolderName ? `Bank Holder: ${bankHolderName}` : ''}
-                        </Text>
-                        {/* Tap QR → full screen preview */}
-                        <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => setQrPreview(qrUrl)}
-                        >
-                            <Image
-                                source={{ uri: qrUrl }}
-                                style={{ width: 220, height: 220, borderRadius: 12 }}
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                        <Text className="text-[10px] mt-2" style={{ color: Theme.text.tertiary }}>
-                            Tap QR to view full screen
-                        </Text>
-                        <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
-                            Amount: ₹{(effectiveTotal || 0).toLocaleString()}
-                        </Text>
-                        <Text className="text-[#8F8B91] text-xs mt-1 text-center">
-                            Scan the QR with any UPI app, then add the payment proof below.
-                        </Text>
-                    </View>
+                {/* UPI: QR + bank holder name (CEO upload karta hai) */}
+                {paymentMode[0] === 'UPI' && (
+                    <UpiQrCard
+                        qrUrl={qrUrl}
+                        bankHolderName={bankHolderName}
+                        amount={summary.effectiveTotal}
+                        onViewQr={setQrPreview}
+                    />
                 )}
 
                 {requiresTransaction && (
                     <View className="mb-5">
                         <InputField
-                            title={
-                                paymentMode[0] === 'Cheque'
-                                    ? 'Cheque Number *'
-                                    : 'Transaction / Reference Number *'
-                            }
+                            title={transactionTitle}
                             value={transactionNumber}
                             setvalue={setTransactionNumber}
-                            placeholder={
-                                paymentMode[0] === 'Cheque'
-                                    ? 'Enter cheque number'
-                                    : 'Enter transaction/reference number'
-                            }
+                            placeholder={transactionPlaceholder}
                             keyType="default"
                             Icon={ReceiptText}
                         />
-
                     </View>
-
                 )}
-                <View className="mb-6">
 
-                    <Text className="text-white text-base font-semibold mb-1">
-                        Payment Proof
-                    </Text>
-
-                    <Text className="text-[#8F8B91] text-xs mb-4">
-                        {paymentMode[0] === 'Cash'
-                            ? 'Cash payment does not require a proof.'
-                            : 'Capture or select payment receipt'}
-                    </Text>
-                    {requiresProof && (photo?.uri ? (
-                        <View
-                            className="rounded-xl overflow-hidden"
-                            style={{
-                                backgroundColor:
-                                    Theme.background.secondary,
-
-                                borderWidth: 1,
-
-                                borderColor:
-                                    Theme.button.primary,
-                            }}
-                        >
-                            <Image
-                                source={{
-                                    uri: photo.uri,
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: 200,
-                                }}
-                                resizeMode="cover"
-                            />
-                            <View className="flex-row gap-2 p-3">
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={capturePhoto}
-                                    className="flex-1 flex-row items-center justify-center rounded-lg py-3"
-                                    style={{
-                                        backgroundColor:
-                                            Theme.button.primary,
-                                    }}
-                                >
-
-                                    <Camera
-                                        size={17}
-                                        color="#000"
-                                    />
-
-                                    <Text
-                                        className="ml-2 font-semibold"
-                                        style={{
-                                            color: '#000',
-                                        }}
-                                    >
-                                        Retake
-                                    </Text>
-
-                                </TouchableOpacity>
-
-                                {/* DELETE */}
-
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={removePhoto}
-                                    className="flex-row items-center justify-center rounded-lg px-4 py-3"
-                                    style={{
-                                        backgroundColor:
-                                            '#3A2020',
-                                    }}
-                                >
-
-                                    <Trash2
-                                        size={18}
-                                        color="#FF6B6B"
-                                    />
-
-                                </TouchableOpacity>
-
-                            </View>
-
-                        </View>
-
-                    ) : (
-
-                        <View className="flex-row gap-3">
-
-                            <CamGalPickerButton
-                                title="Camera"
-                                actionFun={capturePhoto}
-                                Icon={Camera}
-                            />
-
-                            <CamGalPickerButton
-                                title="Gallery"
-                                actionFun={selectPhoto}
-                                Icon={GalleryHorizontal}
-                            />
-
-                        </View>
-
-                    ))}
-
-                </View>
-
+                {/* Payment proof — non-cash modes me zaroori, Cash me optional */}
+                <PaymentProofSection
+                    photoUri={proofUri}
+                    hint={proofHint}
+                    required={requiresProof}
+                    onCapture={captureProof}
+                    onPickFromGallery={pickProof}
+                    onRemove={removeProof}
+                    onView={viewProof}
+                />
             </ScrollView>
+
             <MainButton
                 title="Next"
                 actionFunc={handleNext}
-                loader={loadingBooking}
+                loader={loader}
                 disabled={!formValid}
             />
 
@@ -638,6 +180,12 @@ const Step5RequirementsScreen = () => {
                 caption={bankHolderName}
             />
 
+            {/* Payment proof / meter photo full screen preview */}
+            <FullScreenImage
+                uri={proofPreview}
+                visible={!!proofPreview}
+                onClose={() => setProofPreview(null)}
+            />
         </Wrapper>
     );
 };

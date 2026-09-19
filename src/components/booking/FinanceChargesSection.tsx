@@ -16,58 +16,37 @@ import {
     Wallet,
 } from 'lucide-react-native';
 
-export interface ChargeRow {
-    id: string;
-    label: string;
-    amount: string;
-    paid: string;
-}
+import {
+    addChargeRow,
+    computeChargeTotals,
+    digitsOnly,
+    num,
+    removeChargeRow,
+    updateChargeRowField,
+} from '../../functions/booking/ChargeFunction';
+import type { ChargeRow } from '../../functions/booking/ChargeFunction';
 
-export const DEFAULT_CHARGE_LABELS = [
-    'Hall Rent',
-    'Instrument / Table',
-    'Decoration',
-    'Kitchen / Catering',
-];
-
-let rowIdCounter = 0;
-
-export const newChargeRow = (
-    label = '',
-    amount = '',
-    paid = '',
-): ChargeRow => ({
-    id: `charge-${Date.now()}-${rowIdCounter++}`,
-    label,
-    amount,
-    paid,
-});
-
-export const createDefaultChargeRows = (): ChargeRow[] =>
-    DEFAULT_CHARGE_LABELS.map((label) => newChargeRow(label));
-
-const digitsOnly = (text: string) => text.replace(/[^0-9]/g, '');
-
-export const num = (v: string) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-};
-
-export const computeChargeTotals = (rows: ChargeRow[]) => {
-    const totalAmount = rows.reduce((sum, r) => sum + num(r.amount), 0);
-    const totalPaid = rows.reduce((sum, r) => sum + num(r.paid), 0);
-    const balanceAmount = Math.max(0, totalAmount - totalPaid);
-    return { totalAmount, totalPaid, balanceAmount };
-};
-
-export const chargeRowsToPayload = (rows: ChargeRow[]) =>
-    rows
-        .filter((r) => r.label.trim().length > 0)
-        .map((r) => ({
-            label: r.label.trim(),
-            amount: num(r.amount),
-            paid: num(r.paid),
-        }));
+/**
+ * Purane imports ke liye wahi naam — actual logic `ChargeFunction.ts` me hai,
+ * ye component sirf UI render karta hai.
+ */
+export {
+    DEFAULT_CHARGE_LABELS,
+    addChargeRow,
+    applyAllPaid,
+    areAllChargesPaid,
+    chargeRowsToPayload,
+    computeChargeTotals,
+    createDefaultChargeRows,
+    digitsOnly,
+    itemsToChargeRows,
+    newChargeRow,
+    num,
+    removeChargeRow,
+    savedChargeRows,
+    updateChargeRowField,
+} from '../../functions/booking/ChargeFunction';
+export type { ChargeRow, ChargeRowField } from '../../functions/booking/ChargeFunction';
 
 interface FinanceChargesSectionProps {
     rows: ChargeRow[];
@@ -99,25 +78,15 @@ const FinanceChargesSection = ({
         key: 'label' | 'amount' | 'paid',
         value: string,
     ) => {
-        setRows((prev) =>
-            prev.map((row) =>
-                row.id === id
-                    ? {
-                          ...row,
-                          [key]:
-                              key === 'label' ? value : digitsOnly(value),
-                      }
-                    : row,
-            ),
-        );
+        setRows((prev) => updateChargeRowField(prev, id, key, value));
     };
 
     const addRow = () => {
-        setRows((prev) => [...prev, newChargeRow()]);
+        setRows((prev) => addChargeRow(prev));
     };
 
     const removeRow = (id: string) => {
-        setRows((prev) => prev.filter((row) => row.id !== id));
+        setRows((prev) => removeChargeRow(prev, id));
     };
 
     const { totalAmount: chargesTotal, totalPaid: chargesPaid } =
