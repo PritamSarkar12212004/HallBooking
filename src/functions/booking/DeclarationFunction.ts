@@ -27,6 +27,39 @@ const DATA_URL_REGEX = /^data:image\/[a-z+]+;base64,/i;
  */
 export const SIGNATURE_MIN_BASE64_LENGTH = 300;
 
+// --- Sign pad ka layout (full screen) -------------------------------------
+
+/** Header (title + close) ki approximate height. */
+export const SIGNATURE_PAD_HEADER_HEIGHT = 92;
+/** Neeche ke Clear/Save buttons ki approximate height. */
+export const SIGNATURE_PAD_FOOTER_HEIGHT = 104;
+/** Itne se chhote canvas par sign karna mushkil hota hai. */
+export const MIN_SIGNATURE_CANVAS_HEIGHT = 240;
+
+/**
+ * Full-screen sign pad me canvas ki height.
+ *
+ * Window ki poori height me se safe-area insets aur header/footer nikaal kar
+ * baaki saari jagah canvas ko de dete hain (chhote phone / notch / rotate par
+ * bhi theek rahe), aur ek minimum floor lagate hain.
+ */
+export const computeSignatureCanvasHeight = (params: {
+  windowHeight: number;
+  topInset?: number;
+  bottomInset?: number;
+}): number => {
+  const { windowHeight, topInset = 0, bottomInset = 0 } = params;
+
+  const available =
+    windowHeight -
+    topInset -
+    bottomInset -
+    SIGNATURE_PAD_HEADER_HEIGHT -
+    SIGNATURE_PAD_FOOTER_HEIGHT;
+
+  return Math.max(MIN_SIGNATURE_CANVAS_HEIGHT, Math.round(available));
+};
+
 /** Signature canvas ka output data URL hai ya nahi. */
 export const isSignatureDataUrl = (value?: string | null): boolean =>
   Boolean(value && DATA_URL_REGEX.test(value));

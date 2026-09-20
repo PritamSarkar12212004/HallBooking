@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from '../../lib/style/withTailwind';
 import { Text, View } from '../../lib/style/withTailwind';
-import { Plus, ListFilter, X } from 'lucide-react-native';
+import { Plus, ListFilter, X, AlertTriangle, RotateCcw } from 'lucide-react-native';
 
 import Wrapper from '../../layouts/wraper/Wraper';
 import MainDerder from '../../components/header/MainDerder';
@@ -13,6 +13,8 @@ import useListBookings from '../../api/booking/hooks/useListBookings';
 import BookingListSkeleton from '../../ui/Skeleton/BookingListSkeleton';
 import BookingListCard from '../../components/card/list/BookingListCard';
 import { bookingListInterface } from '../../interface/api/bookintInterface';
+import { getApiErrorMessage } from '../../functions/formate/ApiErrorFormate';
+import { resetToLogin } from '../../navigations/navigationRef';
 
 type FilterKey = 'All' | 'Ongoing' | 'Paid' | 'Due' | 'Done' | 'Cancelled';
 
@@ -30,7 +32,8 @@ const BookingListScreen = ({ navigation }: any) => {
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
     const [refreshing, setRefreshing] = useState(false);
-    const { bookings, isLoading, refetch, hasMore, loadMore, isLoadingMore } = useListBookings(user?.token);
+    const { bookings, isLoading, isError, error, refetch, hasMore, loadMore, isLoadingMore } =
+        useListBookings(user?.token);
     const typedBookings = useMemo(
         () => (bookings as bookingListInterface[]) ?? [],
         [bookings],
@@ -107,6 +110,62 @@ const BookingListScreen = ({ navigation }: any) => {
 
         return list;
     }, [typedBookings, search, activeFilter]);
+
+    // Error par "No bookings found yet" dikhana galat tha — user ko lagta tha ki
+    // booking hi nahi hai. Ab saaf reason + action dikhta hai.
+    const renderStatusState = (
+        title: string,
+        message: string,
+        actionLabel: string,
+        onPress: () => void,
+    ) => (
+        <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={Theme.button.primary}
+                    colors={[Theme.button.primary]}
+                    progressBackgroundColor={Theme.background.secondary}
+                />
+            }
+        >
+            <View className="items-center justify-center py-16 px-8">
+                <View
+                    className="w-14 h-14 rounded-full items-center justify-center mb-4"
+                    style={{ backgroundColor: 'rgba(255,107,107,0.12)' }}
+                >
+                    <AlertTriangle size={26} color="#FF6B6B" />
+                </View>
+
+                <Text className="text-sm font-semibold mb-1" style={{ color: Theme.text.primary }}>
+                    {title}
+                </Text>
+
+                <Text className="text-center text-xs mb-5" style={{ color: Theme.text.secondary }}>
+                    {message}
+                </Text>
+
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={onPress}
+                    className="flex-row items-center justify-center rounded-full px-5 py-3"
+                    style={{ backgroundColor: Theme.button.primary, gap: 8 }}
+                >
+                    <RotateCcw size={16} color="#000" />
+                    <Text className="text-sm font-bold" style={{ color: '#000' }}>
+                        {actionLabel}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
+    );
+
+    // Token hi na ho to query disable rehti hai (koi request nahi) — user ko
+    // khali list ke bajaye saaf login prompt milna chahiye.
+    const sessionMissing = !user?.token;
 
     const listHeader = (
         <>
@@ -191,6 +250,23 @@ const BookingListScreen = ({ navigation }: any) => {
 
             {isLoading && !refreshing ? (
                 <BookingListSkeleton />
+            ) : isError && typedBookings.length === 0 ? (
+                renderStatusState(
+                    'Bookings load nahi ho paayi',
+                    getApiErrorMessage(
+                        error,
+                        'Network error. Please check your connection.',
+                    ),
+                    'Try Again',
+                    onRefresh,
+                )
+            ) : sessionMissing ? (
+                renderStatusState(
+                    'Session missing',
+                    'Aapka login session nahi mila. Please login again.',
+                    'Go to Login',
+                    () => resetToLogin(),
+                )
             ) : (
                 <FlatList
                     data={filteredBookings}

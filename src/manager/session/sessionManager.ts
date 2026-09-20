@@ -1,8 +1,11 @@
+import { showMessage } from 'react-native-flash-message';
+
 import { clearAllStorage } from '../storage/storageManager';
 import { clearDraft } from '../draftBookingStore';
 import { queryClient } from '../../lib/tanstack/queryClient';
 import { store } from '../../store';
 import { clearUser } from '../../store/slices/userSlice';
+import { resetToLogin } from '../../navigations/navigationRef';
 
 /**
  * Full session wipe — called on logout.
@@ -39,6 +42,41 @@ export const clearSession = (): void => {
     }
 
     store.dispatch(clearUser());
+};
+
+let isHandlingUnauthorized = false;
+
+/**
+ * Session expire/invalid hone par user ko safely dobara login par bhejta hai.
+ *
+ * Axios interceptor ise har 401 par call karta hai. Ek saath chalne wali kai
+ * requests (jaise list + dashboard) ke liye guard lagaya gaya hai, taake sirf
+ * ek hi baar session wipe ho aur ek hi message dikhe.
+ */
+export const handleUnauthorized = (): void => {
+    if (isHandlingUnauthorized) {
+        return;
+    }
+
+    isHandlingUnauthorized = true;
+    clearSession();
+
+    showMessage({
+        message: 'Session expired',
+        description: 'Please login again to continue.',
+        type: 'danger',
+        duration: 3000,
+    });
+
+    // Navigation container mount hone se pehle bhi interceptor chal sakta hai —
+    // us case me thodi der baad dobara try karo.
+    if (!resetToLogin()) {
+        setTimeout(() => resetToLogin(), 700);
+    }
+
+    setTimeout(() => {
+        isHandlingUnauthorized = false;
+    }, 2000);
 };
 
 export default clearSession;

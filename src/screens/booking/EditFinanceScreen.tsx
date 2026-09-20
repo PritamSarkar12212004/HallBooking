@@ -58,6 +58,9 @@ const paymentModes = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 
 const EditFinanceScreen = ({ navigation, route }: any) => {
     const bookingId = route.params?.id;
+    // Booking Details se "Current Unit Add Karein" par aane par set hota hai —
+    // tab missing-reading units ka input khula milta hai.
+    const focusUnits = route.params?.focus === 'units';
     const user = useAppSelector((state) => state.user.user);
 
     const { isLoading, booking } = useGetBookingById({
@@ -118,6 +121,11 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         // Do NOT toggle unitRows — units are always pending
     };
 
+    // Reading missing units (label only) — hint card ke liye.
+    const missingUnitReading = unitRows
+        .filter((row) => row.label.trim().length > 0 && num(row.currentUnit) <= 0)
+        .map((row) => row.label.trim());
+
     const requiresTransaction =
         paymentMode[0] === 'UPI' ||
         paymentMode[0] === 'Cheque' ||
@@ -173,6 +181,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                             meterPhoto?: string;
                             paid?: boolean;
                         }[],
+                        { openReadingInput: focusUnits },
                     ),
                 );
             }
@@ -379,6 +388,32 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                 contentContainerStyle={{ paddingBottom: 24 }}
             >
                 <View className="mt-2">
+                    {/* Booking Details se "Current Unit Add Karein" par aaye ho to
+                        yahan saaf batate hain ki kya bharna hai. */}
+                    {focusUnits && prefilled && missingUnitReading.length > 0 ? (
+                        <View
+                            className="rounded-2xl px-4 py-3 mb-4"
+                            style={{
+                                backgroundColor: 'rgba(245,158,11,0.12)',
+                                borderWidth: 1,
+                                borderColor: '#F59E0B',
+                            }}
+                        >
+                            <Text className="text-sm font-bold mb-1" style={{ color: '#F59E0B' }}>
+                                {missingUnitReading.length} unit ki reading pending hai
+                            </Text>
+                            {missingUnitReading.map((label) => (
+                                <Text
+                                    key={label}
+                                    className="text-xs"
+                                    style={{ color: Theme.text.secondary }}
+                                >
+                                    • {label} — current reading bharein, phir neeche Save karein.
+                                </Text>
+                            ))}
+                        </View>
+                    ) : null}
+
                     <FinanceChargesSection
                         rows={rows}
                         setRows={setRows}

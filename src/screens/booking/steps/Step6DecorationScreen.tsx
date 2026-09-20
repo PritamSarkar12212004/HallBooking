@@ -69,8 +69,9 @@ const Step6DecorationScreen = () => {
                     </Text>
                 </View>
                 <Text className="text-[#8F8B91] text-xs mb-4">
-                    Dono signature finger se lein — sign pad card par tap karne se
-                    khulega, phir Done dabakar booking save karein.
+                    Dono signature finger se lein — card par tap karte hi sign pad
+                    full screen me khulega (aasani se sign karne ke liye), phir
+                    Done dabakar booking save karein.
                 </Text>
 
                 <SignatureCard

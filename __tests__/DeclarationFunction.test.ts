@@ -18,8 +18,12 @@ import { Image as CompressorImage } from 'react-native-compressor';
 import uploadImage from '../src/services/Cloudinary/uploadImg';
 import {
   DECLARATION_TERM,
+  MIN_SIGNATURE_CANVAS_HEIGHT,
   SIGNATURE_MIN_BASE64_LENGTH,
+  SIGNATURE_PAD_FOOTER_HEIGHT,
+  SIGNATURE_PAD_HEADER_HEIGHT,
   buildDeclarationPayload,
+  computeSignatureCanvasHeight,
   compressSignature,
   draftSectionsToPush,
   isSignatureDataUrl,
@@ -142,5 +146,29 @@ describe('payloads', () => {
         payment: { mode: 'Cash' },
       }).map((item) => item.section),
     ).toEqual(['applicant', 'event', 'payment']);
+  });
+});
+
+describe('computeSignatureCanvasHeight (full-screen sign pad)', () => {
+  it('window height me se safe area + header/footer nikaal deta hai', () => {
+    expect(computeSignatureCanvasHeight({ windowHeight: 800, topInset: 24, bottomInset: 48 })).toBe(
+      800 -
+        24 -
+        48 -
+        SIGNATURE_PAD_HEADER_HEIGHT -
+        SIGNATURE_PAD_FOOTER_HEIGHT,
+    );
+  });
+
+  it('insets na hone par bhi theek chalta hai', () => {
+    expect(computeSignatureCanvasHeight({ windowHeight: 640 })).toBe(
+      640 - SIGNATURE_PAD_HEADER_HEIGHT - SIGNATURE_PAD_FOOTER_HEIGHT,
+    );
+  });
+
+  it('chhote phone (ya landscape) par minimum floor lagta hai', () => {
+    expect(computeSignatureCanvasHeight({ windowHeight: 300 })).toBe(
+      MIN_SIGNATURE_CANVAS_HEIGHT,
+    );
   });
 });

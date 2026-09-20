@@ -129,4 +129,30 @@ describe('row updates', () => {
     expect(addUnitRow(rows)).toHaveLength(rows.length + 1);
     expect(removeUnitRow(rows, rows[0].id)).toHaveLength(rows.length - 1);
   });
+
+  it('maps saved items back to rows (reading ke saath)', () => {
+    const rows = draftItemsToUnitRows([
+      { label: 'Light', perUnit: 5, currentUnit: 120 },
+      { label: 'Water', perUnit: 3, currentUnit: 0 },
+    ]);
+
+    expect(rows[0].currentUnit).toBe('120');
+    // Reading pehle se hai to input khula rehta hai
+    expect(rows[0].includeNow).toBe(true);
+    // Reading nahi hai to normally band
+    expect(rows[1].includeNow).toBe(false);
+  });
+
+  it('focus mode me missing reading ka input khula aata hai', () => {
+    const rows = draftItemsToUnitRows(
+      [
+        { label: 'Light', perUnit: 5, currentUnit: 0 },
+        { label: 'AC', perUnit: 8, currentUnit: 40 },
+      ],
+      { openReadingInput: true },
+    );
+
+    expect(rows[0].includeNow).toBe(true);
+    expect(rows[1].includeNow).toBe(true);
+  });
 });

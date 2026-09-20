@@ -11,6 +11,7 @@ import { StatusBar } from 'react-native';
 import { queryClient } from './src/lib/tanstack/queryClient';
 import { PaperTheme } from './src/const/theme/PaperTheme';
 import RootNavigation from './src/navigations/RootNavigation';
+import { navigationRef } from './src/navigations/navigationRef';
 import FlashMessage from 'react-native-flash-message';
 import { store } from './src/store';
 import { Provider } from 'react-redux';
@@ -24,7 +25,7 @@ const App = () => {
           <QueryClientProvider client={queryClient}>
             <PaperProvider theme={PaperTheme}>
               <Provider store={store}>
-                <NavigationContainer theme={NavigationDarkTheme}>
+                <NavigationContainer ref={navigationRef} theme={NavigationDarkTheme}>
                   <StatusBar barStyle={"light-content"} />
                   <FlashMessage
                     position="top"

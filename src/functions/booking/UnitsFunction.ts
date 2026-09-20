@@ -175,9 +175,17 @@ export const unitRowsToPayload = (rows: UnitRow[]): UnitDraftItem[] =>
       meterPhoto: row.meterPhotoUrl ?? undefined,
     }));
 
-/** Draft/backend items ko screen rows me wapas (edit flows ke liye). */
+/**
+ * Draft/backend items ko screen rows me wapas (edit flows ke liye).
+ *
+ * `openReadingInput: true` tab use hota hai jab staff **sirf missing reading
+ * add karne** aaya ho (Booking Details → "Current Unit Add Karein"): aise units
+ * ka reading field turant khula milta hai, warna unhе pehle toggle ON karna
+ * padta hai — jo confusing tha.
+ */
 export const draftItemsToUnitRows = (
   items: (Partial<UnitDraftItem> & { paid?: boolean })[],
+  options: { openReadingInput?: boolean } = {},
 ): UnitRow[] =>
   items.map((item) =>
     newUnitRow(
@@ -186,8 +194,11 @@ export const draftItemsToUnitRows = (
       !!item.paid,
       item.currentUnit ? String(item.currentUnit) : '',
       {
-        // Reading/photo pehle se ho to toggle ON rehta hai.
-        includeNow: Boolean(item.currentUnit || item.meterPhoto),
+        // Reading/photo pehle se ho to toggle ON rehta hai; focus mode me
+        // reading missing hone par bhi khula rakhte hain.
+        includeNow:
+          Boolean(item.currentUnit || item.meterPhoto) ||
+          (options.openReadingInput === true && !item.currentUnit),
         meterPhotoUrl: item.meterPhoto ?? null,
       },
     ),
