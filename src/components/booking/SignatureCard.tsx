@@ -93,7 +93,7 @@ const SignatureCard = ({
       </TouchableOpacity>
 
       <Text className="text-[10px] mt-1.5" style={{ color: '#8F8B91' }}>
-        {helper ?? (signed ? 'Tap to sign again' : 'Finger se sign karein')}
+        {helper ?? (signed ? 'Tap to sign again' : 'Sign with your finger')}
       </Text>
     </View>
   );

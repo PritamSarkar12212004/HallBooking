@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image } from 'react-native';
 
 import Wrapper from '../../layouts/wraper/Wraper';
@@ -24,6 +24,7 @@ import {
   CreditCard,
   GalleryHorizontal,
   Gauge,
+  History,
   Lock,
   Phone,
   Plus,
@@ -32,6 +33,7 @@ import {
   Trash2,
   User,
   Wallet,
+  X,
 } from 'lucide-react-native';
 
 import {
@@ -39,14 +41,17 @@ import {
   launchImageLibrary,
   ImagePickerResponse,
 } from 'react-native-image-picker';
+import { requestCameraPermission } from '../../module/ImagePickerModule';
 import { showMessage } from 'react-native-flash-message';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSection';
+import useBusyLock from '../../hooks/busy/useBusyLock';
 import useHallQr from '../../hooks/qr/useHallQr';
 import FullScreenImage from '../../components/ui/FullScreenImage';
 import uploadImage from '../../services/Cloudinary/uploadImg';
+import { compressImage } from '../../services/Compressor/ImgCompressor';
 import { formatDate } from '../../functions/formate/DateTimeFormate';
 import { MainRoute, TabRoute } from '../../const/routes/route';
 
@@ -73,8 +78,9 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
     token: user?.token,
   });
   const { qrUrl, bankHolderName } = useHallQr();
-  // QR par tap karne par full screen preview khulta hai.
+  // QR / payment proof / meter photo tap karne par full screen preview.
   const [qrPreview, setQrPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const fin = booking?.financial ?? {};
   // Event pehle hi end ho chuka hai to is page se kuch bhi change nahi hone
@@ -89,6 +95,8 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
         quantity?: number;
         perUnit?: number;
         currentUnit?: number;
+        meterPhoto?: string;
+        closingPhoto?: string;
         paid?: boolean;
       }[])
     : [];
@@ -129,6 +137,75 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
   const setClosing = (index: number, value: string) =>
     setClosings(prev => ({ ...prev, [index]: value.replace(/[^0-9]/g, '') }));
 
+  // ---- Optional meter photo per closing unit (reading ka evidence) ----
+  // Key unit-index hai, value { uri: local preview, url: Cloudinary URL }.
+  // Upload turant hota hai (compress + Cloudinary), taaki swipe ke waqt
+  // koi photo pending na bache.
+  const [unitPhotos, setUnitPhotos] = useState<
+    Record<number, { uri: string; url: string | null }>
+  >({});
+  const [uploadingUnitIndex, setUploadingUnitIndex] = useState<number | null>(
+    null,
+  );
+
+  const applyUnitPhoto = async (index: number, uri: string) => {
+    setUnitPhotos(prev => ({ ...prev, [index]: { uri, url: null } }));
+    setUploadingUnitIndex(index);
+    try {
+      // Compressor (react-native-compressor) + Cloudinary upload.
+      const compressedUri = await compressImage(uri);
+      const uploaded = await uploadImage(compressedUri ?? uri);
+      setUnitPhotos(prev => ({
+        ...prev,
+        [index]: { uri, url: uploaded.secure_url },
+      }));
+    } catch (error: any) {
+      console.log('Meter photo upload failed', error);
+      setUnitPhotos(prev => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+      showMessage({
+        message: 'Upload Failed',
+        description: 'Meter photo could not be uploaded. Please try again.',
+        type: 'danger',
+      });
+    } finally {
+      setUploadingUnitIndex(null);
+    }
+  };
+
+  const captureUnitPhoto = async (index: number) => {
+    const granted = await requestCameraPermission();
+    if (!granted) return;
+    const result = await launchCamera({
+      mediaType: 'photo',
+      cameraType: 'back',
+      quality: 0.8,
+      saveToPhotos: false,
+    });
+    const picked = result.assets?.[0];
+    if (picked?.uri) await applyUnitPhoto(index, picked.uri);
+  };
+
+  const pickUnitPhoto = async (index: number) => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+      selectionLimit: 1,
+    });
+    const picked = result.assets?.[0];
+    if (picked?.uri) await applyUnitPhoto(index, picked.uri);
+  };
+
+  const removeUnitPhoto = (index: number) =>
+    setUnitPhotos(prev => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+
   const unitsDerived = savedUnits.map((u, i) => {
     const perUnit = num(u.perUnit);
     const current = num(u.currentUnit);
@@ -165,6 +242,12 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
   const [transactionNumber, setTransactionNumber] = useState('');
   const [photo, setPhoto] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const prefilledFromBooking = useRef(false);
+  // Finalize ke dauraan poori app ka navigation lock (back/swipe sab block) —
+  // adhoora finalize par user galti se screen chhod na de.
+  useBusyLock(saving, 'Finalizing event…');
+  // Per-unit meter photo upload bhi lock karta hai.
+  useBusyLock(uploadingUnitIndex !== null, 'Uploading photo…');
 
   // ---- Security deposit return (Finalize Event) ----------------------
   const [depositReturned, setDepositReturned] = useState(false);
@@ -180,10 +263,17 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
   // Prefill last known mode / transaction / proof.
   useEffect(() => {
     if (!booking) return;
+    // Sirf ek baar — refetch par deposit/payment fields user ke chune hue
+    // values ko overwrite na karein.
+    if (prefilledFromBooking.current) return;
+    prefilledFromBooking.current = true;
+
     if (fin.mode) setPaymentMode([fin.mode]);
     if (lastPayment?.transactionId)
       setTransactionNumber(lastPayment.transactionId);
-    if (lastPayment?.proof) setPhoto({ uri: lastPayment.proof });
+    // NOTE: purana proof `photo` me prefill NAHI karte — wo history hai.
+    // Naya proof user khud capture/select karega; purana proof neeche
+    // "PREVIOUS PAYMENT PROOF" card me read-only dikhega.
     // Deposit return pre-fill (reopening an already finalized event).
     setDepositReturned(fin.securityDepositReturned === true);
     if (num(fin.securityDepositDeducted) > 0)
@@ -199,8 +289,13 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
     paymentMode[0] === 'UPI' ||
     paymentMode[0] === 'Cheque' ||
     paymentMode[0] === 'NEFT/RTGS';
-  const requiresProof =
-    paymentMode.length > 0 && paymentMode[0] !== 'Cash' && !photo?.uri;
+  // Proof har mode me **zaroori** hai (Cash me bhi cash receipt mandatory) —
+  // jab tak naya proof nahi laga. Picker Cash me bhi dikhta hi hai.
+  const requiresProof = paymentMode.length > 0 && !photo?.uri;
+
+  // Purani payment ka proof — HISTORY reference (read-only card me dikhta
+  // hai, naye proof me prefill nahi hota).
+  const previousProofUri: string | null = lastPayment?.proof || null;
 
   // ---- Validation ----------------------------------------------------
   const unitsValid = useMemo(() => {
@@ -330,9 +425,14 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
 
     setSaving(true);
     try {
-      let paymentProofPhoto = lastPayment?.proof ?? '';
+      // Payment proof sirf NAYE image ka upload hota hai — purana proof
+      // kabhi re-send nahi karte (backend uski history me already rakhta hai;
+      // re-send karne par naya payment purani image ke saath chipak jaata tha).
+      let paymentProofPhoto = '';
       if (photo?.uri && !photo.uri.startsWith('http')) {
-        const uploaded = await uploadImage(photo.uri);
+        // Compressor (react-native-compressor) — upload chhota aur tez.
+        const compressedUri = await compressImage(photo.uri);
+        const uploaded = await uploadImage(compressedUri ?? photo.uri);
         paymentProofPhoto = uploaded.secure_url;
       }
 
@@ -376,6 +476,14 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
         currentUnit: u.current,
         amount: u.amount,
         paid: unitsPaidAll,
+        // Reading ka evidence: is finalize se lagi nayi photo, warna pehle se
+        // saved (units screen / Update Finance se aayi). Bina iske backend
+        // meterPhoto khaali string se overwrite kar deta tha — photo wipe bug.
+        meterPhoto: unitPhotos[u.index]?.url || savedUnits[u.index]?.meterPhoto,
+        // Closing photo: naya capture (compress + upload ho chuka) ya pehle se
+        // saved — backend dono preserve karta hai.
+        closingPhoto:
+          unitPhotos[u.index]?.url || savedUnits[u.index]?.closingPhoto,
       }));
 
       await updateSectionAsync({
@@ -771,6 +879,123 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
                     +₹{d.amount.toLocaleString()}
                   </Text>
                 ) : null}
+
+                {/* Optional meter photo — closing reading ka evidence */}
+                <View className="mt-2.5">
+                  <View className="flex-row items-center justify-between mb-1.5">
+                    <Text
+                      className="text-[10px]"
+                      style={{ color: '#8F8B91' }}
+                    >
+                      METER PHOTO (OPTIONAL)
+                    </Text>
+                    {uploadingUnitIndex === i ? (
+                      <Text
+                        className="text-[10px] font-semibold"
+                        style={{ color: Theme.button.primary }}
+                      >
+                        Uploading…
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {unitPhotos[i]?.uri ? (
+                    <View
+                      className="rounded-xl overflow-hidden"
+                      style={{
+                        backgroundColor: '#1E1E26',
+                        borderWidth: 1,
+                        borderColor: Theme.button.primary,
+                      }}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => setPhotoPreview(unitPhotos[i].uri)}
+                      >
+                        <Image
+                          source={{ uri: unitPhotos[i].uri }}
+                          style={{ width: '100%', height: 140 }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      <View className="flex-row items-center justify-end gap-2 p-2">
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => captureUnitPhoto(i)}
+                          className="flex-row items-center px-3 py-2 rounded-lg"
+                          style={{ backgroundColor: '#1E1E26' }}
+                        >
+                          <Camera size={14} color={Theme.button.primary} />
+                          <Text
+                            className="ml-1.5 text-xs font-semibold"
+                            style={{ color: Theme.text.primary }}
+                          >
+                            Retake
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => pickUnitPhoto(i)}
+                          className="flex-row items-center px-3 py-2 rounded-lg"
+                          style={{ backgroundColor: '#1E1E26' }}
+                        >
+                          <GalleryHorizontal
+                            size={14}
+                            color={Theme.button.primary}
+                          />
+                          <Text
+                            className="ml-1.5 text-xs font-semibold"
+                            style={{ color: Theme.text.primary }}
+                          >
+                            Gallery
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => removeUnitPhoto(i)}
+                          className="flex-row items-center justify-center px-3 py-2 rounded-lg"
+                          style={{ backgroundColor: '#3A2020' }}
+                        >
+                          <X size={14} color="#F87171" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => captureUnitPhoto(i)}
+                        className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
+                        style={{ backgroundColor: '#1E1E26' }}
+                      >
+                        <Camera size={14} color={Theme.button.primary} />
+                        <Text
+                          className="ml-2 text-xs font-semibold"
+                          style={{ color: Theme.text.primary }}
+                        >
+                          Camera
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => pickUnitPhoto(i)}
+                        className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
+                        style={{ backgroundColor: '#1E1E26' }}
+                      >
+                        <GalleryHorizontal
+                          size={14}
+                          color={Theme.button.primary}
+                        />
+                        <Text
+                          className="ml-2 text-xs font-semibold"
+                          style={{ color: Theme.text.primary }}
+                        >
+                          Gallery
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
                 {u.paid === true ? (
                   <Text
                     className="text-[10px] mt-1"
@@ -861,8 +1086,8 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
             ) : null}
           </View>
           <Text className="text-xs mb-4" style={{ color: '#8F8B91' }}>
-            Amount type karte hi total me LIVE judta hai — "Add Charge" se
-            list me save hota hai.
+            Typing an amount adds it to the total live — "Add Charge" saves it to
+            the list.
           </Text>
 
           <InputField
@@ -1341,67 +1566,130 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
           </Text>
           <Text className="text-xs mb-4" style={{ color: '#8F8B91' }}>
             {paymentMode[0] === 'Cash'
-              ? 'Cash payment does not require a proof.'
+              ? 'Capture or select the cash receipt (required).'
               : 'Capture or select payment receipt'}
           </Text>
-          {requiresProof &&
-            (photo?.uri ? (
-              <View
-                className="rounded-xl overflow-hidden"
-                style={{
-                  backgroundColor: '#1E1E26',
-                  borderWidth: 1,
-                  borderColor: Theme.button.primary,
-                }}
+          {photo?.uri ? (
+            <View
+              className="rounded-xl overflow-hidden"
+              style={{
+                backgroundColor: '#1E1E26',
+                borderWidth: 1,
+                borderColor: Theme.button.primary,
+              }}
+            >
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setPhotoPreview(photo.uri)}
               >
                 <Image
                   source={{ uri: photo.uri }}
                   style={{ width: '100%', height: 200 }}
                   resizeMode="cover"
                 />
-                <View className="flex-row gap-2 p-3">
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={capturePhoto}
-                    className="flex-1 flex-row items-center justify-center rounded-lg py-3"
-                    style={{ backgroundColor: Theme.button.primary }}
+              </TouchableOpacity>
+              <View className="flex-row gap-2 p-3">
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={capturePhoto}
+                  className="flex-1 flex-row items-center justify-center rounded-lg py-3"
+                  style={{ backgroundColor: Theme.button.primary }}
+                >
+                  <Camera size={17} color="#000" />
+                  <Text
+                    className="ml-2 font-semibold"
+                    style={{ color: '#000' }}
                   >
-                    <Camera size={17} color="#000" />
-                    <Text
-                      className="ml-2 font-semibold"
-                      style={{ color: '#000' }}
-                    >
-                      Retake
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={removePhoto}
-                    className="flex-row items-center justify-center rounded-lg px-4 py-3"
-                    style={{ backgroundColor: '#3A2020' }}
+                    Retake
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={selectPhoto}
+                  className="flex-1 flex-row items-center justify-center rounded-lg py-3"
+                  style={{
+                    backgroundColor: '#1E1E26',
+                    borderWidth: 1,
+                    borderColor: FzDark.border,
+                  }}
+                >
+                  <GalleryHorizontal size={17} color={Theme.text.primary} />
+                  <Text
+                    className="ml-2 font-semibold"
+                    style={{ color: Theme.text.primary }}
                   >
-                    <Trash2 size={18} color="#FF6B6B" />
-                  </TouchableOpacity>
-                </View>
+                    Gallery
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={removePhoto}
+                  className="flex-row items-center justify-center rounded-lg px-4 py-3"
+                  style={{ backgroundColor: '#3A2020' }}
+                >
+                  <Trash2 size={18} color="#FF6B6B" />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <View className="flex-row gap-3 mb-3">
-                <CamGalPickerButton
-                  title="Camera"
-                  actionFun={capturePhoto}
-                  Icon={Camera}
-                />
-                <CamGalPickerButton
-                  title="Gallery"
-                  actionFun={selectPhoto}
-                  Icon={GalleryHorizontal}
-                />
-              </View>
-            ))}
+            </View>
+          ) : (
+            <View className="flex-row gap-3 mb-3">
+              <CamGalPickerButton
+                title="Camera"
+                actionFun={capturePhoto}
+                Icon={Camera}
+              />
+              <CamGalPickerButton
+                title="Gallery"
+                actionFun={selectPhoto}
+                Icon={GalleryHorizontal}
+              />
+            </View>
+          )}
         {requiresProof && !photo?.uri ? (
             <Text className="text-[11px]" style={{ color: '#EF4444' }}>
               * Proof image required for {paymentMode[0]}.
             </Text>
+          ) : null}
+
+          {/* Purani payment ka proof — sirf HISTORY reference (read-only,
+              tap → full screen). Naye proof ko prefill/replace nahi karta,
+              taaki finalize ka payment apna fresh proof le. */}
+          {previousProofUri ? (
+            <View
+              className="rounded-xl p-3 mt-2"
+              style={{
+                backgroundColor: '#1E1E26',
+                borderWidth: 1,
+                borderColor: FzDark.border,
+              }}
+            >
+              <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
+                <History size={13} color={Theme.text.secondary} />
+                <Text
+                  className="text-[11px] font-bold"
+                  style={{ color: Theme.text.secondary }}
+                >
+                  PREVIOUS PAYMENT PROOF
+                </Text>
+                <Text
+                  className="text-[10px] flex-1 text-right"
+                  style={{ color: '#8F8B91' }}
+                  numberOfLines={1}
+                >
+                  From the last payment — read only
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setPhotoPreview(previousProofUri)}
+              >
+                <Image
+                  source={{ uri: previousProofUri }}
+                  style={{ width: '100%', height: 120, borderRadius: 8 }}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            </View>
           ) : null}
         </View>
 
@@ -1447,41 +1735,21 @@ const FainalizeEventPage = ({ navigation, route }: any) => {
         )}
         </ScrollView>
 
-      {saving ? (
-        <View
-          className="absolute top-0 bottom-0 left-0 right-0 items-center justify-center"
-          style={{
-            backgroundColor: 'rgba(8,8,12,0.9)',
-            zIndex: 50,
-          }}
-        >
-          <View
-            className="rounded-3xl px-8 py-6 items-center"
-            style={{
-              backgroundColor: FzDark.card,
-              borderWidth: 1,
-              borderColor: FzDark.border,
-            }}
-          >
-            <ActivityIndicator size="large" color={Theme.button.primary} />
-            <Text
-              className="text-sm font-bold mt-4"
-              style={{ color: '#FFFFFF' }}
-            >
-              Finalizing event…
-            </Text>
-            <Text className="text-xs mt-1" style={{ color: '#A0A0A8' }}>
-              Updating units, charges & payment
-            </Text>
-          </View>
-        </View>
-      ) : null}
+      {/* Saves ke dauraan loading overlay global `BusyLockModal` (App.tsx) se
+          aata hai — wahi back/hardware-back bhi block karta hai. */}
 
       <FullScreenImage
         uri={qrPreview}
         visible={!!qrPreview}
         onClose={() => setQrPreview(null)}
         caption={bankHolderName}
+      />
+
+      {/* Payment proof / meter photo full screen preview */}
+      <FullScreenImage
+        uri={photoPreview}
+        visible={!!photoPreview}
+        onClose={() => setPhotoPreview(null)}
       />
     </Wrapper>
   );

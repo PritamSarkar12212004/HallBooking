@@ -24,7 +24,7 @@ const SkeletonBox = ({
 
     useEffect(() => {
         shimmer.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
-    }, []);
+    }, [shimmer]);
 
     const animatedStyle = useAnimatedStyle(() => {
         const opacity = interpolate(shimmer.value, [0, 0.5, 1], [0.35, 0.65, 0.35]);

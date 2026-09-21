@@ -3,6 +3,7 @@ import { Text, TouchableOpacity } from '../../lib/style/withTailwind';
 import { ChevronRight } from 'lucide-react-native';
 import { Theme } from '../../const/theme/Theme';
 import { ActivityIndicator } from 'react-native';
+import useBusyLock from '../../hooks/busy/useBusyLock';
 
 type MainButtonProps = {
     navigation?: any;
@@ -11,7 +12,9 @@ type MainButtonProps = {
     actionFunc?: () => void;
     disabled?: boolean;
     loader?: boolean;
-    Icon?: any
+    Icon?: any;
+    /** Loader chalu hone par busy modal me dikhne wala message. */
+    busyMessage?: string;
 };
 
 const MainButton = ({
@@ -21,8 +24,12 @@ const MainButton = ({
     actionFunc,
     disabled = false,
     loader,
-    Icon
+    Icon,
+    busyMessage,
 }: MainButtonProps) => {
+    // Loader ke dauraan poori app ka navigation lock — back/tab change nahi.
+    useBusyLock(Boolean(loader), busyMessage);
+
     const handlePress = () => {
         if (actionFunc) {
             actionFunc();

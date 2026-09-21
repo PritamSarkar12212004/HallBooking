@@ -41,7 +41,9 @@ const handleImageResult = (
 
 // Android requires an explicit runtime grant for CAMERA (since it is
 // declared in the manifest). Without it launchCamera silently fails.
-const requestCameraPermission = async (): Promise<boolean> => {
+// Exported for screens jo apna custom launchCamera flow chalate hain
+// (jaise Finalize Event ke per-unit meter photos).
+export const requestCameraPermission = async (): Promise<boolean> => {
     if (Platform.OS !== 'android') {
         return true;
     }

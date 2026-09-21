@@ -7,11 +7,13 @@ import type { UnitIssue } from '../../../functions/booking/BookingDetailFunction
 
 interface Props {
     issues: UnitIssue[];
-    onFixUnits: () => void;
+    /** CEO ke view me action nahi hota (sirf info) — isliye optional. */
+    onFixUnits?: () => void;
 }
 
 /**
- * Screen ke sabse upar wala warning — unit add hai par current reading nahi.
+ * Screen ke sabse upar wala warning — unit add hai par current reading/rate
+ * nahi.
  *
  * Ek hi screen par saara detail hai, isliye ye banner upar rakha hai taake
  * user ko scroll kiye bina hi pata chal jaaye ki kya karna bacha hai aur
@@ -22,7 +24,7 @@ const PendingUnitsBanner = ({ issues, onFixUnits }: Props) => {
 
     return (
         <View
-            className="rounded-2xl p-4 mb-2 mt-4"
+            className="rounded-2xl p-4"
             style={{
                 backgroundColor: P.warningSoft,
                 borderWidth: 1,
@@ -33,8 +35,8 @@ const PendingUnitsBanner = ({ issues, onFixUnits }: Props) => {
                 <TriangleAlert size={16} color={P.warning} />
                 <Text className="text-sm font-bold" style={{ color: P.warning }}>
                     {issues.length === 1
-                        ? '1 unit adhoora hai'
-                        : `${issues.length} units adhoore hain`}
+                        ? '1 unit is incomplete'
+                        : `${issues.length} units are incomplete`}
                 </Text>
             </View>
 
@@ -49,19 +51,21 @@ const PendingUnitsBanner = ({ issues, onFixUnits }: Props) => {
             ))}
 
             <Text className="text-[11px] mt-2" style={{ color: P.textMuted }}>
-                Ye pending rehne tak Finalize Event swipe nahi hoga.
+                Finalize Event stays locked until this is fixed.
             </Text>
 
-            <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={onFixUnits}
-                className="mt-3 rounded-xl py-3 items-center"
-                style={{ backgroundColor: P.warning }}
-            >
-                <Text className="text-sm font-bold" style={{ color: '#0B0B0F' }}>
-                    Current Unit Add Karein
-                </Text>
-            </TouchableOpacity>
+            {onFixUnits ? (
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={onFixUnits}
+                    className="mt-3 rounded-xl py-3 items-center"
+                    style={{ backgroundColor: P.warning }}
+                >
+                    <Text className="text-sm font-bold" style={{ color: '#0B0B0F' }}>
+                        Add Current Unit
+                    </Text>
+                </TouchableOpacity>
+            ) : null}
         </View>
     );
 };

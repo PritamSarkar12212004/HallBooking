@@ -20,6 +20,7 @@ import {
 } from '../../lib/style/withTailwind';
 import {
   addUnitRow,
+  num,
   removeUnitRow,
   toggleUnitRowIncludeNow,
   updateUnitRowField,
@@ -46,6 +47,9 @@ export {
   uploadUnitMeterPhoto,
 } from '../../functions/booking/UnitsFunction';
 export type { UnitRow } from '../../functions/booking/UnitsFunction';
+
+/** Missing (rate / reading) field ka highlight color. */
+const MISSING_COLOR = '#F59E0B';
 
 export interface UnitsSectionProps {
   rows: UnitRow[];
@@ -93,15 +97,18 @@ const UnitsSection = ({
   onRemovePhoto,
   uploadingRowId = null,
 }: UnitsSectionProps) => {
-  const changeField = (id: string, field: 'label' | 'perUnit' | 'currentUnit', value: string) =>
-    setRows((prev) => updateUnitRowField(prev, id, field, value));
+  const changeField = (
+    id: string,
+    field: 'label' | 'perUnit' | 'currentUnit',
+    value: string,
+  ) => setRows(prev => updateUnitRowField(prev, id, field, value));
 
   const toggleIncludeNow = (id: string) =>
-    setRows((prev) => toggleUnitRowIncludeNow(prev, id));
+    setRows(prev => toggleUnitRowIncludeNow(prev, id));
 
-  const addRow = () => setRows((prev) => addUnitRow(prev));
+  const addRow = () => setRows(prev => addUnitRow(prev));
 
-  const removeRow = (id: string) => setRows((prev) => removeUnitRow(prev, id));
+  const removeRow = (id: string) => setRows(prev => removeUnitRow(prev, id));
 
   return (
     <>
@@ -109,221 +116,274 @@ const UnitsSection = ({
         <Gauge size={20} color={Theme.button.primary} />
         <Text className="text-white text-base font-semibold">Units</Text>
       </View>
-      <Text className="text-[#8F8B91] text-xs mb-4">
-        Per unit rate set karein. Reading abhi daalni ho to toggle ON karein,
-        warna handover/update screen par add ho jaayegi.
-      </Text>
-
       <View className="rounded-2xl mb-5">
-        {rows.map((row) => (
-          <View
-            key={row.id}
-            className="mb-3 rounded-xl p-3"
-            style={{ backgroundColor: Theme.background.third }}
-          >
-            {/* Label + delete */}
-            <View className="flex-row items-center gap-2">
-              <TextInput
-                className="flex-1 py-2.5 px-3 rounded-xl text-white"
-                style={{ backgroundColor: Theme.background.secondary }}
-                placeholder="Unit title (e.g. Light, Water)"
-                placeholderTextColor="#8F8B91"
-                value={row.label}
-                onChangeText={(text) => changeField(row.id, 'label', text)}
-              />
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => removeRow(row.id)}
-                className="w-10 h-10 items-center justify-center rounded-xl"
-                style={{ backgroundColor: '#3A2020' }}
-              >
-                <Trash2 size={16} color="#FF6B6B" />
-              </TouchableOpacity>
-            </View>
+        {rows.map(row => {
+          const rateMissing = num(row.perUnit) <= 0;
+          const readingMissing = row.includeNow && num(row.currentUnit) <= 0;
 
-            {/* Per Unit Rate — hamesha set karna hai */}
+          return (
             <View
-              className="rounded-xl px-3 py-2 mt-2.5"
-              style={{ backgroundColor: Theme.background.secondary }}
+              key={row.id}
+              className="mb-3 rounded-xl p-3"
+              style={{ backgroundColor: Theme.background.third }}
             >
-              <Text
-                className="text-[10px] mb-1"
-                style={{ color: Theme.text.secondary }}
-              >
-                RATE (PER UNIT) *
-              </Text>
-              <View className="flex-row items-center">
-                <IndianRupee size={12} color="#8F8B91" />
+              <View className="flex-row items-center gap-2">
                 <TextInput
-                  className="flex-1 py-1 px-1 text-white"
-                  placeholder="0"
-                  placeholderTextColor="#8F8B91"
-                  keyboardType="numeric"
-                  value={row.perUnit}
-                  onChangeText={(text) => changeField(row.id, 'perUnit', text)}
-                />
-              </View>
-            </View>
-            {/* Toggle: abhi reading daalni hai ya baad me */}
-            <View className="flex-row items-center justify-between mt-3">
-              <View className="flex-1 pr-3">
-                <Text className="text-white text-xs font-semibold">
-                  Current reading abhi daalni hai?
-                </Text>
-                <Text className="text-[10px] mt-0.5" style={{ color: '#8F8B91' }}>
-                  {row.includeNow
-                    ? 'Reading + meter photo yahan add karein (photo optional)'
-                    : 'Nahi — reading baad me update screen se add hogi'}
-                </Text>
-              </View>
-
-              <IncludeNowToggle
-                value={row.includeNow}
-                onPress={() => toggleIncludeNow(row.id)}
-              />
-            </View>
-
-            {row.includeNow && (
-              <>
-                {/* Current Meter Reading */}
-                <View
-                  className="rounded-xl px-3 py-2 mt-2.5"
+                  className="flex-1 py-2.5 px-3 rounded-xl text-white"
                   style={{ backgroundColor: Theme.background.secondary }}
+                  placeholder="Unit title (e.g. Light, Water)"
+                  placeholderTextColor="#8F8B91"
+                  value={row.label}
+                  onChangeText={text => changeField(row.id, 'label', text)}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => removeRow(row.id)}
+                  className="w-10 h-10 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: '#3A2020' }}
                 >
+                  <Trash2 size={16} color="#FF6B6B" />
+                </TouchableOpacity>
+              </View>
+              <View
+                className="rounded-xl px-3 py-2 mb-1 mt-2.5"
+                style={{
+                  backgroundColor: Theme.background.secondary,
+                  borderWidth: rateMissing ? 1 : 0,
+                  borderColor: rateMissing ? MISSING_COLOR : 'transparent',
+                }}
+              >
+                <View className="flex-row items-center justify-between mb-1">
                   <Text
-                    className="text-[10px] mb-1"
-                    style={{ color: Theme.text.secondary }}
+                    className="text-[10px]"
+                    style={{
+                      color: rateMissing ? MISSING_COLOR : Theme.text.secondary,
+                    }}
                   >
-                    CURRENT READING *
+                    RATE (PER UNIT) *
                   </Text>
+                  {rateMissing && (
+                    <Text
+                      className="text-[10px] font-semibold"
+                      style={{ color: MISSING_COLOR }}
+                    >
+                      Set rate
+                    </Text>
+                  )}
+                </View>
+                <View className="flex-row items-center">
+                  <IndianRupee size={12} color="#8F8B91" />
                   <TextInput
-                    className="py-1 text-white"
+                    className="flex-1 py-1 px-1 text-white"
                     placeholder="0"
                     placeholderTextColor="#8F8B91"
                     keyboardType="numeric"
-                    value={row.currentUnit}
-                    onChangeText={(text) => changeField(row.id, 'currentUnit', text)}
+                    value={row.perUnit}
+                    onChangeText={text => changeField(row.id, 'perUnit', text)}
                   />
                 </View>
-                {/* Meter photo — OPTIONAL (compress + upload) */}
-                {(onCapturePhoto || onPickPhoto) && (
-                  <View className="mt-2.5">
-                    <View className="flex-row items-center justify-between mb-2">
+              </View>
+              {/* Toggle: abhi reading daalni hai ya baad me */}
+              <View className="flex-row items-center justify-between mt-3">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-xs font-semibold">
+                    Add the current reading now?
+                  </Text>
+                  <Text
+                    className="text-[10px] mt-0.5"
+                    style={{ color: '#8F8B91' }}
+                  >
+                    {row.includeNow
+                      ? 'Add reading + meter photo here (photo optional)'
+                      : 'No — the reading will be added later from the update screen'}
+                  </Text>
+                </View>
+
+                <IncludeNowToggle
+                  value={row.includeNow}
+                  onPress={() => toggleIncludeNow(row.id)}
+                />
+              </View>
+
+              {row.includeNow && (
+                <>
+                  {/* Current Meter Reading */}
+                  <View
+                    className="rounded-xl px-3 py-2 mb-1 mt-2.5"
+                    style={{
+                      backgroundColor: Theme.background.secondary,
+                      borderWidth: readingMissing ? 1 : 0,
+                      borderColor: readingMissing
+                        ? MISSING_COLOR
+                        : 'transparent',
+                    }}
+                  >
+                    <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-[10px]"
-                        style={{ color: Theme.text.secondary }}
+                        style={{
+                          color: readingMissing
+                            ? MISSING_COLOR
+                            : Theme.text.secondary,
+                        }}
                       >
-                        METER PHOTO (OPTIONAL)
+                        CURRENT READING *
                       </Text>
-                      {uploadingRowId === row.id && (
+                      {readingMissing && (
+                        <Text
+                          className="text-[10px] font-semibold"
+                          style={{ color: MISSING_COLOR }}
+                        >
+                          Add
+                        </Text>
+                      )}
+                    </View>
+                    <TextInput
+                      className="py-1 text-white"
+                      placeholder="0"
+                      placeholderTextColor="#8F8B91"
+                      keyboardType="numeric"
+                      value={row.currentUnit}
+                      onChangeText={text =>
+                        changeField(row.id, 'currentUnit', text)
+                      }
+                    />
+                  </View>
+                  {/* Meter photo — OPTIONAL (compress + upload) */}
+                  {(onCapturePhoto || onPickPhoto) && (
+                    <View className="mt-2.5">
+                      <View className="flex-row items-center justify-between mb-2">
                         <Text
                           className="text-[10px]"
                           style={{ color: Theme.text.secondary }}
                         >
-                          Uploading...
+                          METER PHOTO (OPTIONAL)
                         </Text>
+                        {uploadingRowId === row.id && (
+                          <Text
+                            className="text-[10px]"
+                            style={{ color: Theme.text.secondary }}
+                          >
+                            Uploading...
+                          </Text>
+                        )}
+                      </View>
+
+                      {row.meterPhotoUri ? (
+                        <View
+                          className="rounded-xl overflow-hidden"
+                          style={{
+                            backgroundColor: Theme.background.secondary,
+                            borderWidth: 1,
+                            borderColor: Theme.button.primary,
+                          }}
+                        >
+                          <Image
+                            source={{ uri: row.meterPhotoUri }}
+                            style={{ width: '100%', height: 140 }}
+                            resizeMode="cover"
+                          />
+
+                          <View className="flex-row items-center justify-end gap-2 p-2">
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => onCapturePhoto?.(row)}
+                              className="flex-row items-center px-3 py-2 rounded-lg"
+                              style={{
+                                backgroundColor: Theme.background.third,
+                              }}
+                            >
+                              <Camera size={14} color={Theme.button.primary} />
+                              <Text
+                                className="ml-1.5 text-xs font-semibold"
+                                style={{ color: Theme.text.primary }}
+                              >
+                                Retake
+                              </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => onRemovePhoto?.(row)}
+                              className="flex-row items-center px-3 py-2 rounded-lg"
+                              style={{ backgroundColor: '#3A2020' }}
+                            >
+                              <X size={14} color="#F87171" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <View className="flex-row gap-2">
+                          {onCapturePhoto && (
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => onCapturePhoto(row)}
+                              className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                              style={{
+                                backgroundColor: Theme.background.secondary,
+                              }}
+                            >
+                              {uploadingRowId === row.id ? (
+                                <UploadCloud
+                                  size={15}
+                                  color={Theme.button.primary}
+                                />
+                              ) : (
+                                <Camera
+                                  size={15}
+                                  color={Theme.button.primary}
+                                />
+                              )}
+                              <Text
+                                className="ml-2 text-xs font-semibold"
+                                style={{ color: Theme.text.primary }}
+                              >
+                                Camera
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+
+                          {onPickPhoto && (
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => onPickPhoto(row)}
+                              className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                              style={{
+                                backgroundColor: Theme.background.secondary,
+                              }}
+                            >
+                              <ImagePlus
+                                size={15}
+                                color={Theme.button.primary}
+                              />
+                              <Text
+                                className="ml-2 text-xs font-semibold"
+                                style={{ color: Theme.text.primary }}
+                              >
+                                Gallery
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       )}
                     </View>
+                  )}
+                </>
+              )}
 
-                    {row.meterPhotoUri ? (
-                      <View
-                        className="rounded-xl overflow-hidden"
-                        style={{
-                          backgroundColor: Theme.background.secondary,
-                          borderWidth: 1,
-                          borderColor: Theme.button.primary,
-                        }}
-                      >
-                        <Image
-                          source={{ uri: row.meterPhotoUri }}
-                          style={{ width: '100%', height: 140 }}
-                          resizeMode="cover"
-                        />
-
-                        <View className="flex-row items-center justify-end gap-2 p-2">
-                          <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => onCapturePhoto?.(row)}
-                            className="flex-row items-center px-3 py-2 rounded-lg"
-                            style={{ backgroundColor: Theme.background.third }}
-                          >
-                            <Camera size={14} color={Theme.button.primary} />
-                            <Text
-                              className="ml-1.5 text-xs font-semibold"
-                              style={{ color: Theme.text.primary }}
-                            >
-                              Retake
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => onRemovePhoto?.(row)}
-                            className="flex-row items-center px-3 py-2 rounded-lg"
-                            style={{ backgroundColor: '#3A2020' }}
-                          >
-                            <X size={14} color="#F87171" />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <View className="flex-row gap-2">
-                        {onCapturePhoto && (
-                          <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => onCapturePhoto(row)}
-                            className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
-                            style={{ backgroundColor: Theme.background.secondary }}
-                          >
-                            {uploadingRowId === row.id ? (
-                              <UploadCloud size={15} color={Theme.button.primary} />
-                            ) : (
-                              <Camera size={15} color={Theme.button.primary} />
-                            )}
-                            <Text
-                              className="ml-2 text-xs font-semibold"
-                              style={{ color: Theme.text.primary }}
-                            >
-                              Camera
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-
-                        {onPickPhoto && (
-                          <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => onPickPhoto(row)}
-                            className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
-                            style={{ backgroundColor: Theme.background.secondary }}
-                          >
-                            <ImagePlus size={15} color={Theme.button.primary} />
-                            <Text
-                              className="ml-2 text-xs font-semibold"
-                              style={{ color: Theme.text.primary }}
-                            >
-                              Gallery
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* Handover note */}
-            <View className="mt-2 flex-row items-center gap-1.5">
-              <View
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: '#F59E0B' }}
-              />
-              <Text className="text-[10px]" style={{ color: '#8F8B91' }}>
-                Amount handover ke baad calculate hogi
-              </Text>
+              {/* Handover note */}
+              <View className="mt-2 flex-row items-center gap-1.5">
+                <View
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: '#F59E0B' }}
+                />
+                <Text className="text-[10px]" style={{ color: '#8F8B91' }}>
+                  Amount is calculated after handover
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         <TouchableOpacity
           activeOpacity={0.8}

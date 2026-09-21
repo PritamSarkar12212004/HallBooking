@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Wrapper from '../../../layouts/wraper/Wraper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import SubHeader from '../../../components/header/SubHeader';
@@ -15,6 +15,11 @@ import { Divider } from 'react-native-paper';
 import MultiSelector from '../../../components/Selector/MultiSelector';
 import { BookingStepRoute } from '../../../const/routes/route';
 import { updateDraft } from '../../../manager/draftBookingStore';
+import {
+    getMobileError,
+    isMobileValidOrEmpty,
+    sanitizeMobileNumber,
+} from '../../../functions/booking/PhoneFunction';
 import useGetBookingById from '../../../api/booking/hooks/useGetBookingById';
 import { useAppSelector } from '../../../hooks/redux/redux';
 import { showMessage } from 'react-native-flash-message';
@@ -31,6 +36,10 @@ const Step3ScheduleScreen = () => {
     const [catererName, setCatererName] = useState('');
     const [catererContact, setCatererContact] = useState('');
     const [selectedKitchen, setSelectedKitchen] = useState<string[]>([]);
+    const prefilledFromBooking = useRef(false);
+    // Contact number optional hai — par bhara ho to poora 10-digit chahiye.
+    const [decoratorContactTouched, setDecoratorContactTouched] = useState(false);
+    const [catererContactTouched, setCatererContactTouched] = useState(false);
 
     const selectKitchen = (name: string) => {
         setSelectedKitchen(prev =>
@@ -48,6 +57,12 @@ const Step3ScheduleScreen = () => {
         if (!arr) {
             return;
         }
+        // Sirf ek baar — background refetch se user ke bhare hue fields na udein.
+        if (prefilledFromBooking.current) {
+            return;
+        }
+        prefilledFromBooking.current = true;
+
         if (arr.decorator?.name) setDecoratorName(arr.decorator.name);
         if (arr.decorator?.contact) setDecoratorContact(arr.decorator.contact);
         if (arr.caterer?.name) setCatererName(arr.caterer.name);
@@ -57,7 +72,35 @@ const Step3ScheduleScreen = () => {
         }
     }, [existingBooking]);
 
+    const decoratorContactError = getMobileError(
+        decoratorContact,
+        decoratorContactTouched,
+        { required: false },
+    );
+    const catererContactError = getMobileError(
+        catererContact,
+        catererContactTouched,
+        { required: false },
+    );
+
+    // Dono contacts khaali ya valid 10-digit — warna Next blocked.
+    const contactsValid =
+        isMobileValidOrEmpty(decoratorContact) &&
+        isMobileValidOrEmpty(catererContact);
+
     const handleNext = async () => {
+        if (!contactsValid) {
+            setDecoratorContactTouched(true);
+            setCatererContactTouched(true);
+            showMessage({
+                message: 'Check Contact Numbers',
+                description:
+                    'Contact numbers are optional, but any number you enter must be a valid 10-digit mobile number.',
+                type: 'warning',
+            });
+            return;
+        }
+
         try {
             updateDraft('arrangements', {
                 decoratorName,
@@ -120,11 +163,22 @@ const Step3ScheduleScreen = () => {
                     <InputField
                         title="Contact Number"
                         value={decoratorContact}
-                        setvalue={setDecoratorContact}
-                        placeholder="Enter contact number"
+                        setvalue={(text: string) => {
+                            setDecoratorContactTouched(true);
+                            setDecoratorContact(sanitizeMobileNumber(text));
+                        }}
+                        placeholder="10-digit mobile number"
                         keyType="phone-pad"
                         Icon={Phone}
                     />
+                    {/* Reserved error slot keeps layout stable (no UI jump) */}
+                    <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                        {decoratorContactError ? (
+                            <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                                {decoratorContactError}
+                            </Text>
+                        ) : null}
+                    </View>
 
                 </View>
 
@@ -156,11 +210,22 @@ const Step3ScheduleScreen = () => {
                     <InputField
                         title="Contact Number"
                         value={catererContact}
-                        setvalue={setCatererContact}
-                        placeholder="Enter contact number"
+                        setvalue={(text: string) => {
+                            setCatererContactTouched(true);
+                            setCatererContact(sanitizeMobileNumber(text));
+                        }}
+                        placeholder="10-digit mobile number"
                         keyType="phone-pad"
                         Icon={Phone}
                     />
+                    {/* Reserved error slot keeps layout stable (no UI jump) */}
+                    <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                        {catererContactError ? (
+                            <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                                {catererContactError}
+                            </Text>
+                        ) : null}
+                    </View>
                     <View className="mb-3">
                         <Divider />
                     </View>
@@ -179,6 +244,7 @@ const Step3ScheduleScreen = () => {
                 title="Next"
                 actionFunc={handleNext}
                 loader={loadingBooking}
+                disabled={!contactsValid}
             />
 
         </Wrapper>

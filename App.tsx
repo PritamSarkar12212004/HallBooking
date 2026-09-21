@@ -11,6 +11,7 @@ import { StatusBar } from 'react-native';
 import { queryClient } from './src/lib/tanstack/queryClient';
 import { PaperTheme } from './src/const/theme/PaperTheme';
 import RootNavigation from './src/navigations/RootNavigation';
+import BusyLockModal from './src/components/ui/BusyLockModal';
 import { navigationRef } from './src/navigations/navigationRef';
 import FlashMessage from 'react-native-flash-message';
 import { store } from './src/store';
@@ -36,6 +37,9 @@ const App = () => {
                     }
                   />
                   <RootNavigation />
+
+                  {/* Loader/save ke dauraan navigation lock (global) */}
+                  <BusyLockModal />
                 </NavigationContainer>
               </Provider>
             </PaperProvider>

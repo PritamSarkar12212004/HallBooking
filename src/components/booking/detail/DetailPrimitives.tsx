@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 
 import { Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import {
@@ -7,7 +8,7 @@ import {
 } from '../../../const/theme/bookingDetailPalette';
 import type { StatusTone } from '../../../functions/booking/BookingDetailFunction';
 
-/** Dark rounded card — detail pages ka basic block. */
+/** Dark rounded card — detail sections ka basic block. */
 export const DetailCard = ({
     children,
     style,
@@ -31,53 +32,102 @@ export const DetailCard = ({
 );
 
 /**
- * Numbered section header — ek hi screen par sections ko saaf alag karta hai.
+ * Collapsible section — pehle saara detail ek hi scroll me khula tha, isliye
+ * screen bhari hui lagti thi. Ab har section band rehta hai aur header tap
+ * karne par khulta hai; header par title + status pill hamesha dikhte hain,
+ * isliye bina kholne bhi poora context mil jaata hai.
  *
- * `status` se section ki halat ek nazar me pata chalti hai (jaise "2 pending"),
- * isliye user ko poora section khole bina bhi samajh aa jaata hai.
+ * `alwaysOpen` wale section par chevron nahi hota aur wo band nahi hota —
+ * Finalize jaisa action section hamesha bada (khula) rehta hai.
  */
-export const SectionStepHeader = ({
+export const DetailAccordion = ({
     index,
     title,
     subtitle,
     status,
+    children,
+    defaultOpen = false,
+    alwaysOpen = false,
 }: {
     index: number;
     title: string;
     subtitle?: string;
     status?: { label: string; tone?: StatusTone } | null;
-}) => (
-    <View className="pt-5 mb-4">
-        <View
-            className="absolute left-0 right-0 top-0"
-            style={{ height: 1, backgroundColor: P.divider }}
-        />
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+    alwaysOpen?: boolean;
+}) => {
+    const [open, setOpen] = React.useState(defaultOpen || alwaysOpen);
+    const expanded = alwaysOpen || open;
 
-        <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1 pr-2" style={{ gap: 10 }}>
-                <View
-                    className="w-7 h-7 rounded-lg items-center justify-center"
-                    style={{ backgroundColor: P.accentSoft, borderWidth: 1, borderColor: P.accent }}
-                >
-                    <Text className="text-xs font-extrabold" style={{ color: P.accent }}>
-                        {index}
-                    </Text>
-                </View>
-                <Text className="text-lg font-extrabold" style={{ color: P.textPrimary }}>
-                    {title}
+    const header = (
+        <>
+            <View
+                className="w-7 h-7 rounded-lg items-center justify-center"
+                style={{
+                    backgroundColor: P.accentSoft,
+                    borderWidth: 1,
+                    borderColor: P.accent,
+                }}
+            >
+                <Text className="text-xs font-extrabold" style={{ color: P.accent }}>
+                    {index}
                 </Text>
             </View>
 
-            {status ? <DetailBadge label={status.label} tone={status.tone} solid={false} /> : null}
-        </View>
+            <View className="flex-1">
+                <Text
+                    className="text-base font-extrabold"
+                    style={{ color: P.textPrimary }}
+                    numberOfLines={1}
+                >
+                    {title}
+                </Text>
+                {subtitle ? (
+                    <Text className="text-[11px] mt-0.5" style={{ color: P.textMuted }}>
+                        {subtitle}
+                    </Text>
+                ) : null}
+            </View>
 
-        {subtitle ? (
-            <Text className="text-xs mt-1.5 ml-9" style={{ color: P.textMuted }}>
-                {subtitle}
-            </Text>
-        ) : null}
-    </View>
-);
+            {status ? (
+                <DetailBadge label={status.label} tone={status.tone} solid={false} />
+            ) : null}
+
+            {alwaysOpen ? null : expanded ? (
+                <ChevronUp size={18} color={P.accent} />
+            ) : (
+                <ChevronDown size={18} color={P.textSecondary} />
+            )}
+        </>
+    );
+
+    return (
+        <View className="pt-4">
+            <View
+                className="absolute left-0 right-0 top-0"
+                style={{ height: 1, backgroundColor: P.divider }}
+            />
+
+            {alwaysOpen ? (
+                <View className="flex-row items-center" style={{ gap: 10 }}>
+                    {header}
+                </View>
+            ) : (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setOpen(prev => !prev)}
+                    className="flex-row items-center"
+                    style={{ gap: 10 }}
+                >
+                    {header}
+                </TouchableOpacity>
+            )}
+
+            {expanded ? <View className="mt-4">{children}</View> : null}
+        </View>
+    );
+};
 
 /** Section ka chhota heading (icon + title + optional right). */
 export const SectionHeading = ({

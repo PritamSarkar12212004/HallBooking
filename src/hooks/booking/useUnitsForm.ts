@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react';
 import { showMessage } from 'react-native-flash-message';
 
 import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
+import useBusyLock from '../busy/useBusyLock';
 import { getDraft, updateDraft } from '../../manager/draftBookingStore';
 import {
   createDefaultUnitRows,
   draftItemsToUnitRows,
   isUnitRowValid,
+  pruneUnitRowsForNext,
   resolveUnitMeterPhotoUrl,
   setUnitRowPhoto,
   unitRowsToPayload,
@@ -39,6 +41,8 @@ const useUnitsForm = ({ onNext }: UseUnitsFormOptions = {}) => {
 
   /** Jis row ki meter photo upload chal rahi hai. */
   const [uploadingRowId, setUploadingRowId] = useState<string | null>(null);
+  // Meter photo upload ke dauraan navigation lock (back par upload adhoora na rahe).
+  useBusyLock(uploadingRowId !== null, 'Uploading photo…');
 
   /** Meter photo: local preview turant, phir compress + Cloudinary upload. */
   const applyRowPhoto = useCallback(async (rowId: string, uri: string) => {
@@ -53,7 +57,7 @@ const useUnitsForm = ({ onNext }: UseUnitsFormOptions = {}) => {
       setRows((prev) => setUnitRowPhoto(prev, rowId, null));
       showMessage({
         message: 'Upload Failed',
-        description: 'Meter photo upload nahi ho paayi. Please try again.',
+        description: 'Meter photo could not be uploaded. Please try again.',
         type: 'danger',
       });
     } finally {
@@ -100,15 +104,21 @@ const useUnitsForm = ({ onNext }: UseUnitsFormOptions = {}) => {
       showMessage({
         message: 'Complete Unit Details',
         description:
-          'Har unit ka per-unit rate bharein; jis unit me current reading daali hai uska reading bhi.',
+          'Enter the per-unit rate for every unit, and the reading for the units where you added one.',
         type: 'warning',
       });
       return;
     }
 
+    // Khaali rows (na title, na rate) auto-remove; toggle ON par reading
+    // khaali chhodi ho to row rakho par reading baad me add hogi.
+    const pruned = pruneUnitRowsForNext(rows);
+
     // DRAFT SYSTEM: units local me save hote hain — payment section me merge
-    // ho jaate hain jab booking submit hoti hai.
-    updateDraft('units', unitRowsToPayload(rows));
+    // ho jaate hain jab booking submit hoti hai. Khaali rows draft me nahi
+    // jaati aur UI state se bhi hata dete hain, taaki wapas aane par na dikhein.
+    updateDraft('units', unitRowsToPayload(pruned));
+    setRows(pruned);
 
     onNext?.();
   }, [formValid, rows, onNext]);

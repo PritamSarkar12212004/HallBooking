@@ -5,7 +5,9 @@ import {
     Clock,
     ImageIcon,
     Palette,
+    Pencil,
     Sparkles,
+    User,
     Utensils,
 } from 'lucide-react-native';
 
@@ -15,13 +17,37 @@ import type {
     EventInfo,
     RequirementItem,
 } from '../../../functions/booking/BookingDetailFunction';
-import { DetailCard, DetailRow, SectionHeading, SectionStepHeader } from './DetailPrimitives';
+import {
+    DetailAccordion,
+    DetailCard,
+    DetailRow,
+    SectionHeading,
+} from './DetailPrimitives';
 
 interface Props {
     eventInfo: EventInfo;
     expectedAttendance: number;
     onPreview: (uri?: string | null) => void;
+    /** "Update Event" — booking-for details edit karne ka entry point. */
+    onEditEvent?: () => void;
+    /** Ended booking me koi edit nahi (backend bhi reject karta hai). */
+    editable?: boolean;
 }
+
+/** Ended bookings me edit nahi — button tabhi dikhta hai jab editable ho. */
+const UpdateEventButton = ({ onPress }: { onPress: () => void }) => (
+    <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onPress}
+        className="flex-row items-center justify-center rounded-xl py-3 mt-3"
+        style={{ backgroundColor: P.accentSoft, borderWidth: 1, borderColor: P.border }}
+    >
+        <Pencil size={14} color={P.accent} />
+        <Text className="text-xs font-bold ml-2" style={{ color: P.accent }}>
+            Update Event
+        </Text>
+    </TouchableOpacity>
+);
 
 const RequirementChip = ({ item }: { item: RequirementItem }) => (
     <View
@@ -56,42 +82,114 @@ const RequirementChip = ({ item }: { item: RequirementItem }) => (
  * Hall setup (quantities ke saath), event ke time slots, aur decorator/caterer
  * arrangements — pehle ye info detail screen par dikhti hi nahi thi.
  */
-const RequirementsSection = ({ eventInfo, expectedAttendance, onPreview }: Props) => {
-    const { requirements, timeSlots, evidencePhoto, arrangements, hasAnything } = eventInfo;
+const RequirementsSection = ({
+    eventInfo,
+    expectedAttendance,
+    onPreview,
+    onEditEvent,
+    editable = false,
+}: Props) => {
+    const { requirements, timeSlots, evidencePhoto, arrangements, bookingFor, hasAnything } =
+        eventInfo;
 
     if (!hasAnything) {
         return (
-            <>
-                <SectionStepHeader
-                    index={3}
-                    title="Requirements"
-                    subtitle="Hall setup, time slots aur arrangements"
-                />
-
+            <DetailAccordion
+                index={3}
+                title="Requirements"
+                subtitle="Hall setup, time slots and arrangements"
+                status={{ label: 'None', tone: 'neutral' }}
+            >
                 <DetailCard>
                     <Text className="text-sm" style={{ color: P.textSecondary }}>
-                        Is booking me hall requirements ya arrangements record nahi hue.
+                        No hall requirements or arrangements were recorded.
                     </Text>
                     <Text className="text-[11px] mt-2" style={{ color: P.textMuted }}>
-                        Booking ke event step me jo select kiya tha, wo yahan dikhta hai.
+                        What you selected in the event step appears here.
                     </Text>
                 </DetailCard>
-            </>
+                {editable && onEditEvent ? <UpdateEventButton onPress={onEditEvent} /> : null}
+            </DetailAccordion>
         );
     }
 
     return (
-        <>
-            <SectionStepHeader
-                index={3}
-                title="Requirements"
-                subtitle="Hall setup, time slots aur arrangements"
-                status={
-                    requirements.length > 0
-                        ? { label: `${requirements.length} items`, tone: 'info' }
-                        : null
+        <DetailAccordion
+            index={3}
+            title="Requirements"
+            subtitle="Hall setup, time slots and arrangements"
+            status={
+                requirements.length > 0
+                    ? { label: `${requirements.length} items`, tone: 'info' }
+                    : null
+            }
+        >
+            {/* Booking kis ke liye hai — "Someone Else" par us person ki
+                details + event photo. */}
+            <SectionHeading
+                icon={<User size={16} color={P.accent} />}
+                title="Booking For"
+                right={
+                    bookingFor.isSomeoneElse ? (
+                        <View
+                            className="px-2 py-1 rounded-full"
+                            style={{ backgroundColor: P.accentSoft }}
+                        >
+                            <Text className="text-[10px] font-bold" style={{ color: P.accent }}>
+                                Someone Else
+                            </Text>
+                        </View>
+                    ) : null
                 }
             />
+            <DetailCard>
+                <DetailRow
+                    icon={<User size={14} color={P.textSecondary} />}
+                    label="Booking is for"
+                    value={
+                        bookingFor.isSomeoneElse
+                            ? `${bookingFor.name || 'Someone else'}`
+                            : bookingFor.forWhom || 'Not specified'
+                    }
+                    last={!bookingFor.isSomeoneElse}
+                />
+                {bookingFor.isSomeoneElse ? (
+                    <>
+                        <DetailRow label="Relation" value={bookingFor.relation} />
+                        <DetailRow label="Contact number" value={bookingFor.mobile} last />
+                    </>
+                ) : null}
+            </DetailCard>
+
+            {/* Update ka option booking-for block ke saath hi — dhoondhna na pade. */}
+            {editable && onEditEvent ? <UpdateEventButton onPress={onEditEvent} /> : null}
+
+            {bookingFor.isSomeoneElse && bookingFor.photo ? (
+                <>
+                    <SectionHeading
+                        icon={<ImageIcon size={16} color={P.accent} />}
+                        title="Person / Event Photo"
+                    />
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => onPreview(bookingFor.photo)}
+                        className="rounded-2xl overflow-hidden mb-4"
+                        style={{ borderWidth: 1, borderColor: P.border }}
+                    >
+                        <Image
+                            source={{ uri: bookingFor.photo }}
+                            style={{ width: '100%', height: 180 }}
+                            resizeMode="cover"
+                        />
+                        <Text
+                            className="text-[10px] text-center py-2"
+                            style={{ color: P.textMuted, backgroundColor: P.surfaceAlt }}
+                        >
+                            Tap to view full screen
+                        </Text>
+                    </TouchableOpacity>
+                </>
+            ) : null}
 
             <SectionHeading
                 icon={<ClipboardList size={16} color={P.accent} />}
@@ -112,7 +210,7 @@ const RequirementsSection = ({ eventInfo, expectedAttendance, onPreview }: Props
             ) : (
                 <DetailCard>
                     <Text className="text-xs" style={{ color: P.textMuted }}>
-                        Koi hall requirement select nahi hui.
+                        No hall requirements selected.
                     </Text>
                 </DetailCard>
             )}
@@ -222,7 +320,7 @@ const RequirementsSection = ({ eventInfo, expectedAttendance, onPreview }: Props
                     </TouchableOpacity>
                 </>
             ) : null}
-        </>
+        </DetailAccordion>
     );
 };
 

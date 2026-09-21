@@ -40,7 +40,7 @@ const SkeletonBox = ({
             -1,
             false
         );
-    }, []);
+    }, [shimmer]);
 
     const animatedStyle = useAnimatedStyle(() => {
         const opacity = interpolate(shimmer.value, [0, 0.5, 1], [0.35, 0.7, 0.35]);

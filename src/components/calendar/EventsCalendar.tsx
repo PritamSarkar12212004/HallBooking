@@ -128,7 +128,7 @@ interface EventsCalendarProps {
  * a continuous range band on the grid; the agenda below lists event name,
  * hall, time range and — for multi-day events — the full date range.
  */
-const EventsCalendar = ({ navigation, title = 'Calendar' }: EventsCalendarProps) => {
+const EventsCalendar = ({ navigation }: EventsCalendarProps) => {
     const user = useAppSelector((state) => state.user.user);
     const { bookings, isLoading, isError, refetch } = useListBookings(user?.token);
 

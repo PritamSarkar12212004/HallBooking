@@ -16,6 +16,14 @@ type EvidencePhotoCardProps = {
   onCapture: () => void;
   onPickFromGallery: () => void;
   onRemove: () => void;
+  /** Section ka title (default: evidence photo). */
+  title?: string;
+  /** Title ke neeche hint line. */
+  hint?: string;
+  /** Photo lagi hone par "ready" text. */
+  readyText?: string;
+  /** Photo par tap — full screen preview ke liye. */
+  onPressPhoto?: () => void;
 };
 
 /**
@@ -30,15 +38,15 @@ const EvidencePhotoCard = ({
   onCapture,
   onPickFromGallery,
   onRemove,
+  title = 'Evidence / Reference Photo',
+  hint = 'Optional — attach an event photo, invite or any proof.',
+  readyText = 'Evidence photo ready',
+  onPressPhoto,
 }: EvidencePhotoCardProps) => {
   return (
     <View className="mb-6">
-      <Text className="text-white text-sm font-semibold mb-1">
-        Evidence / Reference Photo
-      </Text>
-      <Text className="text-[#8F8B91] text-xs mb-3">
-        Optional — event ka photo, invite ya koi bhi proof attach kar sakte hain.
-      </Text>
+      <Text className="text-white text-sm font-semibold mb-1">{title}</Text>
+      <Text className="text-[#8F8B91] text-xs mb-3">{hint}</Text>
 
       {photoUri ? (
         <View
@@ -49,15 +57,21 @@ const EvidencePhotoCard = ({
             borderColor: Theme.button.primary,
           }}
         >
-          <Image
-            source={{ uri: photoUri }}
-            style={{ width: '100%', height: 170 }}
-            resizeMode="cover"
-          />
+          <TouchableOpacity
+            activeOpacity={0.9}
+            disabled={!onPressPhoto}
+            onPress={onPressPhoto}
+          >
+            <Image
+              source={{ uri: photoUri }}
+              style={{ width: '100%', height: 170 }}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
 
           <View className="flex-row items-center justify-between p-3">
             <Text className="text-xs" style={{ color: Theme.text.secondary }}>
-              {uploading ? 'Uploading photo...' : 'Evidence photo ready'}
+              {uploading ? 'Uploading photo...' : readyText}
             </Text>
 
             <View className="flex-row gap-2">

@@ -40,6 +40,16 @@ export interface DraftBookingData {
         requirementQuantities?: { label: string; quantity: number }[];
         /** Evidence / reference photo (Cloudinary URL). */
         evidencePhoto?: string;
+        /** Booking kis ke liye hai — "Myself" | "Someone Else". */
+        bookingFor?: string;
+        /** "Someone Else" ke liye booking hone par us person ka naam. */
+        bookingForName?: string;
+        /** Us person ka applicant se rishta (optional). */
+        bookingForRelation?: string;
+        /** Us person ka contact number (optional). */
+        bookingForMobile?: string;
+        /** Event-related photo / proof (Cloudinary URL) — optional. */
+        bookingForPhoto?: string;
     };
 
     // Step3 — arrangements

@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from '../../lib/style/withTailwind';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { showMessage } from 'react-native-flash-message';
 import { ArrowDownUp, PhoneOff, RefreshCw } from 'lucide-react-native';
 
@@ -104,6 +104,19 @@ const ApplicantListScreen = ({ navigation }: any) => {
             showMessage({ message: 'Unable to open the dialer', type: 'danger' });
         });
     }, []);
+
+    // Stable render callbacks — memoized cards ko unnecessary re-render se bachate hain.
+    const keyExtractor = useCallback((item: any) => String(item?.id), []);
+
+    const renderApplicant = useCallback(
+        ({ item }: { item: any }) => (
+            <ApplicantListCard
+                item={item as applicantListInterface}
+                callPress={onCall}
+            />
+        ),
+        [onCall],
+    );
 
     const errorMessage =
         (error as any)?.response?.data?.message ||
@@ -240,14 +253,14 @@ const ApplicantListScreen = ({ navigation }: any) => {
                     ) : (
                         <FlatList
                             data={applicants as applicantListInterface[]}
-                            keyExtractor={(item: any) => item.id}
-                            renderItem={({ item }) => (
-                                <ApplicantListCard
-                                    item={item as applicantListInterface}
-                                    callPress={onCall}
-                                />
-                            )}
+                            keyExtractor={keyExtractor}
+                            renderItem={renderApplicant}
                             showsVerticalScrollIndicator={false}
+                            // Windowing — lambe list par kam memory / smooth scroll.
+                            initialNumToRender={6}
+                            maxToRenderPerBatch={6}
+                            windowSize={7}
+                            removeClippedSubviews={Platform.OS === 'android'}
                             ListEmptyComponent={
                                 <View className="items-center justify-center py-16 px-8">
                                     <Text

@@ -13,7 +13,6 @@ import tw from 'twrnc';
 
 import { Theme } from '../../const/theme/Theme';
 import Wrapper from '../../layouts/wraper/Wraper';
-import SubHeader from '../../components/header/SubHeader';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useListBookings from '../../api/booking/hooks/useListBookings';
 import { bookingListInterface } from '../../interface/api/bookintInterface';
@@ -65,7 +64,7 @@ const BAND_MIDDLE: ViewStyle = { ...BAND_BASE, left: 1, right: 1 };
 const BAND_END: ViewStyle = { ...BAND_BASE, right: 6, borderTopRightRadius: 10, borderBottomRightRadius: 10 };
 const BAND_SINGLE: ViewStyle = { ...BAND_BASE, left: 6, right: 6, borderRadius: 10 };
 
-const CaalenderScreen = ({ navigation }: any) => {
+const CaalenderScreen = () => {
     const user = useAppSelector((state) => state.user.user);
     const { bookings, isLoading, isError, refetch } = useListBookings(user?.token);
 

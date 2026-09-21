@@ -8,10 +8,8 @@ import {
     Modal,
     Pressable,
 } from '../../lib/style/withTailwind';
-import { ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import {
-    Camera,
     Check,
     LogOut,
     Mail,
@@ -22,7 +20,6 @@ import {
     QrCode,
     UserRound,
     ShieldCheck,
-    ChevronRight,
     X,
 } from 'lucide-react-native';
 import Wrapper from '../../layouts/wraper/Wraper';

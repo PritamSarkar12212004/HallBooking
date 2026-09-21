@@ -36,6 +36,12 @@ export interface UnitRow {
   meterPhotoUri: string | null;
   /** Uploaded Cloudinary URL (optional) — yahi backend ko jaata hai. */
   meterPhotoUrl: string | null;
+  /**
+   * Closing meter photo (event end / Finalize) — closing reading ka evidence.
+   * Booking-start photo (`meterPhotoUrl`) se alag; dono Payment Record me
+   * dikhte hain.
+   */
+  closingPhotoUrl: string | null;
   /** Kept for data compatibility — always false, units paid at handover. */
   paid: boolean;
   /** @deprecated — kept only for backend payload compatibility. */
@@ -48,6 +54,7 @@ export interface UnitDraftItem {
   perUnit: number;
   currentUnit: number;
   meterPhoto?: string;
+  closingPhoto?: string;
 }
 
 /* -------------------------------- row factory -------------------------------- */
@@ -62,6 +69,7 @@ export const newUnitRow = (
   options: {
     includeNow?: boolean;
     meterPhotoUrl?: string | null;
+    closingPhotoUrl?: string | null;
   } = {},
 ): UnitRow => ({
   id: `unit-${Date.now()}-${unitIdCounter++}`,
@@ -72,6 +80,7 @@ export const newUnitRow = (
   includeNow: options.includeNow ?? true,
   meterPhotoUri: options.meterPhotoUrl || null,
   meterPhotoUrl: options.meterPhotoUrl ?? null,
+  closingPhotoUrl: options.closingPhotoUrl ?? null,
   paid,
 });
 
@@ -154,6 +163,32 @@ export const isUnitRowValid = (row: UnitRow): boolean => {
   return true;
 };
 
+/**
+ * Row aage (Next) jaane layak hai? Title **aur** per-unit rate dono hone
+ * chahiye — na title na value wali rows ka billing matlab nahi, wo aage
+ * travel nahi karni chahiye.
+ */
+export const isUnitRowCarryable = (row: UnitRow): boolean =>
+  row.label.trim().length > 0 && num(row.perUnit) > 0;
+
+/**
+ * Aage badhne se pehle khaali rows auto-remove:
+ *  - title khaali hai, ya per-unit rate nahi bhara -> row hata do
+ *  - title + rate hai par toggle ON karke reading khaali chhodi -> row rakho,
+ *    bas toggle OFF kar do (reading baad me Update Finance / Finalize se aayegi)
+ *
+ * Isse staff "Add Unit" dabakar khaali chhod de ya default rows na chhue ho to
+ * bhi Next block nahi hota — khaali rows chup-chaap hat jaati hain.
+ */
+export const pruneUnitRowsForNext = (rows: UnitRow[]): UnitRow[] =>
+  rows
+    .filter(isUnitRowCarryable)
+    .map((row) =>
+      row.includeNow && num(row.currentUnit) <= 0
+        ? { ...row, includeNow: false }
+        : row,
+    );
+
 /** Reading row me meter photo lagi hai? (photo optional hai) */
 export const hasMeterPhoto = (row: UnitRow): boolean =>
   Boolean(row.meterPhotoUrl || row.meterPhotoUri);
@@ -173,6 +208,9 @@ export const unitRowsToPayload = (rows: UnitRow[]): UnitDraftItem[] =>
       currentUnit: row.includeNow ? num(row.currentUnit) : 0,
       // Optional meter photo (URL) — evidence.
       meterPhoto: row.meterPhotoUrl ?? undefined,
+      // Closing photo (Finalize se) — ho to carry karte hain, warna backend
+      // saved value preserve karta hai.
+      closingPhoto: row.closingPhotoUrl ?? undefined,
     }));
 
 /**
@@ -200,6 +238,7 @@ export const draftItemsToUnitRows = (
           Boolean(item.currentUnit || item.meterPhoto) ||
           (options.openReadingInput === true && !item.currentUnit),
         meterPhotoUrl: item.meterPhoto ?? null,
+        closingPhotoUrl: item.closingPhoto ?? null,
       },
     ),
   );

@@ -51,19 +51,23 @@ describe('mode rules', () => {
     expect(requiresTransactionNumber(undefined)).toBe(false);
   });
 
-  it('needs a payment proof for every non-cash mode', () => {
+  it('needs a payment proof for every mode (Cash included)', () => {
     expect(isPaymentProofRequired('UPI')).toBe(true);
     expect(isPaymentProofRequired('Cheque')).toBe(true);
     expect(isPaymentProofRequired('NEFT/RTGS')).toBe(true);
-    // Cash me proof optional evidence hai, aur mode chunne se pehle bhi optional.
-    expect(isPaymentProofRequired('Cash')).toBe(false);
+    // Cash ka receipt bhi mandatory — har payment ka evidence record hota hai.
+    expect(isPaymentProofRequired('Cash')).toBe(true);
     expect(isPaymentProofRequired(undefined)).toBe(false);
   });
 
   it('explains what the proof is for', () => {
     expect(getPaymentProofHint('UPI')).toBe('Capture or select payment receipt');
-    expect(getPaymentProofHint('Cash')).toContain('optional');
-    expect(getPaymentProofHint(undefined)).toContain('optional');
+    expect(getPaymentProofHint('Cash')).toBe(
+      'Capture or select the cash receipt (required).',
+    );
+    expect(getPaymentProofHint(undefined)).toBe(
+      'Capture or select payment receipt',
+    );
   });
 
   it('labels the reference field per mode', () => {
@@ -117,11 +121,12 @@ describe('form validation', () => {
     summary: summaryOf(),
     mode: 'Cash' as string | undefined,
     transactionNumber: '',
-    hasProof: false,
+    hasProof: true,
   };
 
-  it('accepts a cash payment without proof', () => {
+  it('blocks a cash payment without proof', () => {
     expect(isPaymentFormValid(valid)).toBe(true);
+    expect(isPaymentFormValid({ ...valid, hasProof: false })).toBe(false);
   });
 
   it('blocks when no mode is chosen', () => {
@@ -151,14 +156,13 @@ describe('form validation', () => {
 
   it('needs the reference number for UPI and the proof photo', () => {
     expect(
-      isPaymentFormValid({ ...valid, mode: 'UPI', hasProof: true }),
+      isPaymentFormValid({ ...valid, mode: 'UPI', transactionNumber: '' }),
     ).toBe(false);
     expect(
       isPaymentFormValid({
         ...valid,
         mode: 'UPI',
         transactionNumber: '  ',
-        hasProof: true,
       }),
     ).toBe(false);
     expect(
@@ -174,7 +178,6 @@ describe('form validation', () => {
         ...valid,
         mode: 'UPI',
         transactionNumber: 'TXN123',
-        hasProof: true,
       }),
     ).toBe(true);
   });

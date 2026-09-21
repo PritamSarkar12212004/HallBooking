@@ -155,6 +155,8 @@ const SplashScreen = () => {
             <AnimatedFastImage
                 source={ImgConst.MainImg}
                 resizeMode={FastImage.resizeMode.contain}
+                // Animated style ka type FastImage ke ImageStyle se match nahi
+                // karta — runtime par sahi chalta hai, isliye cast.
                 style={[
                     {
                         width: '55%',
@@ -163,7 +165,7 @@ const SplashScreen = () => {
                         maxHeight: 220,
                     },
                     animatedStyle,
-                ]}
+                ] as any}
             />
         </View>
     );

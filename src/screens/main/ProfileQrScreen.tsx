@@ -132,7 +132,7 @@ const ProfileQrScreen = ({ navigation }: any) => {
 
       showMessage({
         message: 'Payment QR Saved',
-        description: 'Yeh QR ab sabhi payment screens par use hoga.',
+        description: 'This QR will now be used on all payment screens.',
         type: 'success',
       });
 
@@ -349,7 +349,7 @@ const ProfileQrScreen = ({ navigation }: any) => {
                     className="text-xs mt-1"
                     style={{ color: Palette.textMuted }}
                   >
-                    Gallery se choose karein ya camera se scan karein
+                    Choose from gallery or scan with the camera
                   </Text>
                 </View>
               )}
@@ -397,7 +397,7 @@ const ProfileQrScreen = ({ navigation }: any) => {
         onGallery={handleGallery}
         onClose={closeSheet}
         title="Upload Payment QR"
-        subtitle="QR image choose karein — gallery se ya camera se scan karke."
+        subtitle="Pick a QR image — from the gallery or by scanning it with the camera."
         cameraLabel="Scan / Camera"
         galleryLabel="Gallery"
       />

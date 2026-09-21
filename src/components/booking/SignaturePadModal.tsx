@@ -97,7 +97,7 @@ const SignaturePadModal = ({
             <View className="flex-1 pr-3">
               <Text className="text-white text-base font-semibold">{title}</Text>
               <Text className="text-[#8F8B91] text-xs mt-0.5">
-                {subtitle ?? 'Poori screen par ungli se sign karein, phir Save dabayein.'}
+                {subtitle ?? 'Sign anywhere on the screen, then tap Save.'}
               </Text>
             </View>
 
@@ -139,15 +139,15 @@ const SignaturePadModal = ({
               onOK={(signature: string) => onSave(signature)}
               onEmpty={() =>
                 showMessage({
-                  message: 'Signature khali hai',
-                  description: 'Pehle sign karein, phir Save dabayein.',
+                  message: 'Signature is empty',
+                  description: 'Please sign first, then tap Save.',
                   type: 'warning',
                 })
               }
               onError={(error: Error) =>
                 showMessage({
                   message: 'Signature Error',
-                  description: error?.message || 'Signature pad load nahi hua.',
+                  description: error?.message || 'Signature pad could not load.',
                   type: 'danger',
                 })
               }

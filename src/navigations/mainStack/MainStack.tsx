@@ -18,6 +18,7 @@ import ReportsScreen from '../../screens/ceo/ReportsScreen';
 
 import BookingDetailScreen from '../../screens/booking/BookingDetailScreen';
 import EditFinanceScreen from '../../screens/booking/EditFinanceScreen';
+import EditEventScreen from '../../screens/booking/EditEventScreen';
 import PaymentTrackRecordScreen from '../../screens/booking/PaymentTrackRecordScreen';
 
 import BookingStepStack from './BookingStepStack';
@@ -28,6 +29,10 @@ import { isCeoPhone } from '../../const/role/role';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Tab bar renderer component ke BAHAR — inline arrow dene par har render me naya
+// component banta hai aur poora tab bar dobara mount ho jaata hai.
+const renderTabBar = (props: any) => <TabUiNavi {...props} />;
+
 const StaffTabs = () => {
     return (
         <Tab.Navigator
@@ -35,7 +40,7 @@ const StaffTabs = () => {
                 headerShown: false,
                 animation: "fade"
             }}
-            tabBar={(props) => <TabUiNavi {...props} />}
+            tabBar={renderTabBar}
         >
             <Tab.Screen name={TabRoute.Home} component={HomeScreen} />
             <Tab.Screen name={TabRoute.Bookings} component={BookingListScreen} />
@@ -53,11 +58,11 @@ const CEOTabs = () => {
                 headerShown: false,
                 animation: "fade"
             }}
-            tabBar={(props) => <TabUiNavi {...props} />}
+            tabBar={renderTabBar}
         >
             <Tab.Screen name={TabRoute.Dashboard} component={CEODashboardScreen} />
             <Tab.Screen name={TabRoute.Bookings} component={BookingListScreen} />
-            <Tab.Screen name={TabRoute.Notification} component={NotificationScreen} />
+            {/* CEO ke side par Notification tab nahi chahiye. */}
             <Tab.Screen name={TabRoute.Applicants} component={ApplicantListScreen} />
             <Tab.Screen name={TabRoute.Profile} component={ProfileScreen} />
         </Tab.Navigator>
@@ -98,6 +103,11 @@ const MainStack = ({ userRole }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.EditFinance}
                 component={EditFinanceScreen}
+            />
+            {/* Event details (Booking For + us person ki details/photo) update */}
+            <Stack.Screen
+                name={MainRoute.EditEvent}
+                component={EditEventScreen}
             />
             <Stack.Screen
                 name={MainRoute.PaymentTrackRecord}

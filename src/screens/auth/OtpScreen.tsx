@@ -49,7 +49,7 @@ const OtpScreen = ({ route, navigation }: any) => {
     const dispatch = useAppDispatch();
     const isValid = OTP_REGEX.test(otp);
 
-    const persistSignIn = (data: any) => {
+    const persistSignIn = useCallback((data: any) => {
         dispatch(setUser({
             token: data?.token,
             _id: data?.user._id,
@@ -61,7 +61,7 @@ const OtpScreen = ({ route, navigation }: any) => {
             city: data?.user.city,
         }));
         writeStorage({ key: storageToken, data: data?.token });
-    };
+    }, [dispatch]);
 
     const otpTheme = useMemo<OtpInputTheme>(
         () => ({
@@ -173,7 +173,7 @@ const OtpScreen = ({ route, navigation }: any) => {
         phoneNumber,
         verifyOtpAsync,
         navigation,
-        dispatch
+        persistSignIn,
     ]);
     useEffect(() => {
         startOtpListener(message => {

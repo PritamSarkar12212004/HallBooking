@@ -34,19 +34,19 @@ export const PAYMENT_MODES: string[] = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 export const requiresTransactionNumber = (mode?: string): boolean =>
     mode === 'UPI' || mode === 'Cheque' || mode === 'NEFT/RTGS';
 
-/** Non-cash modes me payment proof zaroori; Cash me OPTIONAL (sirf evidence). */
+/**
+ * Payment proof har mode me **zaroori** hai — Cash me bhi cash receipt lagana
+ * mandatory hai, taake har payment ka evidence record ho.
+ */
 export const isPaymentProofRequired = (mode?: string): boolean =>
-    Boolean(mode) && mode !== 'Cash';
+    Boolean(mode);
 
 export const getPaymentProofHint = (mode?: string): string => {
-    if (isPaymentProofRequired(mode)) {
-        return 'Capture or select payment receipt';
-    }
     if (mode === 'Cash') {
-        return 'Cash payment me proof optional hai — receipt/photo chahein to add karein.';
+        return 'Capture or select the cash receipt (required).';
     }
 
-    return 'Proof optional hai — receipt/photo add kar sakte hain (baad me bhi).';
+    return 'Capture or select payment receipt';
 };
 
 export const getTransactionFieldTitle = (mode?: string): string =>

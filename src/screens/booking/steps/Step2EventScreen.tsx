@@ -21,7 +21,9 @@ import {
   CalendarCheck,
   CalendarDays,
   Hash,
+  Phone,
   Plus,
+  User,
   UsersRound,
   X,
 } from 'lucide-react-native';
@@ -53,6 +55,24 @@ const Step2EventScreen = () => {
     otherEventName,
     changeOtherEventName,
     otherEventError,
+    bookingForOptions,
+    bookingFor,
+    selectBookingFor,
+    isBookingForSomeoneElse,
+    bookingForName,
+    changeBookingForName,
+    bookingForRelation,
+    changeBookingForRelation,
+    bookingForMobile,
+    changeBookingForMobile,
+    bookingForNameError,
+    bookingForPhotoUri,
+    uploadingBookingForPhoto,
+    captureBookingForPhoto,
+    pickBookingForPhotoFromGallery,
+    removeBookingForPhoto,
+    bookingForMobileError,
+    touchBookingForMobile,
     expectedAttendance,
     setExpectedAttendance,
     requirementOptions,
@@ -174,6 +194,81 @@ const Step2EventScreen = () => {
                     <X size={14} color={Theme.button.primary} />
                   </TouchableOpacity>
                 ))}
+              </View>
+            )}
+
+            {/* Booking kis ke liye hai — "Someone Else" par uska naam +
+                optional event photo. */}
+            <MultiSelector
+              title="Booking For"
+              list={bookingForOptions}
+              value={bookingFor}
+              actionFunc={selectBookingFor}
+              selection="Single select"
+              Icon={User}
+            />
+
+            {isBookingForSomeoneElse && (
+              <View className="mb-2">
+                <InputField
+                  title="Name of the Person *"
+                  value={bookingForName}
+                  setvalue={changeBookingForName}
+                  placeholder="Enter the person's name"
+                  keyType="default"
+                  Icon={User}
+                  bordered
+                />
+                {/* Reserved error slot keeps layout stable (no UI jump) */}
+                <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                  {bookingForNameError ? (
+                    <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                      {bookingForNameError}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <InputField
+                  title="Relation (optional)"
+                  value={bookingForRelation}
+                  setvalue={changeBookingForRelation}
+                  placeholder="e.g. Brother, Friend, Colleague"
+                  keyType="default"
+                  Icon={UsersRound}
+                  bordered
+                />
+
+                <InputField
+                  title="Contact Number (optional)"
+                  value={bookingForMobile}
+                  setvalue={(text: string) => {
+                    touchBookingForMobile();
+                    changeBookingForMobile(text);
+                  }}
+                  placeholder="10-digit mobile number"
+                  keyType="numeric"
+                  Icon={Phone}
+                  bordered
+                />
+                {/* 10-digit validation — khaali chhod sakte hain, par bhara ho to poora number */}
+                <View style={{ minHeight: 16, justifyContent: 'center' }}>
+                  {bookingForMobileError ? (
+                    <Text className="text-xs" style={{ color: '#FF6B6B' }}>
+                      {bookingForMobileError}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <EvidencePhotoCard
+                  title="Event Photo (optional)"
+                  hint="Optional — attach an invite, event photo or any proof."
+                  readyText="Event photo ready"
+                  photoUri={bookingForPhotoUri}
+                  uploading={uploadingBookingForPhoto}
+                  onCapture={captureBookingForPhoto}
+                  onPickFromGallery={pickBookingForPhotoFromGallery}
+                  onRemove={removeBookingForPhoto}
+                />
               </View>
             )}
 

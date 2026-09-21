@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { Image, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
 import { Bell, Sparkles } from 'lucide-react-native';
 import { TabRoute } from '../../const/routes/route';
+import useIsCeo from '../../hooks/role/useIsCeo';
 
 const Colors = {
     background: '#0F1115',
@@ -23,7 +24,7 @@ const Colors = {
     purple: '#A78BFA',
     purpleSoft: 'rgba(167, 139, 250, 0.12)',
 };
-const DashHeader = ({ navigation, name, photo }: {
+const DashHeader = ({ navigation, photo }: {
     navigation: any;
     name: string | any;
     photo: string | any
@@ -48,6 +49,9 @@ const DashHeader = ({ navigation, name, photo }: {
         navigation.navigate(TabRoute.Notification);
     };
 
+    // CEO ke tabs me Notification tab hi nahi hai — isliye bell bhi nahi dikhata.
+    const isCeo = useIsCeo();
+
     const handleProfilePress = () => {
         navigation.navigate(TabRoute.Profile);
     };
@@ -68,25 +72,27 @@ const DashHeader = ({ navigation, name, photo }: {
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        className="w-11 h-11 rounded-2xl items-center justify-center"
-                        style={{
-                            backgroundColor: Colors.surface,
-                            borderWidth: 1,
-                            borderColor: Colors.border,
-                        }}
-                        onPress={handleNotificationPress}
-                    >
-                        <Bell size={19} color={Colors.textPrimary} />
-                        <View
-                            className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full border-2"
+                    {isCeo ? null : (
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            className="w-11 h-11 rounded-2xl items-center justify-center"
                             style={{
-                                backgroundColor: Colors.red,
-                                borderColor: Colors.background,
+                                backgroundColor: Colors.surface,
+                                borderWidth: 1,
+                                borderColor: Colors.border,
                             }}
-                        />
-                    </TouchableOpacity>
+                            onPress={handleNotificationPress}
+                        >
+                            <Bell size={19} color={Colors.textPrimary} />
+                            <View
+                                className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full border-2"
+                                style={{
+                                    backgroundColor: Colors.red,
+                                    borderColor: Colors.background,
+                                }}
+                            />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                         activeOpacity={0.9}
                         className="w-11 h-11 rounded-2xl overflow-hidden"

@@ -1,17 +1,19 @@
 /**
- * Booking Details ke pages ka dark palette.
+ * Booking Details ke sections ka palette.
  *
- * Screen aur uske page components ek hi jagah se colors lete hain, taake poora
- * detail flow (overview → applicant → requirements → finance → finalize)
- * consistent lage.
+ * Background aur card colors app ke baaki screens wale hi hain (`Theme` se) —
+ * pehle yahan alag (zyada dark) bg tha, isliye ye screen baaki app se alag
+ * lagti thi.
  */
+import { Theme } from './Theme';
+
 export const BookingDetailPalette = {
-    bg: '#0D0D12',
-    surface: '#17171F',
-    surfaceAlt: '#1F1F2A',
-    raised: '#242430',
-    border: '#2A2A36',
-    divider: '#23232E',
+    bg: Theme.background.primary,
+    surface: Theme.background.secondary,
+    surfaceAlt: '#2C2C33',
+    raised: '#33333B',
+    border: Theme.border.primary,
+    divider: '#2A2A31',
     textPrimary: '#FFFFFF',
     textSecondary: '#9498A5',
     textMuted: '#6E7280',

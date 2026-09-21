@@ -22,6 +22,8 @@ export const MainRoute = {
   NewBooking: 'NewBooking',
   BookingDetail: 'BookingDetail',
   EditFinance: 'EditFinance',
+  /** Event details (booking-for etc.) edit karne ki screen. */
+  EditEvent: 'EditEvent',
   PaymentTrackRecord: 'PaymentTrackRecord',
   Reports: 'Reports',
   Profile: 'Profile',

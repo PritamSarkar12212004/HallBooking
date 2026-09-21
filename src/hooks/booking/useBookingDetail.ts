@@ -69,6 +69,14 @@ const useBookingDetail = ({
 
     const openEditFinance = openUnitFix;
 
+    /**
+     * Event details (booking kis ke liye hai + us person ki details/photo)
+     * edit karne ke liye Update Event screen.
+     */
+    const openEditEvent = useCallback(() => {
+        navigation.navigate(MainRoute.EditEvent, { id: bookingId });
+    }, [navigation, bookingId]);
+
     const openPayments = useCallback(() => {
         navigation.navigate(MainRoute.PaymentTrackRecord, { id: bookingId });
     }, [navigation, bookingId]);
@@ -94,6 +102,7 @@ const useBookingDetail = ({
         openFinalize,
         openUnitFix,
         openEditFinance,
+        openEditEvent,
         openPayments,
         // preview
         previewUri,

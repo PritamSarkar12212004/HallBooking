@@ -128,7 +128,7 @@ export const getScheduleSummary = (schedule?: {
     const isMultiDay = dayCount > 1;
 
     const hours = DIFF_HOURS(startTime, endTime);
-    const windowLabel = hours ? `${hours}h window` : 'time set nahi';
+    const windowLabel = hours ? `${hours}h window` : 'Time not set';
     const dayLabel = dayCount === 1 ? '1 day' : `${dayCount} days`;
 
     return {
@@ -174,7 +174,7 @@ export const getBookingOverview = (booking: any): BookingOverview => {
         bookingNumber: booking?.bookingNumber || '—',
         status: getStatusMeta(booking?.status),
         paymentStatus: getPaymentStatusMeta(booking?.paymentStatus),
-        hallName: hall?.name || 'Hall assigned nahi',
+        hallName: hall?.name || 'Hall not assigned',
         hallCapacity: num(hall?.capacity),
         expectedAttendance: num(event?.expectedAttendance),
         bookedBy: booking?.bookedByStaff || booking?.createdByName || '—',
@@ -253,15 +253,54 @@ export interface ArrangementInfo {
     kitchenRequired: boolean;
 }
 
+export interface BookingForInfo {
+    /** Booking kis ke liye hai — "Myself" / "Someone Else" (khaali = set nahi). */
+    forWhom: string;
+    /** "Someone Else" ke liye booking hone par us person ka naam. */
+    name: string;
+    relation: string;
+    mobile: string;
+    /** Event photo / proof (Cloudinary URL). */
+    photo: string;
+    /** Booking kisi aur ke liye hai (details dikhane layak). */
+    isSomeoneElse: boolean;
+    /** Kuch bhi record hua hai? */
+    hasAnything: boolean;
+}
+
 export interface EventInfo {
     requirements: RequirementItem[];
     timeSlots: string[];
     evidencePhoto: string;
     arrangements: ArrangementInfo;
+    /** Booking kis ke liye hai — applicant khud ya kisi aur ke liye. */
+    bookingFor: BookingForInfo;
     hasAnything: boolean;
 }
 
 const asText = (value: unknown): string => String(value ?? '').trim();
+
+/** "Booking For" ka readable block — detail screen isse dikhata hai. */
+export const getBookingForInfo = (event: any): BookingForInfo => {
+    const forWhom = asText(event?.bookingFor);
+    const name = asText(event?.bookingForName);
+    const relation = asText(event?.bookingForRelation);
+    const mobile = asText(event?.bookingForMobile);
+    const photo = asText(event?.bookingForPhoto);
+    // "Someone Else" chuna gaya ho — naam bhi ho tabhi detail dikhati hai.
+    const isSomeoneElse = forWhom.toLowerCase() === 'someone else';
+
+    return {
+        forWhom,
+        name,
+        relation,
+        mobile,
+        photo,
+        isSomeoneElse,
+        hasAnything:
+            Boolean(forWhom) || Boolean(name) || Boolean(relation) || Boolean(mobile) || Boolean(photo),
+    };
+};
 
 export const getEventInfo = (booking: any): EventInfo => {
     const event = booking?.event ?? {};
@@ -297,11 +336,13 @@ export const getEventInfo = (booking: any): EventInfo => {
         ? event.timeSlots.map((slot: any) => asText(slot)).filter(Boolean)
         : [];
     const evidencePhoto = event?.evidencePhoto || '';
+    const bookingFor = getBookingForInfo(event);
 
     return {
         requirements,
         timeSlots,
         evidencePhoto,
+        bookingFor,
         arrangements: {
             decorator:
                 decoratorName || decoratorContact || decoratorTiming
@@ -321,6 +362,7 @@ export const getEventInfo = (booking: any): EventInfo => {
             requirements.length > 0 ||
             timeSlots.length > 0 ||
             Boolean(evidencePhoto) ||
+            bookingFor.isSomeoneElse ||
             decoratorName.length > 0 ||
             catererName.length > 0 ||
             kitchenRequired,
@@ -452,12 +494,12 @@ export const getUnitIssues = (units?: UnitLine[] | null): UnitIssue[] =>
                 ? {
                       label: unit.label,
                       kind: 'rate' as const,
-                      message: `"${unit.label}" ka per-unit rate add karein.`,
+                      message: `Add the per-unit rate for "${unit.label}".`,
                   }
                 : {
                       label: unit.label,
                       kind: 'reading' as const,
-                      message: `"${unit.label}" ki current unit (reading) add karein.`,
+                      message: `Add the current reading for "${unit.label}".`,
                   },
         );
 
@@ -488,12 +530,12 @@ export const getFinalizeChecklist = (booking: any): ChecklistItem[] => {
     return [
         {
             key: 'units',
-            label: 'Units ki reading',
+            label: 'Unit readings',
             hint:
                 issues.length === 0
                     ? finance.units.length === 0
-                        ? 'Is booking me koi unit add nahi hai.'
-                        : 'Sab units ki current reading maujood hai.'
+                        ? 'No units added in this booking.'
+                        : 'All units have their current reading.'
                     : issues.map((issue) => issue.message).join(' '),
             ok: issues.length === 0,
             blocking: true,
@@ -503,8 +545,8 @@ export const getFinalizeChecklist = (booking: any): ChecklistItem[] => {
             label: 'Final payment',
             hint:
                 finance.balanceAmount > 0
-                    ? `${money(finance.balanceAmount)} balance collect karna hai.`
-                    : 'Poora payment settle ho chuka hai.',
+                    ? `Collect the remaining balance of ${money(finance.balanceAmount)}.`
+                    : 'Payment is fully settled.',
             ok: finance.balanceAmount <= 0,
             blocking: false,
         },
@@ -513,10 +555,10 @@ export const getFinalizeChecklist = (booking: any): ChecklistItem[] => {
             label: 'Security deposit',
             hint:
                 finance.securityDeposit <= 0
-                    ? 'Koi security deposit nahi liya gaya.'
+                    ? 'No security deposit was taken.'
                     : depositOk
-                    ? 'Deposit return mark ho chuka hai.'
-                    : `${money(finance.securityDeposit)} deposit ka return mark karein.`,
+                    ? 'Deposit has been marked as returned.'
+                    : `Mark the ${money(finance.securityDeposit)} deposit as returned.`,
             ok: depositOk,
             blocking: false,
         },
@@ -524,8 +566,8 @@ export const getFinalizeChecklist = (booking: any): ChecklistItem[] => {
             key: 'signatures',
             label: 'Signatures',
             hint: signatureOk
-                ? 'Applicant + Manager signature maujood hain.'
-                : 'Applicant/Manager signature ke bina booking adhoori hai.',
+                ? 'Applicant and Manager signatures are present.'
+                : 'Booking is incomplete without Applicant/Manager signatures.',
             ok: signatureOk,
             blocking: false,
         },
@@ -535,14 +577,14 @@ export const getFinalizeChecklist = (booking: any): ChecklistItem[] => {
 /** Swipe block hone ka exact reason (UI par ek line me). */
 export const getFinalizeBlocker = (booking: any): string | null => {
     if (booking?.status === 'Ended') {
-        return 'Event already ended hai — is booking me koi change nahi ho sakta.';
+        return 'This event has already ended — no further changes are allowed.';
     }
 
     const issues = getUnitIssues(getFinanceSummary(booking?.financial).units);
     if (issues.length > 0) {
         return issues.length === 1
             ? issues[0].message
-            : `${issues.length} units adhoori hain — pehle unki reading add karein.`;
+            : `${issues.length} units are incomplete — add their readings first.`;
     }
 
     return null;

@@ -12,31 +12,68 @@ jest.mock('react-native-compressor', () => ({
   },
 }));
 
-import { Image as CompressorImage } from 'react-native-compressor';
-
-import uploadImage from '../src/services/Cloudinary/uploadImg';
 import {
   DEFAULT_UNIT_LABELS,
   addUnitRow,
-  computeUnitsPaidTotal,
-  computeUnitsTotal,
   createDefaultUnitRows,
   createEmptyUnitRow,
   draftItemsToUnitRows,
   hasMeterPhoto,
-  isUnitRowValid,
   newUnitRow,
+  pruneUnitRowsForNext,
   num,
   removeUnitRow,
-  resolveUnitMeterPhotoUrl,
   sanitizeUnitNumber,
   setUnitRowPhoto,
   toggleUnitRowIncludeNow,
-  unitRowAmount,
-  unitRowsToPayload,
   updateUnitRowField,
-  uploadUnitMeterPhoto,
 } from '../src/functions/booking/UnitsFunction';
+
+describe('pruneUnitRowsForNext', () => {
+  const row = (over: Partial<import('../src/functions/booking/UnitsFunction').UnitRow>) => ({
+    ...newUnitRow('Light', '8'),
+    ...over,
+  });
+
+  it('na title na rate wali khaali row hata deta hai', () => {
+    const pruned = pruneUnitRowsForNext([
+      createEmptyUnitRow(),
+      row({ label: 'Water', perUnit: '10' }),
+    ]);
+
+    expect(pruned).toHaveLength(1);
+    expect(pruned[0].label).toBe('Water');
+  });
+
+  it('title hai par rate nahi — wo bhi hatati hai', () => {
+    const pruned = pruneUnitRowsForNext([row({ label: 'AC', perUnit: '' })]);
+
+    expect(pruned).toHaveLength(0);
+  });
+
+  it('rate hai par title khaali — wo bhi hatati hai', () => {
+    const pruned = pruneUnitRowsForNext([row({ label: '', perUnit: '5' })]);
+
+    expect(pruned).toHaveLength(0);
+  });
+
+  it('toggle ON par reading khaali ho to row rakhta hai, bas toggle OFF kar deta hai', () => {
+    const pruned = pruneUnitRowsForNext([
+      row({ label: 'Water', perUnit: '10', currentUnit: '', includeNow: true }),
+    ]);
+
+    expect(pruned).toHaveLength(1);
+    expect(pruned[0].includeNow).toBe(false);
+  });
+
+  it('valid rows (reading ke saath) waise hi rehti hain', () => {
+    const valid = row({ label: 'Light', perUnit: '8', currentUnit: '120', includeNow: true });
+    const pruned = pruneUnitRowsForNext([valid]);
+
+    expect(pruned).toHaveLength(1);
+    expect(pruned[0]).toMatchObject({ label: 'Light', currentUnit: '120', includeNow: true });
+  });
+});
 
 describe('row factory', () => {
   it('ships default labels with reading toggle ON', () => {

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import { capturePhoto, pickFromGallery } from '../../module/ImagePickerModule';
+import useBusyLock from '../busy/useBusyLock';
 import {
   processPhoto,
   removePhoto,
@@ -30,6 +31,8 @@ const useHallEventPhoto = ({
   const [eventPhotoUri, setEventPhotoUri] = useState<string | null>(initialPhotoUri);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(initialImageUrl);
   const [uploadingImage, setUploadingImage] = useState(false);
+  // Upload ke dauraan navigation lock — adhoora upload chhoot na jaaye.
+  useBusyLock(uploadingImage, 'Uploading photo…');
 
   /** Camera se photo leta aur upload karta hai (default rear camera). */
   const captureEventPhoto = useCallback(

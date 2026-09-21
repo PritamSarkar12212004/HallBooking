@@ -21,6 +21,7 @@ import { Divider, Drawer, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../const/theme/Theme';
 import { MainRoute, TabRoute } from '../../const/routes/route';
+import useIsCeo from '../../hooks/role/useIsCeo';
 
 const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.82, 320);
 const ANIM_DURATION = 260;
@@ -65,15 +66,22 @@ export const useAppDrawer = () => {
     return ctx;
 };
 
-const defaultSections = (navigation: any): AppMenuSection[] => [
+const defaultSections = (
+    navigation: any,
+    isCeo = false,
+): AppMenuSection[] => [
     {
         title: 'MAIN MENU',
         items: [
             {
                 key: 'home',
                 icon: 'home-variant',
-                label: 'Home',
-                onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Home }),
+                // CEO ke tabs me Home nahi, Dashboard hai.
+                label: isCeo ? 'Dashboard' : 'Home',
+                onPress: () =>
+                    navigation.navigate(MainRoute.MainTabs, {
+                        screen: isCeo ? TabRoute.Dashboard : TabRoute.Home,
+                    }),
             },
             {
                 key: 'bookings',
@@ -87,12 +95,17 @@ const defaultSections = (navigation: any): AppMenuSection[] => [
                 label: 'Applicants',
                 onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Applicants }),
             },
-            {
-                key: 'halls',
-                icon: 'office-building',
-                label: 'Halls',
-                onPress: () => navigation.navigate(MainRoute.HallCalendar),
-            },
+            // "Halls" = nayi booking shuru karne ka entry — CEO ke liye nahi.
+            ...(isCeo
+                ? []
+                : [
+                      {
+                          key: 'halls',
+                          icon: 'office-building',
+                          label: 'Halls',
+                          onPress: () => navigation.navigate(MainRoute.HallCalendar),
+                      },
+                  ]),
         ],
     },
     {
@@ -186,7 +199,8 @@ const AppDrawer = ({ children }: { children: React.ReactNode }) => {
         [visible, openDrawer, closeDrawer],
     );
 
-    const itemsToRender = sections ?? defaultSections(navigation);
+    const isCeo = useIsCeo();
+    const itemsToRender = sections ?? defaultSections(navigation, isCeo);
     const handleClose = header?.onClose ?? closeDrawer;
 
     return (

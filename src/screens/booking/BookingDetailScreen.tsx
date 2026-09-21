@@ -7,6 +7,7 @@ import { ScrollView, Text, TouchableOpacity, View } from '../../lib/style/withTa
 import FullScreenImage from '../../components/ui/FullScreenImage';
 import BookingDetailSkeleton from '../../ui/Skeleton/BookingDetailSkeleton';
 import PendingUnitsBanner from '../../components/booking/detail/PendingUnitsBanner';
+import BookingHero from '../../components/booking/detail/BookingHero';
 import OverviewSection from '../../components/booking/detail/OverviewSection';
 import ApplicantSection from '../../components/booking/detail/ApplicantSection';
 import RequirementsSection from '../../components/booking/detail/RequirementsSection';
@@ -15,19 +16,24 @@ import FinalizeSection from '../../components/booking/detail/FinalizeSection';
 
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useBookingDetail from '../../hooks/booking/useBookingDetail';
+import useIsCeo from '../../hooks/role/useIsCeo';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { BookingDetailPalette as P } from '../../const/theme/bookingDetailPalette';
 
 /**
  * Booking Details — ek hi screen par saara detail.
  *
- * Pehle ye 5 pages me bata hua tha (Next/Next), jo confusing lagta tha. Ab sab
- * sections ek scroll me neeche-neeche hain (numbered 1–5), aur swipe/Next ki
- * zarurat nahi. Unit adhoori ho to upar banner + Finalize section locked.
+ * Event/hall ki pehchaan (hero) hamesha dikhti hai; baaki detail 5 collapsible
+ * sections me hai (numbered 1–5) jo tap karne par khulte hain — pehle sab kuch
+ * khula rehta tha aur screen bhari hui lagti thi. Unit adhoori ho to upar
+ * banner + Finalize section locked rehta hai.
  */
 const BookingDetailScreen = ({ navigation, route }: any) => {
   const user = useAppSelector(state => state.user.user);
   const bookingId = route?.params?.id;
+  // CEO ke paas sirf read-only view hai — Update (finance/event/units) ke saare
+  // entry points usse chhupe rehte hain.
+  const isCeo = useIsCeo();
 
   const { isLoading, isError, booking } = useGetBookingById({
     id: bookingId,
@@ -46,6 +52,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
     openFinalize,
     openUnitFix,
     openEditFinance,
+    openEditEvent,
     openPayments,
     previewUri,
     openPreview,
@@ -61,7 +68,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
             className="text-center text-sm mb-2"
             style={{ color: P.textSecondary }}
           >
-            Booking details load nahi ho paayi.
+            Could not load booking details.
           </Text>
           <Text className="text-sm font-semibold" style={{ color: P.accent }}>
             Please go back and try again.
@@ -77,6 +84,7 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
         navigation={navigation}
         title="Booking Details"
         comp={
+          !isCeo &&
           !isLoading &&
           !overview.isEnded && (
             <TouchableOpacity
@@ -98,19 +106,35 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
           showsVerticalScrollIndicator={false}
           className="flex-1"
           style={{ backgroundColor: P.bg }}
-          contentContainerStyle={{ paddingBottom: 28 }}
+          contentContainerStyle={{ paddingBottom: 28, gap: 14 }}
         >
           {/* Jo bacha hai — sabse upar, taake scroll kiye bina pata chale. */}
           {!overview.isEnded ? (
-            <PendingUnitsBanner issues={unitIssues} onFixUnits={openUnitFix} />
+            <PendingUnitsBanner
+              issues={unitIssues}
+              // CEO ko sirf info dikhti hai — "Add Current Unit" action nahi.
+              onFixUnits={isCeo ? undefined : openUnitFix}
+            />
           ) : null}
+
+          {/* Booking ki pehchaan hamesha khuli rehti hai. */}
+          <BookingHero
+            overview={overview}
+            unitsCount={finance.units.length}
+            hasUnitIssues={hasUnitIssues}
+            balanceAmount={finance.balanceAmount}
+            onPreview={openPreview}
+          />
+
+          <Text className="text-[11px]" style={{ color: P.textMuted }}>
+            Tap a section to expand its details
+          </Text>
 
           <OverviewSection
             overview={overview}
             unitsCount={finance.units.length}
             hasUnitIssues={hasUnitIssues}
             balanceAmount={finance.balanceAmount}
-            onPreview={openPreview}
           />
 
           <ApplicantSection applicant={applicant} onPreview={openPreview} />
@@ -119,12 +143,14 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
             eventInfo={eventInfo}
             expectedAttendance={overview.expectedAttendance}
             onPreview={openPreview}
+            onEditEvent={openEditEvent}
+            editable={!isCeo && !overview.isEnded}
           />
 
           <FinanceSection
             finance={finance}
             unitIssues={unitIssues}
-            onFixUnits={openUnitFix}
+            onFixUnits={isCeo ? undefined : openUnitFix}
             onPreview={openPreview}
           />
 
@@ -133,8 +159,9 @@ const BookingDetailScreen = ({ navigation, route }: any) => {
             finance={finance}
             finalizeBlocker={finalizeBlocker}
             isEnded={overview.isEnded}
-            onFinalize={openFinalize}
-            onFixUnits={openUnitFix}
+            // CEO ke side par Swipe to Finalize Event nahi hota.
+            onFinalize={isCeo ? undefined : openFinalize}
+            onFixUnits={isCeo ? undefined : openUnitFix}
             onPayments={openPayments}
           />
         </ScrollView>

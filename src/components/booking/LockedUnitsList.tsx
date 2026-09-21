@@ -39,7 +39,7 @@ const LockedUnitsList = ({
       </View>
     </View>
     <Text className="text-[#8F8B91] text-xs mb-3">
-      Rate / reading Units screen par set hote hain — yahan sirf dekh sakte hain.
+Rate and reading are set on the Units screen — this list is read-only.
     </Text>
 
     <View className="gap-2 mb-5">
@@ -86,7 +86,7 @@ const LockedUnitsList = ({
                 style={{ backgroundColor: Theme.background.secondary }}
               >
                 <Text className="text-[10px]" style={{ color: '#F59E0B' }}>
-                  Reading baad me update hogi
+                  Reading to be updated later
                 </Text>
               </View>
             )}

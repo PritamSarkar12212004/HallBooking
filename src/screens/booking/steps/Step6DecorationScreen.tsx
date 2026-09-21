@@ -69,9 +69,9 @@ const Step6DecorationScreen = () => {
                     </Text>
                 </View>
                 <Text className="text-[#8F8B91] text-xs mb-4">
-                    Dono signature finger se lein — card par tap karte hi sign pad
-                    full screen me khulega (aasani se sign karne ke liye), phir
-                    Done dabakar booking save karein.
+                    Capture both signatures with a finger — tapping a card opens
+                    the sign pad in full screen, then tap Done to save the
+                    booking.
                 </Text>
 
                 <SignatureCard
@@ -79,7 +79,7 @@ const Step6DecorationScreen = () => {
                     signature={applicantSignature}
                     onSign={openApplicantPad}
                     onClear={() => clearSignature('applicant')}
-                    helper="Applicant apni ungli se sign karein"
+                    helper="Applicant signs with a finger"
                 />
 
                 <SignatureCard
@@ -87,7 +87,7 @@ const Step6DecorationScreen = () => {
                     signature={managerSignature}
                     onSign={openManagerPad}
                     onClear={() => clearSignature('manager')}
-                    helper="Manager (staff) apni ungli se sign karein"
+                    helper="Manager (staff) signs with a finger"
                 />
             </ScrollView>
 

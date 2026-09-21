@@ -13,7 +13,12 @@ import {
 import { Image, Text, TouchableOpacity, View } from '../../../lib/style/withTailwind';
 import { BookingDetailPalette as P } from '../../../const/theme/bookingDetailPalette';
 import type { ApplicantInfo } from '../../../functions/booking/BookingDetailFunction';
-import { DetailCard, DetailRow, SectionHeading, SectionStepHeader } from './DetailPrimitives';
+import {
+    DetailAccordion,
+    DetailCard,
+    DetailRow,
+    SectionHeading,
+} from './DetailPrimitives';
 
 interface Props {
     applicant: ApplicantInfo;
@@ -60,13 +65,16 @@ const ApplicantSection = ({ applicant, onPreview }: Props) => {
     };
 
     return (
-        <>
-            <SectionStepHeader
-                index={2}
-                title="Applicant"
-                subtitle="Contact, address aur ID proof"
-            />
-
+        <DetailAccordion
+            index={2}
+            title="Applicant"
+            subtitle="Contact, address aur ID proof"
+            status={
+                applicant.hasGovernmentId
+                    ? { label: 'ID proof', tone: 'info' }
+                    : { label: 'No ID proof', tone: 'warning' }
+            }
+        >
             {/* Identity header */}
             <View
                 className="rounded-2xl p-4 mb-4 flex-row items-center"
@@ -96,7 +104,7 @@ const ApplicantSection = ({ applicant, onPreview }: Props) => {
                     <View className="flex-row items-center mt-1" style={{ gap: 5 }}>
                         <Building2 size={12} color={P.textMuted} />
                         <Text className="text-xs" style={{ color: P.textSecondary }}>
-                            {applicant.organization || 'Organization set nahi'}
+                            {applicant.organization || 'No organization'}
                         </Text>
                     </View>
                 </View>
@@ -190,17 +198,17 @@ const ApplicantSection = ({ applicant, onPreview }: Props) => {
                             </TouchableOpacity>
                         ) : (
                             <Text className="text-[11px] mt-1" style={{ color: P.textMuted }}>
-                                ID ka photo attached nahi hai.
+                                No photo attached for this ID.
                             </Text>
                         )}
                     </>
                 ) : (
                     <Text className="text-xs" style={{ color: P.textMuted }}>
-                        Is booking me koi ID proof record nahi hua.
+                        No ID proof recorded for this booking.
                     </Text>
                 )}
             </DetailCard>
-        </>
+        </DetailAccordion>
     );
 };
 

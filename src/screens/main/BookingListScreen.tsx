@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useDeferredValue, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { FlatList, TouchableOpacity, RefreshControl, ScrollView, ActivityIndicator } from '../../lib/style/withTailwind';
 import { Text, View } from '../../lib/style/withTailwind';
 import { Plus, ListFilter, X, AlertTriangle, RotateCcw } from 'lucide-react-native';
@@ -9,6 +10,7 @@ import MainSearchInput from '../../components/input/MainSearchInput';
 import { Theme } from '../../const/theme/Theme';
 import { MainRoute } from '../../const/routes/route';
 import { useAppSelector } from '../../hooks/redux/redux';
+import useIsCeo from '../../hooks/role/useIsCeo';
 import useListBookings from '../../api/booking/hooks/useListBookings';
 import BookingListSkeleton from '../../ui/Skeleton/BookingListSkeleton';
 import BookingListCard from '../../components/card/list/BookingListCard';
@@ -29,6 +31,8 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 const BookingListScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
+    // CEO sirf dekh sakta hai — booking create karne ka option usko nahi milta.
+    const isCeo = useIsCeo();
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
     const [refreshing, setRefreshing] = useState(false);
@@ -58,6 +62,20 @@ const BookingListScreen = ({ navigation }: any) => {
         }
     }, [hasMore, isLoadingMore, isLoading, loadMore]);
 
+    // Stable render callbacks — har render par nayi identity se memoized cards
+    // ko dobara render hone se bachate hain.
+    const keyExtractor = useCallback((item: any) => String(item?.id), []);
+
+    const renderBooking = useCallback(
+        ({ item }: { item: any }) => (
+            <BookingListCard
+                item={item as bookingListInterface}
+                actionPress={navigateDetiles}
+            />
+        ),
+        [navigateDetiles],
+    );
+
     const listFooter = typedBookings.length > 0 ? (
         <View className="flex-row items-center justify-center pt-6" style={{ gap: 8 }}>
             {isLoadingMore ? (
@@ -79,8 +97,12 @@ const BookingListScreen = ({ navigation }: any) => {
         </View>
     ) : undefined;
 
+    // Search box aur list ko decouple karta hai — type karte waqt bhaari list
+    // filter hone me UI atakta nahi (React deferred value ke saath).
+    const deferredSearch = useDeferredValue(search);
+
     const filteredBookings = useMemo(() => {
-        const query = search.trim().toLowerCase();
+        const query = deferredSearch.trim().toLowerCase();
         let list = typedBookings;
         if (activeFilter === 'Ongoing') {
             list = list.filter((b) => b.status !== 'Cancelled');
@@ -109,7 +131,7 @@ const BookingListScreen = ({ navigation }: any) => {
         }
 
         return list;
-    }, [typedBookings, search, activeFilter]);
+    }, [typedBookings, deferredSearch, activeFilter]);
 
     // Error par "No bookings found yet" dikhana galat tha — user ko lagta tha ki
     // booking hi nahi hai. Ab saaf reason + action dikhta hai.
@@ -231,20 +253,22 @@ const BookingListScreen = ({ navigation }: any) => {
                 navigation={navigation}
                 title="Bookings"
                 right={
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate(MainRoute.HallCalendar)}
-                        style={{
-                            backgroundColor: Theme.button.primary,
-                            width: 36,
-                            height: 36,
-                            borderRadius: 18,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Plus size={20} color="#000" />
-                    </TouchableOpacity>
+                    isCeo ? undefined : (
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => navigation.navigate(MainRoute.HallCalendar)}
+                            style={{
+                                backgroundColor: Theme.button.primary,
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Plus size={20} color="#000" />
+                        </TouchableOpacity>
+                    )
                 }
             />
 
@@ -252,7 +276,7 @@ const BookingListScreen = ({ navigation }: any) => {
                 <BookingListSkeleton />
             ) : isError && typedBookings.length === 0 ? (
                 renderStatusState(
-                    'Bookings load nahi ho paayi',
+                    'Could not load bookings',
                     getApiErrorMessage(
                         error,
                         'Network error. Please check your connection.',
@@ -263,18 +287,21 @@ const BookingListScreen = ({ navigation }: any) => {
             ) : sessionMissing ? (
                 renderStatusState(
                     'Session missing',
-                    'Aapka login session nahi mila. Please login again.',
+                    'Your login session was not found. Please login again.',
                     'Go to Login',
                     () => resetToLogin(),
                 )
             ) : (
                 <FlatList
                     data={filteredBookings}
-                    keyExtractor={(item: any) => item.id}
-                    renderItem={({ item }) => (
-                        <BookingListCard item={item as bookingListInterface} actionPress={navigateDetiles} />
-                    )}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderBooking}
                     showsVerticalScrollIndicator={false}
+                    // Windowing — lambe list par kam memory / smooth scroll.
+                    initialNumToRender={6}
+                    maxToRenderPerBatch={6}
+                    windowSize={7}
+                    removeClippedSubviews={Platform.OS === 'android'}
                     ListHeaderComponent={
                         <View className=" pt-2">
                             <MainSearchInput

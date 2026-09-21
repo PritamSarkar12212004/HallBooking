@@ -95,7 +95,7 @@ const useDeclarationForm = ({ onNext }: UseDeclarationFormOptions = {}) => {
             showMessage({
                 message: 'Signatures Required',
                 description:
-                    'Applicant aur Manager dono ke finger signature lein (card par tap karein).',
+                    'Capture both the Applicant and Manager finger signatures (tap a card).',
                 type: 'warning',
             });
             return;

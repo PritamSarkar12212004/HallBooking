@@ -52,8 +52,12 @@ const createStyledComponent = <
             ? tw.style(className)
             : undefined;
 
+        // Generic `T` ka JSX instantiation TS ke liye resolve nahi hota tha —
+        // runtime behaviour same rehta hai, sirf type yahan relax karte hain.
+        const Base = Component as React.ComponentType<any>;
+
         return (
-            <Component
+            <Base
                 ref={ref}
                 {...rest}
                 style={[twStyle, style]}

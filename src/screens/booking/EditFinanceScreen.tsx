@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
 import {
@@ -8,10 +8,8 @@ import {
     TouchableOpacity,
     View,
 } from '../../lib/style/withTailwind';
-import InputField from '../../components/input/InputField';
-import MultiSelector from '../../components/Selector/MultiSelector';
 import MainButton from '../../components/buttons/MainButton';
-import CamGalPickerButton from '../../components/buttons/CamGalPickerButton';
+import FinancePaymentSection from '../../components/booking/FinancePaymentSection';
 import FinanceChargesSection, {
     ChargeRow,
     chargeRowsToPayload,
@@ -25,21 +23,12 @@ import UnitsSection, {
     computeUnitsTotal,
     createDefaultUnitRows,
     draftItemsToUnitRows,
-    newUnitRow,
     resolveUnitMeterPhotoUrl,
     setUnitRowPhoto,
     unitRowsToPayload,
 } from '../../components/booking/UnitsSection';
 import { Theme } from '../../const/theme/Theme';
-import {
-    Camera,
-    Check,
-    CreditCard,
-    GalleryHorizontal,
-    Lock,
-    ReceiptText,
-    Trash2,
-} from 'lucide-react-native';
+import { Check, Lock, Pencil } from 'lucide-react-native';
 import {
     launchCamera,
     launchImageLibrary,
@@ -50,9 +39,19 @@ import { useAppSelector } from '../../hooks/redux/redux';
 import useGetBookingById from '../../api/booking/hooks/useGetBookingById';
 import useUpdateBookingSection from '../../api/booking/hooks/useUpdateBookingSection';
 import { useQueryClient } from '@tanstack/react-query';
+import useBusyLock from '../../hooks/busy/useBusyLock';
 import uploadImage from '../../services/Cloudinary/uploadImg';
 import useHallQr from '../../hooks/qr/useHallQr';
 import FullScreenImage from '../../components/ui/FullScreenImage';
+import {
+    buildFinanceSnapshot,
+    hasFinanceChanges,
+    isMeterPhotoUrl,
+    needsPaymentDetails,
+} from '../../functions/booking/EditFinanceFunction';
+import { isBookingForOther } from '../../functions/booking/EventFormFunction';
+import { bookingForFieldsFromBooking } from '../../functions/booking/EditEventFunction';
+import { MainRoute } from '../../const/routes/route';
 
 const paymentModes = ['Cash', 'UPI', 'Cheque', 'NEFT/RTGS'];
 
@@ -71,6 +70,8 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     const { qrUrl, bankHolderName } = useHallQr();
     // QR par tap karne par full screen preview khulta hai.
     const [qrPreview, setQrPreview] = useState<string | null>(null);
+    // Payment proof tap karne par bhi full screen preview.
+    const [proofPreview, setProofPreview] = useState<string | null>(null);
     const lastPayment =
         booking?.payments && booking.payments.length > 0
             ? booking.payments[booking.payments.length - 1]
@@ -107,6 +108,9 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     const advanceNum = chargesPaid + unitsPaid;
     const effectiveBalance = Math.max(0, effectiveTotal - advanceNum);
 
+    // Booking kisi aur ke liye hai? (tab hi booking-for card dikhta hai)
+    const bookingForInfo = bookingForFieldsFromBooking(booking?.event);
+
     // "All Paid" = every charge fully paid (units are always pending, not considered)
     const chargesAllPaid =
         rows.length > 0 &&
@@ -121,37 +125,128 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         // Do NOT toggle unitRows — units are always pending
     };
 
-    // Reading missing units (label only) — hint card ke liye.
-    const missingUnitReading = unitRows
-        .filter((row) => row.label.trim().length > 0 && num(row.currentUnit) <= 0)
-        .map((row) => row.label.trim());
+    // Units jo Finalize block karte hain (per unit rate / current reading
+    // missing) — hint card ke liye ek-ek line.
+    const unitPendingIssues = unitRows
+        .filter((row) => row.label.trim().length > 0)
+        .map((row) => {
+            const label = row.label.trim();
+            if (num(row.perUnit) <= 0) {
+                return `• ${label} — set the per unit rate.`;
+            }
+            if (row.includeNow && num(row.currentUnit) <= 0) {
+                return `• ${label} — enter the current meter reading.`;
+            }
+            return null;
+        })
+        .filter((line): line is string => line !== null);
 
     const requiresTransaction =
         paymentMode[0] === 'UPI' ||
         paymentMode[0] === 'Cheque' ||
         paymentMode[0] === 'NEFT/RTGS';
 
-    // Payment proof required for non-cash modes (existing backend proof counts).
-    const requiresProof =
+    // Payment proof har mode me **zaroori** hai (Cash me bhi receipt mandatory)
+    // — jab naya paisa record ho raha ho. Deposit-only ya amount-detail
+    // changes par payment section khulta hi nahi.
+    const savedAdvance = num(booking?.financial?.advancePaid);
+    const recordingNewPayment = advanceNum > savedAdvance;
+    const proofRequired =
+        recordingNewPayment &&
         paymentMode.length > 0 &&
-        paymentMode[0] !== 'Cash' &&
-        !lastPayment?.proof;
+        !photo?.uri;
+
+    /**
+     * Ek URL units ke meter photo ka hai? Aisa image payment proof nahi hota —
+     * purane data me mix ho gaya ho to use proof ki tarah na dikhate hain aur
+     * save par clear kar dete hain, warna wo Payment Record ke "Payments
+     * Received" me proof ban ke dikhta rehta hai.
+     */
+    const isMeterPhoto = (uri?: string | null): boolean =>
+        isMeterPhotoUrl(
+            uri,
+            booking?.financial?.units,
+            unitRows.map((row) => row.meterPhotoUrl),
+        );
+
+    /**
+     * Purani payment ka proof — sirf HISTORY ki tarah dikhta hai (tap → full
+     * screen), naye proof picker me prefill NAHI hota. Isse har nayi payment
+     * apna fresh proof le paati hai; purana proof uski apni entry ke saath hi
+     * history me rehta hai.
+     */
+    const previousProofUri: string | null =
+        lastPayment?.proof && !isMeterPhoto(lastPayment.proof)
+            ? lastPayment.proof
+            : null;
+
+    // Naya image chuna gaya (local uri) — Save enable karne ke liye.
+    const proofDirty = Boolean(photo?.uri && !photo.uri.startsWith('http'));
+
+    // --- Payment gate ----------------------------------------------------
+    // Mode of payment / transaction / proof sirf tab maangte hain jab Customer
+    // Paid ya Security Deposit me kuch add/change hua ho. Actual Amount ke
+    // charge heads (add / kam / badal) aur unit reading par ye section chhupa
+    // rehta hai — wo sirf bill ki detail hai, payment record nahi.
+    const originalSnapshot = useMemo(
+        () =>
+            booking
+                ? buildFinanceSnapshot(
+                      booking.financial?.charges,
+                      booking.financial?.units,
+                      booking.financial?.securityDeposit,
+                  )
+                : null,
+        [booking],
+    );
+
+    const currentSnapshot = useMemo(
+        () =>
+            buildFinanceSnapshot(
+                chargeRowsToPayload(rows),
+                unitRowsToPayload(unitRows),
+                num(securityDeposit),
+            ),
+        [rows, unitRows, securityDeposit],
+    );
+
+    // Kuch bhi badla? (charges / paid / deposit / units / naya proof) — warna Save disabled.
+    const hasChanges = useMemo(
+        () =>
+            proofDirty ||
+            (prefilled && hasFinanceChanges(originalSnapshot, currentSnapshot)),
+        [proofDirty, prefilled, originalSnapshot, currentSnapshot],
+    );
+
+    const showPaymentDetails = useMemo(
+        () => needsPaymentDetails(originalSnapshot, currentSnapshot),
+        [originalSnapshot, currentSnapshot],
+    );
 
     const formValid = useMemo(() => {
+        // Kuch change nahi hua — Save band hi rehta hai.
+        if (!hasChanges) return false;
+
+        // Paisa record nahi ho raha (amount / unit correction) — payment
+        // details ki zarurat nahi, save karne do.
+        if (!showPaymentDetails) return true;
+
         const totalOk = effectiveTotal > 0;
         const advanceOk = advanceNum > 0 && advanceNum <= effectiveTotal;
         const modeOk = paymentMode.length > 0;
         if (!totalOk || !advanceOk || !modeOk) return false;
         if (requiresTransaction && transactionNumber.trim().length === 0) return false;
-        if (requiresProof && !photo?.uri) return false;
+        if (proofRequired && !photo?.uri) return false;
         return true;
     }, [
+        hasChanges,
+        showPaymentDetails,
         effectiveTotal,
         advanceNum,
         paymentMode,
         requiresTransaction,
         transactionNumber,
-        requiresProof,
+        proofRequired,
         photo,
     ]);
 
@@ -190,9 +285,11 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
         }
         const last = booking.payments?.[booking.payments.length - 1];
         if (last?.transactionId) setTransactionNumber(last.transactionId);
-        if (last?.proof) setPhoto({ uri: last.proof });
+        // NOTE: purana proof yahan photo me prefill NAHI karte — wo history
+        // hai. Nayi payment ka proof user khud upload karega (ya optional
+        // rehne dega). `previousProofUri` use alag se dikhta hai.
         setPrefilled(true);
-    }, [booking, prefilled]);
+    }, [booking, prefilled, focusUnits]);
 
     const capturePhoto = async () => {
         const result = await launchCamera({
@@ -227,6 +324,9 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     /* ------------------------- unit meter photo (optional) ------------------------- */
 
     const [uploadingUnitRowId, setUploadingUnitRowId] = useState<string | null>(null);
+    // Photo upload ke dauraan bhi navigation lock (back karne par upload
+    // adhoora chhoot na jaaye).
+    useBusyLock(Boolean(uploadingUnitRowId), 'Uploading photo…');
 
     /** Local preview turant dikhta hai, phir compress + Cloudinary upload. */
     const applyUnitPhoto = async (rowId: string, uri: string) => {
@@ -240,7 +340,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
             setUnitRows((prev) => setUnitRowPhoto(prev, rowId, null));
             showMessage({
                 message: 'Upload Failed',
-                description: 'Meter photo upload nahi ho paayi. Please try again.',
+                description: 'Meter photo could not be uploaded. Please try again.',
                 type: 'danger',
             });
         } finally {
@@ -310,13 +410,24 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
 
         setSaving(true);
         try {
-            // Upload payment proof to Cloudinary if a NEW image was chosen
-            // (existing backend proof URLs are kept as-is).
-            let paymentProofPhoto: string | undefined = lastPayment?.proof;
-            if (photo?.uri && !photo.uri.startsWith('http')) {
+            // Payment proof sirf NAYE image ka upload hota hai — purana proof
+            // kabhi dobara nahi bhejte (wo backend ki history me already saved
+            // hai; use dobara bhejne par naya paisa record purani image ke
+            // saath chipak jaata tha).
+            const hasNewProof = Boolean(
+                photo?.uri && !photo.uri.startsWith('http'),
+            );
+
+            let paymentProofPhoto: string | undefined;
+            if (hasNewProof) {
                 const uploaded = await uploadImage(photo.uri);
                 paymentProofPhoto = uploaded.secure_url;
             }
+
+            // Unit ka meter photo purane data me proof ban gaya ho to use
+            // latest payment se clear kar dete hain (wo proof nahi hai).
+            const legacyMeterProof =
+                Boolean(lastPayment?.proof) && isMeterPhoto(lastPayment?.proof);
 
             await updateSectionAsync({
                 id: bookingId,
@@ -329,6 +440,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     mode: paymentMode[0] ?? undefined,
                     transactionNumber: requiresTransaction ? transactionNumber : undefined,
                     paymentProofPhoto,
+                    removePaymentProof: legacyMeterProof ? true : undefined,
                 },
             });
 
@@ -358,7 +470,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     if (isLoading) {
         return (
             <Wrapper safeBottom>
-                <SubHeader navigation={navigation} title="Update Finance" />
+                <SubHeader navigation={navigation} title="Update" />
                 <View className="flex-1 items-center justify-center">
                     <ActivityIndicator size="large" color={Theme.button.primary} />
                 </View>
@@ -369,7 +481,7 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
     if (!booking) {
         return (
             <Wrapper safeBottom>
-                <SubHeader navigation={navigation} title="Update Finance" />
+                <SubHeader navigation={navigation} title="Update" />
                 <View className="flex-1 items-center justify-center px-6">
                     <Text style={{ color: Theme.text.secondary }} className="text-center">
                         Could not load booking. Please go back.
@@ -381,16 +493,65 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
 
     return (
         <Wrapper safeBottom>
-            <SubHeader navigation={navigation} title="Update Finance" />
+            <SubHeader navigation={navigation} title="Update" />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
                 contentContainerStyle={{ paddingBottom: 24 }}
             >
                 <View className="mt-2">
+                    {/* Booking kisi aur ke liye hai to us person ki details
+                        yahan dikhati hain — "Update" se usi ki screen khulti hai. */}
+                    {isBookingForOther(bookingForInfo.bookingFor) ? (
+                        <View
+                            className="rounded-2xl px-4 py-3 mb-4"
+                            style={{
+                                backgroundColor: Theme.background.secondary,
+                                borderWidth: 1,
+                                borderColor: Theme.button.primary,
+                            }}
+                        >
+                            <Text
+                                className="text-[10px] font-bold tracking-wide mb-1"
+                                style={{ color: Theme.button.primary }}
+                            >
+                                BOOKING FOR SOMEONE ELSE
+                            </Text>
+                            <Text
+                                className="text-sm font-semibold mb-3"
+                                style={{ color: Theme.text.primary }}
+                            >
+                                {bookingForInfo.bookingForName || 'Unnamed'}
+                            </Text>
+
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() =>
+                                    navigation.navigate(MainRoute.EditEvent, {
+                                        id: bookingId,
+                                    })
+                                }
+                                className="flex-row items-center justify-center rounded-xl py-2.5"
+                                style={{
+                                    backgroundColor: Theme.background.third,
+                                    borderWidth: 1,
+                                    borderColor: '#3E4654',
+                                }}
+                            >
+                                <Pencil size={14} color={Theme.button.primary} />
+                                <Text
+                                    className="text-xs font-bold ml-2"
+                                    style={{ color: Theme.text.primary }}
+                                >
+                                    Update
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null}
+
                     {/* Booking Details se "Current Unit Add Karein" par aaye ho to
                         yahan saaf batate hain ki kya bharna hai. */}
-                    {focusUnits && prefilled && missingUnitReading.length > 0 ? (
+                    {focusUnits && prefilled && unitPendingIssues.length > 0 ? (
                         <View
                             className="rounded-2xl px-4 py-3 mb-4"
                             style={{
@@ -400,17 +561,25 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                             }}
                         >
                             <Text className="text-sm font-bold mb-1" style={{ color: '#F59E0B' }}>
-                                {missingUnitReading.length} unit ki reading pending hai
+                                {unitPendingIssues.length} unit
+                                {unitPendingIssues.length > 1 ? 's' : ''} incomplete
                             </Text>
-                            {missingUnitReading.map((label) => (
+                            {unitPendingIssues.map((line) => (
                                 <Text
-                                    key={label}
+                                    key={line}
                                     className="text-xs"
                                     style={{ color: Theme.text.secondary }}
                                 >
-                                    • {label} — current reading bharein, phir neeche Save karein.
+                                    {line}
                                 </Text>
                             ))}
+                            <Text
+                                className="text-[11px] mt-1.5"
+                                style={{ color: '#8F8B91' }}
+                            >
+                                Fill them below and save — this unlocks Finalize
+                                Event.
+                            </Text>
                         </View>
                     ) : null}
 
@@ -434,131 +603,32 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                     />
                 </View>
 
-                <MultiSelector
-                    title="Mode of Payment"
-                    list={paymentModes}
-                    value={paymentMode}
-                    actionFunc={selectPaymentMode}
-                    selection="Single select"
-                    Icon={CreditCard}
-                />
-
-                {/* UPI: hall QR uploaded by the CEO — scan to pay */}
-                {paymentMode[0] === 'UPI' && qrUrl && (
-                    <View
-                        className="rounded-2xl p-4 items-center mb-4 mt-3"
-                        style={{ backgroundColor: Theme.background.secondary }}
-                    >
-                        <Text className="text-white text-base font-semibold mb-1">
-                            Scan to Pay (UPI)
-                        </Text>
-                        <Text className="text-[#8F8B91] text-xs mb-3">
-                            {bankHolderName ? `Bank Holder: ${bankHolderName}` : ''}
-                        </Text>
-                        {/* Tap QR → full screen preview */}
-                        <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => setQrPreview(qrUrl)}
-                        >
-                            <Image
-                                source={{ uri: qrUrl }}
-                                style={{ width: 200, height: 200, borderRadius: 12 }}
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                        <Text className="text-[10px] mt-2" style={{ color: Theme.text.tertiary }}>
-                            Tap QR to view full screen
-                        </Text>
-                        <Text className="text-sm mt-3 font-semibold" style={{ color: Theme.button.primary }}>
-                            Amount: ₹{(effectiveBalance || 0).toLocaleString()}
-                        </Text>
-                        <Text className="text-[#8F8B91] text-xs mt-1 text-center">
-                            Scan the QR with any UPI app, then add the payment proof below.
-                        </Text>
-                    </View>
-                )}
-
-                {requiresTransaction && (
-                    <View className="mb-2 mt-3">
-                        <InputField
-                            title={
-                                paymentMode[0] === 'Cheque'
-                                    ? 'Cheque Number *'
-                                    : 'Transaction / Reference Number *'
-                            }
-                            value={transactionNumber}
-                            setvalue={setTransactionNumber}
-                            placeholder={
-                                paymentMode[0] === 'Cheque'
-                                    ? 'Enter cheque number'
-                                    : 'Enter transaction/reference number'
-                            }
-                            keyType="default"
-                            Icon={ReceiptText}
-                        />
-                    </View>
-                )}
-
-                <View className="mb-6 mt-3">
-                    <Text className="text-white text-base font-semibold mb-1">
-                        Payment Proof
-                    </Text>
-                    <Text className="text-[#8F8B91] text-xs mb-4">
-                        {paymentMode[0] === 'Cash'
-                            ? 'Cash payment does not require a proof.'
-                            : 'Capture or select payment receipt'}
-                    </Text>
-                    {requiresProof && (photo?.uri ? (
-                        <View
-                            className="rounded-xl overflow-hidden"
-                            style={{
-                                backgroundColor: Theme.background.secondary,
-                                borderWidth: 1,
-                                borderColor: Theme.button.primary,
-                            }}
-                        >
-                            <Image
-                                source={{ uri: photo.uri }}
-                                style={{ width: '100%', height: 200 }}
-                                resizeMode="cover"
-                            />
-                            <View className="flex-row gap-2 p-3">
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={capturePhoto}
-                                    className="flex-1 flex-row items-center justify-center rounded-lg py-3"
-                                    style={{ backgroundColor: Theme.button.primary }}
-                                >
-                                    <Camera size={17} color="#000" />
-                                    <Text className="ml-2 font-semibold" style={{ color: '#000' }}>
-                                        Retake
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={removePhoto}
-                                    className="flex-row items-center justify-center rounded-lg px-4 py-3"
-                                    style={{ backgroundColor: '#3A2020' }}
-                                >
-                                    <Trash2 size={18} color="#FF6B6B" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    ) : (
-                        <View className="flex-row gap-3">
-                            <CamGalPickerButton
-                                title="Camera"
-                                actionFun={capturePhoto}
-                                Icon={Camera}
-                            />
-                            <CamGalPickerButton
-                                title="Gallery"
-                                actionFun={selectPhoto}
-                                Icon={GalleryHorizontal}
-                            />
-                        </View>
-                    ))}
-                </View>
+                {/* Mode of payment + UPI QR + transaction + proof sirf tab
+                    dikhte hain jab Customer Paid ya Security Deposit me kuch
+                    add/change hua ho — warna ye hissa dikhta hi nahi. */}
+                {showPaymentDetails ? (
+                    <FinancePaymentSection
+                        modes={paymentModes}
+                        mode={paymentMode}
+                        onSelectMode={selectPaymentMode}
+                        qrUrl={qrUrl}
+                        bankHolderName={bankHolderName}
+                        amountDue={effectiveBalance}
+                        onViewQr={setQrPreview}
+                        requiresTransaction={requiresTransaction}
+                        transactionNumber={transactionNumber}
+                        setTransactionNumber={setTransactionNumber}
+                        proofRequired={proofRequired}
+                        previousProofUri={previousProofUri}
+                        photoUri={photo?.uri ?? null}
+                        onCapturePhoto={capturePhoto}
+                        onPickPhoto={selectPhoto}
+                        onRemovePhoto={removePhoto}
+                        onViewProof={() =>
+                            setProofPreview(photo?.uri ?? previousProofUri)
+                        }
+                    />
+                ) : null}
 
                 {isEnded ? (
                     <View
@@ -578,13 +648,25 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                         </Text>
                     </View>
                 ) : (
-                    <MainButton
-                        title="Save Changes"
-                        Icon={Check}
-                        loader={saving || updateLoading}
-                        disabled={!formValid}
-                        actionFunc={handleSave}
-                    />
+                    <>
+                        <MainButton
+                            title="Save Changes"
+                            Icon={Check}
+                            loader={saving || updateLoading}
+                            disabled={!formValid}
+                            actionFunc={handleSave}
+                        />
+
+                        {!hasChanges ? (
+                            <Text
+                                className="text-[11px] text-center mt-2"
+                                style={{ color: '#8F8B91' }}
+                            >
+                                No changes yet — Save enables when you update an
+                                amount, paid value, deposit or a unit.
+                            </Text>
+                        ) : null}
+                    </>
                 )}
             </ScrollView>
 
@@ -593,6 +675,13 @@ const EditFinanceScreen = ({ navigation, route }: any) => {
                 visible={!!qrPreview}
                 onClose={() => setQrPreview(null)}
                 caption={bankHolderName}
+            />
+
+            {/* Payment proof / cash receipt full screen */}
+            <FullScreenImage
+                uri={proofPreview}
+                visible={!!proofPreview}
+                onClose={() => setProofPreview(null)}
             />
         </Wrapper>
     );

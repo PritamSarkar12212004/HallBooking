@@ -58,11 +58,11 @@ const Step5UnitsScreen = () => {
             style={{ backgroundColor: '#3A2020' }}
           >
             <Text className="text-xs" style={{ color: '#FF6B6B' }}>
-              {`"${invalidRow.label.trim() || 'Unit'}" ke liye ${
+              {`Enter the ${
                 invalidRow.perUnit.trim().length === 0
                   ? 'per-unit rate'
                   : 'current reading'
-              } bharein.`}
+              } for "${invalidRow.label.trim() || 'Unit'}".`}
             </Text>
           </View>
         )}

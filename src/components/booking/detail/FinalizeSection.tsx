@@ -16,7 +16,7 @@ import type {
 } from '../../../functions/booking/BookingDetailFunction';
 import { money } from '../../../functions/booking/BookingDetailFunction';
 import SwipeButton from '../../buttons/SwipeButton';
-import { SectionHeading, SectionStepHeader } from './DetailPrimitives';
+import { DetailAccordion, SectionHeading } from './DetailPrimitives';
 
 interface Props {
     checklist: ChecklistItem[];
@@ -24,8 +24,10 @@ interface Props {
     /** null = swipe enabled; warna exact reason. */
     finalizeBlocker: string | null;
     isEnded: boolean;
-    onFinalize: () => void;
-    onFixUnits: () => void;
+    /** CEO ke read-only view me swipe nahi hota — isliye optional. */
+    onFinalize?: () => void;
+    /** CEO ke read-only view me action nahi hota — isliye optional. */
+    onFixUnits?: () => void;
     onPayments: () => void;
 }
 
@@ -81,14 +83,13 @@ const FinalizeSection = ({
 
     if (isEnded) {
         return (
-            <>
-                <SectionStepHeader
-                    index={5}
-                    title="Finalize"
-                    subtitle="Event end karke settlement complete karein"
-                    status={{ label: 'Event ended', tone: 'info' }}
-                />
-
+            <DetailAccordion
+                index={5}
+                title="Finalize"
+                subtitle="End the event and complete the settlement"
+                status={{ label: 'Event ended', tone: 'info' }}
+                alwaysOpen
+            >
                 <View
                     className="rounded-2xl p-4 mb-4 flex-row items-start"
                     style={{
@@ -102,8 +103,8 @@ const FinalizeSection = ({
                         className="text-xs font-semibold ml-2.5 flex-1 leading-5"
                         style={{ color: P.info }}
                     >
-                        Event ended hai — ye booking lock ho chuki hai. Units ka
-                        hisaab aur payment final ho gaya, ab koi change nahi ho sakta.
+                        This event has ended — the booking is locked. Units and
+                        payments are final, so no further changes are allowed.
                     </Text>
                 </View>
 
@@ -154,25 +155,26 @@ const FinalizeSection = ({
                     style={{ backgroundColor: P.accent, gap: 8 }}
                 >
                     <Wallet size={16} color="#FFFFFF" />
-                    <Text className="text-sm font-bold text-white">View Payments</Text>
+                    <Text className="text-sm font-bold text-white">
+                        View Payment Record
+                    </Text>
                 </TouchableOpacity>
-            </>
+            </DetailAccordion>
         );
     }
 
     return (
-        <>
-            <SectionStepHeader
-                index={5}
-                title="Finalize"
-                subtitle="Event end karke settlement complete karein"
-                status={
-                    blocked
-                        ? { label: 'Locked', tone: 'danger' }
-                        : { label: 'Ready', tone: 'success' }
-                }
-            />
-
+        <DetailAccordion
+            index={5}
+            title="Finalize"
+            subtitle="End the event and complete the settlement"
+            status={
+                blocked
+                    ? { label: 'Locked', tone: 'danger' }
+                    : { label: 'Ready', tone: 'success' }
+            }
+            alwaysOpen
+        >
             <SectionHeading
                 icon={<ReceiptText size={16} color={P.accent} />}
                 title="Finalize Checklist"
@@ -215,7 +217,7 @@ const FinalizeSection = ({
                     <View className="flex-row items-center mb-2" style={{ gap: 8 }}>
                         <Lock size={16} color={P.danger} />
                         <Text className="text-sm font-bold" style={{ color: P.danger }}>
-                            Swipe locked
+                            {onFinalize ? 'Swipe locked' : 'Finalize blocked'}
                         </Text>
                     </View>
 
@@ -223,7 +225,8 @@ const FinalizeSection = ({
                         {finalizeBlocker}
                     </Text>
 
-                    {checklist.some((item) => item.key === 'units' && !item.ok) ? (
+                    {onFixUnits &&
+                    checklist.some((item) => item.key === 'units' && !item.ok) ? (
                         <TouchableOpacity
                             activeOpacity={0.85}
                             onPress={onFixUnits}
@@ -231,7 +234,7 @@ const FinalizeSection = ({
                             style={{ backgroundColor: P.danger }}
                         >
                             <Text className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
-                                Current Unit Add Karein
+                                Add Current Unit
                             </Text>
                         </TouchableOpacity>
                     ) : null}
@@ -248,25 +251,32 @@ const FinalizeSection = ({
                     <View className="flex-row items-center" style={{ gap: 8 }}>
                         <CheckCircle2 size={16} color={P.success} />
                         <Text className="text-xs font-semibold flex-1" style={{ color: P.success }}>
-                            Sab checks pass hain — neeche swipe karke event end karein.
+                            {onFinalize
+                                ? 'All checks passed — swipe below to end the event.'
+                                : 'All checks passed.'}
                         </Text>
                     </View>
                 </View>
             )}
 
-            <SwipeButton
-                label={blocked ? 'Locked — reading pending' : 'Swipe to Finalize Event'}
-                onComplete={onFinalize}
-                disabled={blocked}
-                accent={P.accent}
-                bg={P.surfaceAlt}
-                border={P.border}
-            />
+            {/* CEO ke paas swipe nahi hota — usse sirf status/checklist dikhti hai. */}
+            {onFinalize ? (
+                <>
+                    <SwipeButton
+                        label={blocked ? 'Locked — reading pending' : 'Swipe to Finalize Event'}
+                        onComplete={onFinalize}
+                        disabled={blocked}
+                        accent={P.accent}
+                        bg={P.surfaceAlt}
+                        border={P.border}
+                    />
 
-            <Text className="text-[11px] mt-3 leading-5" style={{ color: P.textMuted }}>
-                Swipe karne par units ka hisaab ho jaayega, final payment record
-                hoga aur event end ho jaayega.
-            </Text>
+                    <Text className="text-[11px] mt-3 leading-5" style={{ color: P.textMuted }}>
+                        Swiping settles the units, records the final payment and ends
+                        the event.
+                    </Text>
+                </>
+            ) : null}
 
             <TouchableOpacity
                 activeOpacity={0.85}
@@ -281,10 +291,10 @@ const FinalizeSection = ({
             >
                 <Wallet size={16} color={P.textSecondary} />
                 <Text className="text-sm font-bold" style={{ color: P.textPrimary }}>
-                    View Payment History
+                    View Payment Record
                 </Text>
             </TouchableOpacity>
-        </>
+        </DetailAccordion>
     );
 };
 

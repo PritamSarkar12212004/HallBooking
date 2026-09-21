@@ -19,18 +19,19 @@ import type {
 } from '../../../functions/booking/BookingDetailFunction';
 import { money } from '../../../functions/booking/BookingDetailFunction';
 import {
+    DetailAccordion,
     DetailBadge,
     DetailCard,
     DetailRow,
     EmptyLine,
     SectionHeading,
-    SectionStepHeader,
 } from './DetailPrimitives';
 
 interface Props {
     finance: FinanceSummary;
     unitIssues: UnitIssue[];
-    onFixUnits: () => void;
+    /** CEO ke read-only view me action nahi hota — isliye optional. */
+    onFixUnits?: () => void;
     onPreview: (uri?: string | null) => void;
 }
 
@@ -56,13 +57,18 @@ const UnitCard = ({
     unit: FinanceSummary['units'][number];
     index: number;
     onPreview: (uri?: string | null) => void;
-}) => (
+}) => {
+    // Dono cheezein Finalize ko block karti hain (rate + current reading).
+    const rateMissing = unit.perUnit <= 0;
+    const needsFix = unit.readingMissing || rateMissing;
+
+    return (
     <View
         className="rounded-2xl p-4 mb-3"
         style={{
             backgroundColor: P.surface,
             borderWidth: 1,
-            borderColor: unit.readingMissing ? P.warning : P.border,
+            borderColor: needsFix ? P.warning : P.border,
         }}
     >
         <View className="flex-row items-center justify-between mb-2.5">
@@ -94,13 +100,20 @@ const UnitCard = ({
         <View className="flex-row mb-2.5" style={{ gap: 8 }}>
             <View
                 className="rounded-xl px-3 py-2 flex-1"
-                style={{ backgroundColor: P.surfaceAlt }}
+                style={{
+                    backgroundColor: rateMissing ? P.warningSoft : P.surfaceAlt,
+                    borderWidth: rateMissing ? 1 : 0,
+                    borderColor: rateMissing ? P.warning : 'transparent',
+                }}
             >
                 <Text className="text-[10px] font-bold" style={{ color: P.textMuted }}>
                     PER UNIT RATE
                 </Text>
-                <Text className="text-sm font-bold mt-1" style={{ color: P.textPrimary }}>
-                    {unit.perUnit > 0 ? money(unit.perUnit) : '—'}
+                <Text
+                    className="text-sm font-bold mt-1"
+                    style={{ color: rateMissing ? P.warning : P.textPrimary }}
+                >
+                    {rateMissing ? 'Set rate' : money(unit.perUnit)}
                 </Text>
             </View>
 
@@ -119,7 +132,7 @@ const UnitCard = ({
                     className="text-sm font-bold mt-1"
                     style={{ color: unit.readingMissing ? P.warning : P.textPrimary }}
                 >
-                    {unit.readingMissing ? 'Add karein' : unit.currentUnit.toLocaleString('en-IN')}
+                    {unit.readingMissing ? 'Add reading' : unit.currentUnit.toLocaleString('en-IN')}
                 </Text>
             </View>
         </View>
@@ -136,11 +149,13 @@ const UnitCard = ({
             </View>
         ) : null}
 
-        {unit.readingMissing ? (
+        {needsFix ? (
           <View className="flex-row items-center mt-1.5" style={{ gap: 6 }}>
               <TriangleAlert size={12} color={P.warning} />
               <Text className="text-[11px] flex-1" style={{ color: P.warning }}>
-                  Current unit add hone tak Finalize Event nahi ho sakta.
+                  {unit.readingMissing
+                      ? 'Finalize Event stays locked until the reading is added.'
+                      : 'Finalize Event stays locked until the rate is set.'}
               </Text>
           </View>
         ) : null}
@@ -171,7 +186,8 @@ const UnitCard = ({
             </TouchableOpacity>
         ) : null}
     </View>
-);
+    );
+};
 
 /**
  * Section 4 — Finance.
@@ -186,20 +202,18 @@ const FinanceSection = ({ finance, unitIssues, onFixUnits, onPreview }: Props) =
             : 0;
 
     return (
-        <>
-            <SectionStepHeader
-                index={4}
-                title="Finance"
-                subtitle="Charges, units aur balance ka hisaab"
-                status={
-                    unitIssues.length > 0
-                        ? { label: `${unitIssues.length} pending`, tone: 'warning' }
-                        : finance.balanceAmount > 0
-                        ? { label: money(finance.balanceAmount), tone: 'warning' }
-                        : { label: 'Settled', tone: 'success' }
-                }
-            />
-
+        <DetailAccordion
+            index={4}
+            title="Finance"
+            subtitle="Charges, units and balance summary"
+            status={
+                unitIssues.length > 0
+                    ? { label: `${unitIssues.length} pending`, tone: 'warning' }
+                    : finance.balanceAmount > 0
+                    ? { label: money(finance.balanceAmount), tone: 'warning' }
+                    : { label: 'Settled', tone: 'success' }
+            }
+        >
             {/* Totals */}
             <View className="flex-row mb-2.5" style={{ gap: 10 }}>
                 <TotalBox
@@ -298,22 +312,24 @@ const FinanceSection = ({ finance, unitIssues, onFixUnits, onPreview }: Props) =
                         </Text>
                     ))}
 
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={onFixUnits}
-                        className="mt-3 rounded-xl py-3 items-center"
-                        style={{ backgroundColor: P.warning }}
-                    >
-                        <Text className="text-sm font-bold" style={{ color: '#0B0B0F' }}>
-                            Current Unit Add Karein
-                        </Text>
-                    </TouchableOpacity>
+                    {onFixUnits ? (
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={onFixUnits}
+                            className="mt-3 rounded-xl py-3 items-center"
+                            style={{ backgroundColor: P.warning }}
+                        >
+                            <Text className="text-sm font-bold" style={{ color: '#0B0B0F' }}>
+                                Add Current Unit
+                            </Text>
+                        </TouchableOpacity>
+                    ) : null}
                 </View>
             ) : null}
 
             {finance.units.length === 0 ? (
                 <DetailCard>
-                    <EmptyLine text="Is booking me koi unit add nahi kiya gaya." />
+                    <EmptyLine text="No units added in this booking." />
                 </DetailCard>
             ) : (
                 finance.units.map((unit, index) => (
@@ -334,7 +350,7 @@ const FinanceSection = ({ finance, unitIssues, onFixUnits, onPreview }: Props) =
 
             <DetailCard>
                 {finance.charges.length === 0 ? (
-                    <EmptyLine text="Koi charge head record nahi hua." />
+                    <EmptyLine text="No charge heads recorded." />
                 ) : (
                     finance.charges.map((charge, index) => (
                         <View
@@ -418,7 +434,7 @@ const FinanceSection = ({ finance, unitIssues, onFixUnits, onPreview }: Props) =
 
             <DetailCard>
                 {finance.securityDeposit <= 0 ? (
-                    <EmptyLine text="Is booking me security deposit liya hi nahi gaya." />
+                    <EmptyLine text="No security deposit was taken for this booking." />
                 ) : (
                     <>
                         <DetailRow
@@ -443,7 +459,7 @@ const FinanceSection = ({ finance, unitIssues, onFixUnits, onPreview }: Props) =
                     </>
                 )}
             </DetailCard>
-        </>
+        </DetailAccordion>
     );
 };
 

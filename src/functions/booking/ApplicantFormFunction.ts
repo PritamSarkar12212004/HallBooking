@@ -76,23 +76,27 @@ const resolveGovernmentId = (selectedId: string | null) => {
   };
 };
 
-export const sanitizeMobileNumber = (text: string): string =>
-  (text ?? '').replace(/[^0-9]/g, '').slice(0, 10);
+// Mobile ke rules shared hain (PhoneFunction) — applicant, booking-for aur
+// decorator/caterer contact sab ek hi validation use karte hain. Yahan se
+// waise hi export hote hain taake purane imports na tootein.
+import {
+  MOBILE_LENGTH,
+  getMobileError,
+  isMobileValidOrEmpty,
+  isValidMobileNumber,
+  sanitizeMobileNumber,
+} from './PhoneFunction';
 
-export const isValidMobileNumber = (mobile: string): boolean =>
-  /^\d{10}$/.test(mobile ?? '');
+export {
+  MOBILE_LENGTH,
+  getMobileError,
+  isMobileValidOrEmpty,
+  isValidMobileNumber,
+  sanitizeMobileNumber,
+};
 
 export const isValidEmail = (email: string): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((email ?? '').trim());
-
-export const getMobileError = (mobile: string, touched: boolean): string => {
-  if (!touched || isValidMobileNumber(mobile)) return '';
-
-  if (mobile.length === 0) return 'Mobile number is required';
-  if (mobile.length < 10) return `Enter all 10 digits (${mobile.length}/10)`;
-
-  return 'Enter a valid 10-digit mobile number';
-};
 
 /** Email optional hai — khaali theek, bhara to valid hona chahiye. */
 export const isEmailValidOrEmpty = (email: string): boolean =>

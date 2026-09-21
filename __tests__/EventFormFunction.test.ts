@@ -16,13 +16,18 @@ import { Image as CompressorImage } from 'react-native-compressor';
 
 import uploadImage from '../src/services/Cloudinary/uploadImg';
 import {
+  BOOKING_FOR_OTHER,
+  BOOKING_FOR_SELF,
   EVENT_TYPE_FOR_ME,
   EVENT_TYPE_OTHER,
   EXTRA_EVENT_TYPE_OPTIONS,
   buildEventSection,
   buildRequirementQuantities,
+  getBookingForMobileError,
+  getBookingForNameError,
   getOtherEventNameError,
   getRequirementQuantityError,
+  isBookingForOther,
   isEventFormValid,
   isOtherEventType,
   isValidOtherEventName,
@@ -30,6 +35,7 @@ import {
   mergeUniqueOptions,
   parseRequirementQuantity,
   resolveEventEvidenceUrl,
+  sanitizeBookingForMobile,
   sanitizeOtherEventName,
   sanitizeRequirementQuantity,
   uploadEventEvidencePhoto,
@@ -173,6 +179,11 @@ describe('buildEventSection', () => {
         { label: 'Stage', quantity: 1 },
         { label: 'Chairs', quantity: 150 },
       ],
+      // Booking For set nahi hua to kuch save nahi hota (purani bookings jaisa).
+      bookingFor: undefined,
+      bookingForName: '',
+      bookingForRelation: '',
+      bookingForMobile: '',
     });
   });
 
@@ -220,5 +231,125 @@ describe('evidence photo upload', () => {
       'https://cdn.test/evidence.jpg',
     );
     expect(uploadImage).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('booking for (Myself / Someone Else)', () => {
+  const base = {
+    expectedAttendance: '100',
+    selectedEventType: ['Wedding'],
+    requirements: [] as string[],
+    requirementQuantities: {} as Record<string, string>,
+  };
+
+  it('treats only "Someone Else" as the other-person case', () => {
+    expect(isBookingForOther(BOOKING_FOR_OTHER)).toBe(true);
+    expect(isBookingForOther(BOOKING_FOR_SELF)).toBe(false);
+    expect(isBookingForOther('')).toBe(false);
+  });
+
+  it('allows Myself without any person details', () => {
+    expect(
+      isEventFormValid({ ...base, bookingFor: BOOKING_FOR_SELF }),
+    ).toBe(true);
+  });
+
+  it('blocks Someone Else until the person name is filled', () => {
+    expect(
+      isEventFormValid({
+        ...base,
+        bookingFor: BOOKING_FOR_OTHER,
+        bookingForName: '',
+      }),
+    ).toBe(false);
+
+    expect(
+      isEventFormValid({
+        ...base,
+        bookingFor: BOOKING_FOR_OTHER,
+        bookingForName: 'Ramesh',
+      }),
+    ).toBe(true);
+  });
+
+  it('shows the name error only for Someone Else and only when touched', () => {
+    expect(getBookingForNameError('', false, true)).toBe('');
+    expect(getBookingForNameError('', true, false)).toBe('');
+    expect(getBookingForNameError('', true, true)).toBe(
+      'Please enter the name of the person',
+    );
+    expect(getBookingForNameError('Ra', true, true)).toContain('3-60');
+    expect(getBookingForNameError('Ramesh', true, true)).toBe('');
+  });
+
+  it('clears other-person details when Myself is chosen', () => {
+    const section = buildEventSection({
+      ...base,
+      bookingFor: BOOKING_FOR_SELF,
+      bookingForName: 'Ramesh',
+      bookingForRelation: 'Brother',
+      bookingForMobile: '9800000001',
+    });
+
+    expect(section.bookingFor).toBe(BOOKING_FOR_SELF);
+    expect(section.bookingForName).toBe('');
+    expect(section.bookingForRelation).toBe('');
+    expect(section.bookingForMobile).toBe('');
+  });
+
+  it('keeps sanitised details for Someone Else', () => {
+    const section = buildEventSection({
+      ...base,
+      bookingFor: BOOKING_FOR_OTHER,
+      bookingForName: 'Ramesh 123',
+      bookingForRelation: 'Brother!',
+      bookingForMobile: '09800000001',
+    });
+
+    expect(section.bookingFor).toBe(BOOKING_FOR_OTHER);
+    expect(section.bookingForName).toBe('Ramesh 123');
+    // Relation me sirf letters (punctuation hat jaata hai).
+    expect(section.bookingForRelation).toBe('Brother');
+    // Digits only, leading zero hataya gaya.
+    expect(section.bookingForMobile).toBe('9800000001');
+  });
+
+  it('treats the contact number as optional but 10-digit', () => {
+    const withMobile = (bookingForMobile: string) =>
+      isEventFormValid({
+        ...base,
+        bookingFor: BOOKING_FOR_OTHER,
+        bookingForName: 'Ramesh',
+        bookingForMobile,
+      });
+
+    // Khaali theek hai…
+    expect(withMobile('')).toBe(true);
+    // …par adhoora number nahi.
+    expect(withMobile('98000')).toBe(false);
+    expect(withMobile('9800000001')).toBe(true);
+  });
+
+  it('does not care about the number when the booking is for Myself', () => {
+    expect(
+      isEventFormValid({
+        ...base,
+        bookingFor: BOOKING_FOR_SELF,
+        bookingForMobile: '98000',
+      }),
+    ).toBe(true);
+  });
+
+  it('caps the contact number at 10 digits', () => {
+    expect(sanitizeBookingForMobile('98-0000-0001')).toBe('9800000001');
+    expect(sanitizeBookingForMobile('1234567890123')).toBe('1234567890');
+    expect(sanitizeBookingForMobile('abc')).toBe('');
+  });
+
+  it('shows the contact error only when touched', () => {
+    expect(getBookingForMobileError('9800', false)).toBe('');
+    expect(getBookingForMobileError('', true)).toBe('');
+    expect(getBookingForMobileError('9800', true)).toContain('10');
+    expect(getBookingForMobileError('9800000001', true)).toBe('');
   });
 });

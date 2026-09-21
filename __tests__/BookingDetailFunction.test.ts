@@ -1,5 +1,6 @@
 import {
     getApplicantInfo,
+    getBookingForInfo,
     getBookingOverview,
     getEventInfo,
     getFinalizeBlocker,
@@ -78,7 +79,7 @@ describe('getBookingOverview', () => {
 
     it('hall missing par fallback deta hai', () => {
         const overview = getBookingOverview({ schedule: {} });
-        expect(overview.hallName).toBe('Hall assigned nahi');
+        expect(overview.hallName).toBe('Hall not assigned');
         expect(overview.eventName).toBe('Event');
     });
 
@@ -143,6 +144,34 @@ describe('getEventInfo', () => {
         expect(info.hasAnything).toBe(true);
     });
 
+    it('booking for "Someone Else" details ke saath aata hai', () => {
+        const info = getEventInfo({
+            event: {
+                bookingFor: 'Someone Else',
+                bookingForName: 'Ramesh',
+                bookingForRelation: 'Brother',
+                bookingForMobile: '9800000001',
+                bookingForPhoto: 'https://cdn.test/photo.jpg',
+            },
+        });
+
+        expect(info.bookingFor.isSomeoneElse).toBe(true);
+        expect(info.bookingFor.name).toBe('Ramesh');
+        expect(info.bookingFor.relation).toBe('Brother');
+        expect(info.bookingFor.mobile).toBe('9800000001');
+        expect(info.bookingFor.photo).toBe('https://cdn.test/photo.jpg');
+        // Sirf booking-for info ho to bhi section khaali nahi dikhta.
+        expect(info.hasAnything).toBe(true);
+    });
+
+    it('purani booking (bookingFor set nahi) "Myself" ki tarah treat hoti hai', () => {
+        const info = getBookingForInfo(undefined);
+
+        expect(info.forWhom).toBe('');
+        expect(info.isSomeoneElse).toBe(false);
+        expect(info.hasAnything).toBe(false);
+    });
+
     it('kuch bhi na ho to hasAnything false', () => {
         expect(getEventInfo({}).hasAnything).toBe(false);
     });
@@ -198,7 +227,7 @@ describe('getUnitIssues (finalize gate)', () => {
             {
                 label: 'Light',
                 kind: 'reading',
-                message: '"Light" ki current unit (reading) add karein.',
+                message: 'Add the current reading for "Light".',
             },
         ]);
     });
@@ -245,7 +274,7 @@ describe('getFinalizeChecklist + getFinalizeBlocker', () => {
         ]);
 
         const blocker = getFinalizeBlocker(booking);
-        expect(blocker).toBe('"Light" ki current unit (reading) add karein.');
+        expect(blocker).toBe('Add the current reading for "Light".');
 
         const units = getFinalizeChecklist(booking).find((item) => item.key === 'units');
         expect(units?.ok).toBe(false);

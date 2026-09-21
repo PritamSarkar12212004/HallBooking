@@ -1,9 +1,6 @@
 
 import React from 'react';
-import {
-    ErrorBoundary,
-    type FallbackProps,
-} from 'react-error-boundary';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import ErrorFallback from './ErrorFallback';
 
@@ -12,7 +9,8 @@ interface ErrorWrapperProps {
 }
 
 const ErrorWrapper = ({ children }: ErrorWrapperProps) => {
-    const handleError = (error: Error, info: React.ErrorInfo) => {
+    // `error` react-error-boundary me `unknown` aata hai — pehle narrow karte hain.
+    const handleError = (error: unknown, info: React.ErrorInfo) => {
         console.error('Global Error Boundary:', error);
         console.error('Component Stack:', info.componentStack);
     };

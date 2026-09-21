@@ -38,7 +38,7 @@ const UpiQrCard = ({
     </View>
 
     <Text className="text-[#8F8B91] text-xs mb-4">
-      Customer apne UPI app (Google Pay, PhonePe, Paytm) se ye QR scan kare.
+      Ask the customer to scan this QR with any UPI app (Google Pay, PhonePe, Paytm).
     </Text>
 
     {!qrUrl ? (
@@ -51,11 +51,11 @@ const UpiQrCard = ({
         }}
       >
         <Text className="text-sm font-semibold mb-1" style={{ color: '#F59E0B' }}>
-          UPI QR set nahi hua
+          UPI QR not set up
         </Text>
         <Text className="text-[#8F8B91] text-xs">
-          CEO → Profile → QR Code se hall ka UPI QR + bank holder name upload
-          karna hoga, tab yahan scan karne layak QR dikhega.
+          The CEO needs to upload the hall UPI QR + bank holder name from
+          Profile → QR Code; the scannable QR will then appear here.
         </Text>
       </View>
     ) : (
