@@ -11,6 +11,9 @@ const envApi = {
     },
     PaymentQr: {
         root: "/payment-qr"
+    },
+    Analytics: {
+        root: "/analytics"
     }
 }
 export default envApi

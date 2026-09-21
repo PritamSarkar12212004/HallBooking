@@ -13,10 +13,12 @@ import tw from 'twrnc';
 
 import { Theme } from '../../const/theme/Theme';
 import Wrapper from '../../layouts/wraper/Wraper';
+import SubHeader from '../../components/header/SubHeader';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useListBookings from '../../api/booking/hooks/useListBookings';
 import { bookingListInterface } from '../../interface/api/bookintInterface';
 import { formatTime } from '../../functions/formate/DateTimeFormate';
+import { MainRoute } from '../../const/routes/route';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -64,7 +66,7 @@ const BAND_MIDDLE: ViewStyle = { ...BAND_BASE, left: 1, right: 1 };
 const BAND_END: ViewStyle = { ...BAND_BASE, right: 6, borderTopRightRadius: 10, borderBottomRightRadius: 10 };
 const BAND_SINGLE: ViewStyle = { ...BAND_BASE, left: 6, right: 6, borderRadius: 10 };
 
-const CaalenderScreen = () => {
+const CaalenderScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
     const { bookings, isLoading, isError, refetch } = useListBookings(user?.token);
 
@@ -198,6 +200,10 @@ const CaalenderScreen = () => {
 
     return (
         <Wrapper>
+            {/* Pehle is screen par koi header nahi tha — drawer se kholne par
+                wapas jaane ka koi button hi nahi milta tha. */}
+            <SubHeader navigation={navigation} title="Calendar" />
+
             <View
                 style={[
                     tw`pt-2 pb-2 shadow-sm`,
@@ -305,8 +311,14 @@ const CaalenderScreen = () => {
 
                                 <View style={tw`flex-1 justify-center`}>
                                     {item.events.map((ev, i) => (
-                                        <View
+                                        <TouchableOpacity
                                             key={i}
+                                            activeOpacity={0.85}
+                                            onPress={() =>
+                                                navigation.navigate(MainRoute.BookingDetail, {
+                                                    id: ev.id,
+                                                })
+                                            }
                                             style={[
                                                 tw`p-3 rounded-lg mb-2 shadow-sm`,
                                                 {
@@ -340,7 +352,7 @@ const CaalenderScreen = () => {
                                             >
                                                 {formatTime(ev.startTime)}
                                             </Text>
-                                        </View>
+                                        </TouchableOpacity>
                                     ))}
                                 </View>
                             </TouchableOpacity>

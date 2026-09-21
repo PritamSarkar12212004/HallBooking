@@ -22,6 +22,9 @@ const apiRoute = {
     },
     paymentQr: {
         root: "/",
+    },
+    analytics: {
+        ceo: "/ceo",
     }
 }
 export default apiRoute

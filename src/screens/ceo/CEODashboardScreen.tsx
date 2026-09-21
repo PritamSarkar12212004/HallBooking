@@ -3,6 +3,7 @@ import { Dimensions } from 'react-native';
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, RefreshControl } from '../../lib/style/withTailwind';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 import {
+    BarChart3,
     CalendarCheck,
     CalendarDays,
     UserRound,
@@ -86,6 +87,11 @@ const CEODashboardScreen = ({ navigation }: any) => {
     // se hi khulta hai, isliye stack screen par navigate karte hain.
     const openStaffActivity = useCallback(() => {
         navigation.navigate(MainRoute.StaffActivity);
+    }, [navigation]);
+
+    // Business Analytics — 7 sections (finance, venue, customers, staff…).
+    const openAnalytics = useCallback(() => {
+        navigation.navigate(MainRoute.CeoAnalytics);
     }, [navigation]);
 
     const statCards = stats ? [
@@ -192,6 +198,36 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                     </Text>
                                     <Text className="text-[11px] font-medium mt-0.5" style={{ color: DashboardPalette.inkSoft }}>
                                         Day-wise events, bookings & staff activity
+                                    </Text>
+                                </View>
+                                <ChevronRight size={16} color={DashboardPalette.inkMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Business Analytics — reports ka poora hub */}
+                        <View className="mt-3">
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={openAnalytics}
+                                className="flex-row items-center rounded-2xl p-4"
+                                style={{
+                                    backgroundColor: DashboardPalette.card,
+                                    borderWidth: 1,
+                                    borderColor: DashboardPalette.border,
+                                }}
+                            >
+                                <View
+                                    className="w-11 h-11 rounded-xl items-center justify-center"
+                                    style={{ backgroundColor: DashboardPalette.goldSoft }}
+                                >
+                                    <BarChart3 size={20} color={DashboardPalette.goldDeep} />
+                                </View>
+                                <View className="flex-1 ml-3">
+                                    <Text className="text-[14px] font-extrabold" style={{ color: DashboardPalette.ink }}>
+                                        Business Analytics
+                                    </Text>
+                                    <Text className="text-[11px] font-medium mt-0.5" style={{ color: DashboardPalette.inkSoft }}>
+                                        Finance, events, halls, customers, staff & reports
                                     </Text>
                                 </View>
                                 <ChevronRight size={16} color={DashboardPalette.inkMuted} />

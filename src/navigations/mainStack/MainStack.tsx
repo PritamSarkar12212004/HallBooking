@@ -15,6 +15,7 @@ import ProfileQrScreen from '../../screens/main/ProfileQrScreen';
 import CEODashboardScreen from '../../screens/ceo/CEODashboardScreen';
 import StaffActivityScreen from '../../screens/ceo/StaffActivityScreen';
 import ReportsScreen from '../../screens/ceo/ReportsScreen';
+import CEOAnalyticsScreen from '../../screens/ceo/CEOAnalyticsScreen';
 
 import BookingDetailScreen from '../../screens/booking/BookingDetailScreen';
 import EditFinanceScreen from '../../screens/booking/EditFinanceScreen';
@@ -116,6 +117,11 @@ const MainStack = ({ userRole }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.Reports}
                 component={ReportsScreen}
+            />
+            {/* CEO Business Analytics (7 sections + period filter) */}
+            <Stack.Screen
+                name={MainRoute.CeoAnalytics}
+                component={CEOAnalyticsScreen}
             />
             <Stack.Screen
                 name={MainRoute.Profile}

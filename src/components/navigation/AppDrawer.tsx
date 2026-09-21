@@ -117,12 +117,20 @@ const defaultSections = (
                 label: 'Calendar',
                 onPress: () => navigation.navigate(MainRoute.FeatureCalendar),
             },
-            {
-                key: 'reports',
-                icon: 'chart-box',
-                label: 'Reports',
-                onPress: () => navigation.navigate(MainRoute.Reports),
-            },
+            // CEO ke liye "Reports" = poora Business Analytics screen (7 sections).
+            isCeo
+                ? {
+                      key: 'analytics',
+                      icon: 'chart-box',
+                      label: 'Analytics',
+                      onPress: () => navigation.navigate(MainRoute.CeoAnalytics),
+                  }
+                : {
+                      key: 'reports',
+                      icon: 'chart-box',
+                      label: 'Reports',
+                      onPress: () => navigation.navigate(MainRoute.Reports),
+                  },
             {
                 key: 'profile',
                 icon: 'account',

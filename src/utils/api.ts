@@ -39,3 +39,5 @@ export const apiApplicant = createApi(`${envApi.baseUri}${envApi.Applicant.root}
 
 export const apiPaymentQr = createApi(`${envApi.baseUri}${envApi.PaymentQr.root}`)
 
+export const apiAnalytics = createApi(`${envApi.baseUri}${envApi.Analytics.root}`)
+

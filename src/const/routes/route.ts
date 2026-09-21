@@ -31,6 +31,8 @@ export const MainRoute = {
   HallCalendar: 'HallCalendar',
   FeatureCalendar: 'FeatureCalendar',
   StaffActivity: 'StaffActivity',
+  /** CEO Business Analytics — saare reports ek screen par. */
+  CeoAnalytics: 'CeoAnalytics',
 } as const;
 
 export const BookingStepRoute = {

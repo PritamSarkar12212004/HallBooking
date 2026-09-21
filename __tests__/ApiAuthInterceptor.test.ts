@@ -11,6 +11,7 @@ jest.mock('../src/const/api/envApi', () => ({
         Booking: { root: '/bookings' },
         Applicant: { root: '/applicants' },
         PaymentQr: { root: '/payment-qr' },
+        Analytics: { root: '/analytics' },
     },
 }));
 

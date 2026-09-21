@@ -19,6 +19,7 @@ import { useAppSelector } from '../../hooks/redux/redux';
 import useListBookings from '../../api/booking/hooks/useListBookings';
 import { bookingListInterface } from '../../interface/api/bookintInterface';
 import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
+import { MainRoute } from '../../const/routes/route';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -128,7 +129,7 @@ interface EventsCalendarProps {
  * a continuous range band on the grid; the agenda below lists event name,
  * hall, time range and — for multi-day events — the full date range.
  */
-const EventsCalendar = ({ navigation }: EventsCalendarProps) => {
+const EventsCalendar = ({ navigation, title }: EventsCalendarProps) => {
     const user = useAppSelector((state) => state.user.user);
     const { bookings, isLoading, isError, refetch } = useListBookings(user?.token);
 
@@ -267,7 +268,7 @@ const EventsCalendar = ({ navigation }: EventsCalendarProps) => {
 
     return (
         <Wrapper>
-            <SubHeader title={""} navigation={navigation} />
+            <SubHeader title={title ?? 'Events'} navigation={navigation} />
 
             <View
                 style={[
@@ -366,8 +367,14 @@ const EventsCalendar = ({ navigation }: EventsCalendarProps) => {
                                         const ev = entry.booking;
                                         const meta = entry.meta;
                                         return (
-                                            <View
+                                            <TouchableOpacity
                                                 key={i}
+                                                activeOpacity={0.85}
+                                                onPress={() =>
+                                                    navigation.navigate(MainRoute.BookingDetail, {
+                                                        id: ev.id,
+                                                    })
+                                                }
                                                 style={[
                                                     tw`p-3 rounded-lg mb-2 shadow-sm`,
                                                     {
@@ -435,7 +442,7 @@ const EventsCalendar = ({ navigation }: EventsCalendarProps) => {
                                                         </Text>
                                                     </View>
                                                 )}
-                                            </View>
+                                            </TouchableOpacity>
                                         );
                                     })}
                                 </View>
