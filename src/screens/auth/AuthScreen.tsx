@@ -69,11 +69,15 @@ const AuthScreen = ({ navigation }: any) => {
                 error?.response?.data?.message ||
                 error?.message ||
                 'Something went wrong. Please try again.';
+            // 403 = number app ki access list me nahi hai — sirf "OTP failed"
+            // bolna confusing tha, isliye saaf reason dikhaya jaata hai.
+            const accessDenied = error?.response?.status === 403;
 
             showMessage({
-                message: 'OTP Failed',
+                message: accessDenied ? 'Access Restricted' : 'OTP Failed',
                 description: message,
                 type: 'danger',
+                duration: accessDenied ? 5000 : 3000,
             });
 
         }

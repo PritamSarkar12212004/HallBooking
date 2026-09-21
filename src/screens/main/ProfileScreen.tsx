@@ -32,7 +32,7 @@ import ProfileMenuItem from '../../components/profile/ProfileMenuItem';
 import { Palette } from '../../components/profile/const/profilePalette';
 import { pickFromGallery, capturePhoto } from '../../module/ImagePickerModule';
 import { route as appRoute, MainRoute } from '../../const/routes/route';
-import { isCeoPhone } from '../../const/role/role';
+import { isCeoUser } from '../../const/role/role';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux/redux';
 import { updateUser } from '../../store/slices/userSlice';
 import { writeStorage } from '../../manager/storage/storageManager';
@@ -65,8 +65,9 @@ const ProfileScreen = ({ navigation }: any) => {
         email: email || '—',
     }), [number, data?.gender, email]);
 
-    // QR manage option sirf CEO ko dikhta hai — same phone whitelist jo CEO tabs deti hai.
-    const isCeo = useMemo(() => isCeoPhone(data?.phone), [data?.phone]);
+    // QR manage option sirf CEO ko dikhta hai — backend ki access list se aaya
+    // role (`user.accessRole`), wahi jo CEO tabs deta hai.
+    const isCeo = useMemo(() => isCeoUser(data), [data]);
 
     const handleEdit = useCallback(() => setActiveEdit((p) => !p), []);
 
@@ -111,6 +112,10 @@ const ProfileScreen = ({ navigation }: any) => {
                     gender: data?.gender,
                     email: updated.email,
                     city: updated.city,
+                    // Access role profile edit se nahi badalta — jaisa tha waisa
+                    // hi dobara likh dete hain, warna restore par CEO UI chali jaati.
+                    accessRole: data?.accessRole,
+                    role: data?.role,
                 },
             });
             showMessage({ message: 'Profile Updated', description: 'Your profile has been saved successfully.', type: 'success' });

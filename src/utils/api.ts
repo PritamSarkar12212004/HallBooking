@@ -1,7 +1,11 @@
 import axios, { AxiosInstance } from 'axios'
 import envApi from '../const/api/envApi';
-import { handleUnauthorized } from '../manager/session/sessionManager';
-import { isAuthEndpoint, isAuthFailure } from '../functions/formate/ApiErrorFormate';
+import { handleAccessRevoked, handleUnauthorized } from '../manager/session/sessionManager';
+import {
+    isAccessDenied,
+    isAuthEndpoint,
+    isAuthFailure,
+} from '../functions/formate/ApiErrorFormate';
 
 /**
  * Har authenticated call par: token expire / invalid ho (401) to session clear
@@ -13,7 +17,11 @@ import { isAuthEndpoint, isAuthFailure } from '../functions/formate/ApiErrorForm
  * ho jaata.
  */
 export const handleApiResponseError = (error: any): Promise<never> => {
-    if (isAuthFailure(error) && !isAuthEndpoint(error?.config?.url)) {
+    if (isAccessDenied(error)) {
+        // Number access list me nahi (revoke/gate) — re-login se theek nahi
+        // hoga, isliye alag message ke saath session clear kar dete hain.
+        handleAccessRevoked();
+    } else if (isAuthFailure(error) && !isAuthEndpoint(error?.config?.url)) {
         handleUnauthorized();
     }
 

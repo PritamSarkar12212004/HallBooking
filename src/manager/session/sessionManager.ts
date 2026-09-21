@@ -53,7 +53,11 @@ let isHandlingUnauthorized = false;
  * requests (jaise list + dashboard) ke liye guard lagaya gaya hai, taake sirf
  * ek hi baar session wipe ho aur ek hi message dikhe.
  */
-export const handleUnauthorized = (): void => {
+export const handleUnauthorized = (options?: {
+    message?: string;
+    description?: string;
+    duration?: number;
+}): void => {
     if (isHandlingUnauthorized) {
         return;
     }
@@ -62,10 +66,10 @@ export const handleUnauthorized = (): void => {
     clearSession();
 
     showMessage({
-        message: 'Session expired',
-        description: 'Please login again to continue.',
+        message: options?.message ?? 'Session expired',
+        description: options?.description ?? 'Please login again to continue.',
         type: 'danger',
-        duration: 3000,
+        duration: options?.duration ?? 3000,
     });
 
     // Navigation container mount hone se pehle bhi interceptor chal sakta hai —
@@ -76,7 +80,19 @@ export const handleUnauthorized = (): void => {
 
     setTimeout(() => {
         isHandlingUnauthorized = false;
-    }, 2000);
+    }, 4000);
 };
+
+/**
+ * Access list se number hat gaya (ya gate ON hone ke baad number list me nahi
+ * hai) — session wipe karke login par bhejo, saaf message ke saath.
+ */
+export const handleAccessRevoked = (): void =>
+    handleUnauthorized({
+        message: 'Access restricted',
+        description:
+            'This number is no longer authorised to use the app. Please contact the admin.',
+        duration: 5000,
+    });
 
 export default clearSession;

@@ -59,6 +59,9 @@ const OtpScreen = ({ route, navigation }: any) => {
             gender: data?.user.gender,
             email: data?.user.email,
             city: data?.user.city,
+            // Backend ki access list ka role — CEO UI isi par tiki hai.
+            accessRole: data?.user?.accessRole,
+            role: data?.user?.role,
         }));
         writeStorage({ key: storageToken, data: data?.token });
     }, [dispatch]);
@@ -129,17 +132,18 @@ const OtpScreen = ({ route, navigation }: any) => {
             } else {
                 writeStorage({ key: token.isAuth, data: true });
                 writeStorage({
-                    key: token.isAuthData,
-                    data: {
-                        _id: data?.user._id,
-                        phone: data?.user.phone,
-                        photo: data?.user.photo,
-                        name: data?.user.name,
-                        gender: data?.user.gender,
-                        email: data?.user.email,
-                        city: data?.user.city,
-                    },
-                });
+                    key: token.isAuthData,                        data: {
+                            _id: data?.user._id,
+                            phone: data?.user.phone,
+                            photo: data?.user.photo,
+                            name: data?.user.name,
+                            gender: data?.user.gender,
+                            email: data?.user.email,
+                            city: data?.user.city,
+                            accessRole: data?.user?.accessRole,
+                            role: data?.user?.role,
+                        },
+                    });
                 navigation.reset({
                     index: 0,
                     routes: [
@@ -154,16 +158,18 @@ const OtpScreen = ({ route, navigation }: any) => {
                 err?.response?.data?.message ||
                 err?.message ||
                 'Invalid OTP. Please try again.';
+            // 403 = number access list me nahi hai (session ka issue nahi).
+            const accessDenied = err?.response?.status === 403;
             // Validation feedback: mark the boxes, clear them and refocus.
             setError(message);
             otpInputRef.current?.clear();
             setOtp('');
             otpInputRef.current?.focus();
             showMessage({
-                message: 'Verification Failed',
+                message: accessDenied ? 'Access Restricted' : 'Verification Failed',
                 description: message,
                 type: 'danger',
-                duration: 3000,
+                duration: accessDenied ? 5000 : 3000,
             });
         }
 

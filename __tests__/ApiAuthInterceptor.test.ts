@@ -1,5 +1,6 @@
 jest.mock('../src/manager/session/sessionManager', () => ({
     handleUnauthorized: jest.fn(),
+    handleAccessRevoked: jest.fn(),
     clearSession: jest.fn(),
 }));
 
@@ -16,15 +17,20 @@ jest.mock('../src/const/api/envApi', () => ({
 }));
 
 import { apiBooking, handleApiResponseError } from '../src/utils/api';
-import { handleUnauthorized } from '../src/manager/session/sessionManager';
+import {
+    handleAccessRevoked,
+    handleUnauthorized,
+} from '../src/manager/session/sessionManager';
 
 const mockedHandleUnauthorized = handleUnauthorized as jest.Mock;
+const mockedHandleAccessRevoked = handleAccessRevoked as jest.Mock;
 
 const axiosError = (status: number, data: unknown, url = '/') =>
     ({ response: { status, data }, config: { url }, message: 'Request failed' }) as any;
 
 beforeEach(() => {
     mockedHandleUnauthorized.mockClear();
+    mockedHandleAccessRevoked.mockClear();
 });
 
 describe('handleApiResponseError', () => {
@@ -56,6 +62,26 @@ describe('handleApiResponseError', () => {
         mockedHandleUnauthorized.mockClear();
         await expect(handleApiResponseError(axiosError(500, { message: 'CastError' }))).rejects.toBeDefined();
         await expect(handleApiResponseError(axiosError(400, { message: 'Bad input' }))).rejects.toBeDefined();
+        expect(mockedHandleUnauthorized).not.toHaveBeenCalled();
+    });
+
+    it('403 ACCESS_DENIED par session clear karke access message dikhata hai', async () => {
+        const error = axiosError(403, {
+            message: 'This number is not authorised to use this app.',
+            code: 'ACCESS_DENIED',
+        });
+
+        await expect(handleApiResponseError(error)).rejects.toBe(error);
+        expect(mockedHandleAccessRevoked).toHaveBeenCalledTimes(1);
+        // Ye session expiry nahi — "session expired" wala flow nahi chalna chahiye.
+        expect(mockedHandleUnauthorized).not.toHaveBeenCalled();
+    });
+
+    it('baaki 403 (jaise CEO-only) par koi session clear nahi hota', async () => {
+        const error = axiosError(403, { message: 'Only the CEO can update the hall payment QR' });
+
+        await expect(handleApiResponseError(error)).rejects.toBe(error);
+        expect(mockedHandleAccessRevoked).not.toHaveBeenCalled();
         expect(mockedHandleUnauthorized).not.toHaveBeenCalled();
     });
 });

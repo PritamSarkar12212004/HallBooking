@@ -133,6 +133,8 @@ const SetupScreen = ({ navigation, route }: any) => {
                     gender: response?.user.gender,
                     email: response?.user.email,
                     city: response?.user.city,
+                    accessRole: response?.user?.accessRole,
+                    role: response?.user?.role,
                 }),
             );
             writeStorage({ key: token.isAuth, data: true })
@@ -145,6 +147,8 @@ const SetupScreen = ({ navigation, route }: any) => {
                     gender: response?.user.gender,
                     email: response?.user.email,
                     city: response?.user.city,
+                    accessRole: response?.user?.accessRole,
+                    role: response?.user?.role,
                 }
             })
             navigation.reset({

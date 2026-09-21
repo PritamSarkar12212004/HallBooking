@@ -34,6 +34,23 @@ export const getApiErrorMessage = (
 const AUTH_ERROR_PATTERN =
     /jwt expired|jwt malformed|invalid token|invalid access token|access token is required|token (has )?expired/i;
 
+/**
+ * Access list se number hat jaane par backend `403 ACCESS_DENIED` deta hai.
+ * Ye session expire nahi hai (re-login se theek nahi hoga), isliye isko alag
+ * pehchana jaata hai — user ko saaf message milta hai, aur session clear kar
+ * diya jaata hai taake app adhoora data dikhata na rahe.
+ */
+export const ACCESS_DENIED_CODE = 'ACCESS_DENIED';
+
+export const isAccessDenied = (error: unknown): boolean => {
+    const response = (error as AxiosError<any> | undefined)?.response;
+
+    return (
+        response?.status === 403 &&
+        response?.data?.code === ACCESS_DENIED_CODE
+    );
+};
+
 /** 401 (ya 5xx + token error) = session invalid. */
 export const isAuthFailure = (error: unknown): boolean => {
     const status = (error as AxiosError | undefined)?.response?.status;

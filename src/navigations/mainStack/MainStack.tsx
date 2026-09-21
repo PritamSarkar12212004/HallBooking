@@ -25,7 +25,7 @@ import PaymentTrackRecordScreen from '../../screens/booking/PaymentTrackRecordSc
 import BookingStepStack from './BookingStepStack';
 import FeatureStack from './FeatureStack';
 import { useAppSelector } from '../../hooks/redux/redux';
-import { isCeoPhone } from '../../const/role/role';
+import { isCeoUser } from '../../const/role/role';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -79,7 +79,7 @@ interface MainStackProps {
 const MainStack = ({ userRole }: MainStackProps) => {
     const user = useAppSelector((state) => state.user.user);
     // CEO access is allowed only for the whitelisted CEO phone numbers.
-    const isCEO = userRole ? userRole === 'ceo' : isCeoPhone(user?.phone);
+    const isCEO = userRole ? userRole === 'ceo' : isCeoUser(user);
     const MainTabs = isCEO ? CEOTabs : StaffTabs;
 
     return (

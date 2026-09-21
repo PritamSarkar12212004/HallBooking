@@ -87,6 +87,11 @@ const SplashScreen = () => {
                                     city: data?.city,
                                     _id: data?._id,
                                     token: tokenKey,
+                                    // Purane sessions me ye fields nahi hote —
+                                    // us case me role helpers phone par fallback
+                                    // kar dete hain.
+                                    accessRole: data?.accessRole,
+                                    role: data?.role,
                                 }),
                             );
                         }
