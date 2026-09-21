@@ -7,6 +7,8 @@
 import { num } from '../booking/BookingDetailFunction';
 import type {
     AnalyticsCustomers,
+    AnalyticsDocumentRow,
+    AnalyticsDocuments,
     AnalyticsFinance,
     AnalyticsOverview,
     AnalyticsPeriod,
@@ -33,6 +35,7 @@ export type AnalyticsSectionKey =
     | 'venue'
     | 'customers'
     | 'staff'
+    | 'documents'
     | 'reports';
 
 export interface AnalyticsSectionTab {
@@ -49,6 +52,7 @@ export const ANALYTICS_SECTIONS: AnalyticsSectionTab[] = [
     { key: 'venue', label: 'Venue', sub: 'Hall performance' },
     { key: 'customers', label: 'Customers', sub: 'Bookings & dues' },
     { key: 'staff', label: 'Staff', sub: 'Who handled what' },
+    { key: 'documents', label: 'Documents', sub: 'Uploaded proof & photos' },
     { key: 'reports', label: 'Reports', sub: 'Trends & comparison' },
 ];
 
@@ -433,6 +437,92 @@ export const buildStaffCards = (staff?: AnalyticsStaff): AnalyticsCard[] => {
         },
     ];
 };
+
+export const buildDocumentCards = (documents?: AnalyticsDocuments): AnalyticsCard[] => {
+    if (!documents) return [];
+    const countOf = (key: string): number =>
+        documents.byType.find((entry) => entry.key === key)?.value ?? 0;
+
+    return [
+        {
+            key: 'totalDocuments',
+            title: 'Total Documents',
+            value: count(documents.total),
+            hint: 'Uploaded in this period',
+            tone: 'blue',
+        },
+        {
+            key: 'totalCollection',
+            title: 'Payment Proofs',
+            value: count(countOf('paymentProof')),
+            hint: 'Receipts / screenshots',
+            tone: 'green',
+        },
+        {
+            key: 'meterStart',
+            title: 'Meter Readings',
+            value: count(countOf('meterStart')),
+            hint: `${count(countOf('meterClosing'))} closing meters`,
+            tone: 'gold',
+        },
+        {
+            key: 'totalStaff',
+            title: 'Signatures',
+            value: count(countOf('applicantSignature') + countOf('managerSignature')),
+            hint: 'Applicant + manager',
+            tone: 'violet',
+        },
+        {
+            key: 'idProof',
+            title: 'ID Proofs',
+            value: count(countOf('idProof')),
+            hint: 'Customer identity',
+            tone: 'red',
+        },
+    ];
+};
+
+/** Type filter chips — sirf wahi types jo is period me mile. */
+export const documentTypeOptions = (
+    documents?: AnalyticsDocuments,
+): { key: string; label: string; value: number }[] =>
+    (documents?.byType ?? []).map((entry) => ({
+        key: String(entry.key),
+        label: String(entry.label),
+        value: num(entry.value),
+    }));
+
+/** Documents ko type + text search se filter karta hai (client par). */
+export const filterDocuments = (
+    rows: AnalyticsDocumentRow[] | undefined,
+    options: { type?: string; search?: string } = {},
+): AnalyticsDocumentRow[] => {
+    const type = String(options.type ?? '').trim();
+    const query = String(options.search ?? '').trim().toLowerCase();
+
+    return (rows ?? []).filter((row) => {
+        if (type && type !== 'all' && row.type !== type) return false;
+        if (!query) return true;
+        return [row.eventName, row.customerName, row.mobile, row.bookingNumber, row.label, row.hallName]
+            .some((value) => String(value ?? '').toLowerCase().includes(query));
+    });
+};
+
+/** "12 Sep" — document row ke saath date dikhane ke liye. */
+export const documentDate = (value?: string): string => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
+
+/** Documents ki list — sabse naya pehle. */
+export const sortDocumentsByDate = (
+    rows: AnalyticsDocumentRow[] | undefined,
+): AnalyticsDocumentRow[] =>
+    [...(rows ?? [])].sort(
+        (a, b) => new Date(b.addedAt ?? 0).getTime() - new Date(a.addedAt ?? 0).getTime(),
+    );
 
 export const buildReportCards = (reports?: AnalyticsReports): AnalyticsCard[] => {
     if (!reports) return [];

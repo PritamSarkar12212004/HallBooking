@@ -18,16 +18,32 @@ import { bookingListInterface } from '../../interface/api/bookintInterface';
 import { getApiErrorMessage } from '../../functions/formate/ApiErrorFormate';
 import { resetToLogin } from '../../navigations/navigationRef';
 
-type FilterKey = 'All' | 'Ongoing' | 'Paid' | 'Due' | 'Done' | 'Cancelled';
+/**
+ * Application status filters — har booking ek application hai.
+ *
+ * New = fresh application (last 7 din me aayi) · Pending = paisa baaki hai ·
+ * Approved = confirmed · Cancelled / Completed = closed cases.
+ */
+type FilterKey = 'All' | 'New' | 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
     { key: 'All', label: 'All' },
-    { key: 'Ongoing', label: 'Ongoing' },
-    { key: 'Paid', label: 'Paid' },
-    { key: 'Due', label: 'Due' },
-    { key: 'Done', label: 'Done' },
+    { key: 'New', label: 'New' },
+    { key: 'Pending', label: 'Pending' },
+    { key: 'Approved', label: 'Approved' },
     { key: 'Cancelled', label: 'Cancelled' },
+    { key: 'Completed', label: 'Completed' },
 ];
+
+/** Naya application kitne din tak "New" ginta hai. */
+const NEW_WINDOW_DAYS = 7;
+
+const isNewApplication = (createdAt?: string): boolean => {
+    if (!createdAt) return false;
+    const created = new Date(createdAt);
+    if (Number.isNaN(created.getTime())) return false;
+    return Date.now() - created.getTime() <= NEW_WINDOW_DAYS * 86400000;
+};
 
 const BookingListScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
@@ -104,22 +120,20 @@ const BookingListScreen = ({ navigation }: any) => {
     const filteredBookings = useMemo(() => {
         const query = deferredSearch.trim().toLowerCase();
         let list = typedBookings;
-        if (activeFilter === 'Ongoing') {
-            list = list.filter((b) => b.status !== 'Cancelled');
-        } else if (activeFilter === 'Paid') {
+        if (activeFilter === 'New') {
+            list = list.filter((b) => isNewApplication(b.createdAt));
+        } else if (activeFilter === 'Pending') {
             list = list.filter(
-                (b) => b.paymentStatus === 'Paid' && (b.balanceAmount || 0) <= 0,
+                (b) => b.status !== 'Cancelled' && (b.balanceAmount || 0) > 0,
             );
-        } else if (activeFilter === 'Due') {
-            list = list.filter((b) => (b.balanceAmount || 0) > 0);
-        } else if (activeFilter === 'Done') {
+        } else if (activeFilter === 'Approved') {
             list = list.filter(
-                (b) =>
-                    b.status === 'Ended' ||
-                    (b.paymentStatus === 'Paid' && (b.balanceAmount || 0) <= 0),
+                (b) => b.status === 'Confirmed' || b.status === 'Office-Approved',
             );
         } else if (activeFilter === 'Cancelled') {
             list = list.filter((b) => b.status === 'Cancelled');
+        } else if (activeFilter === 'Completed') {
+            list = list.filter((b) => b.status === 'Ended');
         }
 
         // Text search across applicant, event, hall, booking id, taken by

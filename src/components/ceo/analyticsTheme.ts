@@ -17,6 +17,7 @@ import {
     CreditCard,
     FileText,
     Gauge,
+    IdCard,
     IndianRupee,
     Landmark,
     Lock,
@@ -102,6 +103,10 @@ const ICONS: Record<string, LucideIcon> = {
     pending: Wallet2,
     depositHeld: ShieldCheck,
     netPosition: TrendingUp,
+    // Documents
+    totalDocuments: FileText,
+    meterStart: Gauge,
+    idProof: IdCard,
 };
 
 export const iconForCard = (key: string): LucideIcon => ICONS[key] ?? Gauge;

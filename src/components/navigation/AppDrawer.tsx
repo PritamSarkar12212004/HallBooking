@@ -89,12 +89,20 @@ const defaultSections = (
                 label: 'Bookings',
                 onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Bookings }),
             },
-            {
-                key: 'applicants',
-                icon: 'account-multiple',
-                label: 'Applicants',
-                onPress: () => navigation.navigate(MainRoute.MainTabs, { screen: TabRoute.Applicants }),
-            },
+            // Applicants tab CEO ke tabs me nahi hai (customers Analytics me).
+            ...(isCeo
+                ? []
+                : [
+                      {
+                          key: 'applicants',
+                          icon: 'account-multiple',
+                          label: 'Applicants',
+                          onPress: () =>
+                              navigation.navigate(MainRoute.MainTabs, {
+                                  screen: TabRoute.Applicants,
+                              }),
+                      },
+                  ]),
             // "Halls" = nayi booking shuru karne ka entry — CEO ke liye nahi.
             ...(isCeo
                 ? []
@@ -117,13 +125,16 @@ const defaultSections = (
                 label: 'Calendar',
                 onPress: () => navigation.navigate(MainRoute.FeatureCalendar),
             },
-            // CEO ke liye "Reports" = poora Business Analytics screen (7 sections).
+            // CEO ke liye "Reports" = Analytics tab (7 sections).
             isCeo
                 ? {
                       key: 'analytics',
                       icon: 'chart-box',
                       label: 'Analytics',
-                      onPress: () => navigation.navigate(MainRoute.CeoAnalytics),
+                      onPress: () =>
+                          navigation.navigate(MainRoute.MainTabs, {
+                              screen: TabRoute.Analytics,
+                          }),
                   }
                 : {
                       key: 'reports',

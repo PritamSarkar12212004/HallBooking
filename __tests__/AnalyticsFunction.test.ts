@@ -2,6 +2,7 @@ import {
   ANALYTICS_SECTIONS,
   PERIOD_OPTIONS,
   buildCustomerCards,
+  buildDocumentCards,
   buildFinanceCards,
   buildOverviewCards,
   buildReportCards,
@@ -10,13 +11,17 @@ import {
   changePct,
   collectionPct,
   comparisonRows,
+  documentDate,
+  documentTypeOptions,
   eventTypeRows,
+  filterDocuments,
   formatPeriodRange,
   hallUtilizationRows,
   maxSeriesValue,
   modeRows,
   money,
   sharePct,
+  sortDocumentsByDate,
   statusTone,
   toChartData,
   venueRows,
@@ -382,8 +387,74 @@ describe('report rows', () => {
   });
 });
 
+describe('documents', () => {
+  const documents = {
+    total: 3,
+    byType: [
+      { key: 'paymentProof', label: 'Payment proofs', value: 2 },
+      { key: 'meterStart', label: 'Meter readings', value: 1 },
+    ],
+    rows: [
+      {
+        id: 'a',
+        bookingId: 'b1',
+        bookingNumber: 'BK-1',
+        customerName: 'Ramesh',
+        mobile: '9800000001',
+        eventName: 'Wedding',
+        hallName: 'Grand Hall',
+        type: 'paymentProof',
+        label: 'Payment Proof – Cash',
+        url: 'https://cdn/x.jpg',
+        addedAt: '2026-09-20T10:00:00.000Z',
+      },
+      {
+        id: 'b',
+        bookingId: 'b2',
+        bookingNumber: 'BK-2',
+        customerName: 'Sita',
+        mobile: '9800000002',
+        eventName: 'Birthday',
+        hallName: 'Lawn',
+        type: 'meterStart',
+        label: 'Meter Reading – Light',
+        url: 'https://cdn/y.jpg',
+        addedAt: '2026-09-19T10:00:00.000Z',
+      },
+    ],
+  };
+
+  it('builds summary cards from the type counts', () => {
+    const cards = buildDocumentCards(documents);
+    expect(cards.map((card) => card.value)).toEqual(['3', '2', '1', '0', '0']);
+  });
+
+  it('keeps only types that exist', () => {
+    expect(documentTypeOptions(documents).map((option) => option.key)).toEqual([
+      'paymentProof',
+      'meterStart',
+    ]);
+    expect(documentTypeOptions(undefined)).toEqual([]);
+  });
+
+  it('filters by type and search text', () => {
+    expect(filterDocuments(documents.rows, { type: 'meterStart' })).toHaveLength(1);
+    expect(filterDocuments(documents.rows, { type: 'all' })).toHaveLength(2);
+    expect(filterDocuments(documents.rows, { search: 'ramesh' })).toHaveLength(1);
+    expect(filterDocuments(documents.rows, { search: 'bk-2' })).toHaveLength(1);
+    expect(filterDocuments(documents.rows, { search: 'nothing' })).toHaveLength(0);
+    expect(filterDocuments(undefined)).toEqual([]);
+  });
+
+  it('sorts newest first and formats the date', () => {
+    expect(sortDocumentsByDate(documents.rows).map((row) => row.id)).toEqual(['a', 'b']);
+    expect(documentDate('2026-09-20T10:00:00.000Z')).toContain('Sep');
+    expect(documentDate('')).toBe('');
+  });
+});
+
 describe('static options', () => {
-  it('exposes all seven CEO sections', () => {
+  it('exposes all CEO sections (documents included)', () => {
     expect(ANALYTICS_SECTIONS.map((section) => section.key)).toEqual([
       'overview',
       'finance',
@@ -391,6 +462,7 @@ describe('static options', () => {
       'venue',
       'customers',
       'staff',
+      'documents',
       'reports',
     ]);
   });

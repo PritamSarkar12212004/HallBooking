@@ -15,6 +15,8 @@ export const TabRoute = {
   Profile: 'Profile',
   Dashboard: 'Dashboard',
   Reports: 'Reports',
+  /** CEO Business Analytics (7 sections) — CEO tabs me ek apna tab. */
+  Analytics: 'Analytics',
 } as const;
 
 export const MainRoute = {
@@ -31,8 +33,6 @@ export const MainRoute = {
   HallCalendar: 'HallCalendar',
   FeatureCalendar: 'FeatureCalendar',
   StaffActivity: 'StaffActivity',
-  /** CEO Business Analytics — saare reports ek screen par. */
-  CeoAnalytics: 'CeoAnalytics',
 } as const;
 
 export const BookingStepRoute = {

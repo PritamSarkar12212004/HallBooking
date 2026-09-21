@@ -1,7 +1,7 @@
 import React from 'react'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { SafeAreaView, View, TouchableOpacity } from '../../lib/style/withTailwind';
-import { ClipboardList, House, UserRound, BarChart3, Users, Bell } from 'lucide-react-native';
+import { ClipboardList, House, UserRound, BarChart3, Users, Bell, PieChart } from 'lucide-react-native';
 import { Theme } from '../../const/theme/Theme';
 import { TabRoute } from '../../const/routes/route';
 
@@ -15,6 +15,7 @@ const tabIconByRoute: Record<string, any> = {
     [TabRoute.Notification]: Bell,
     [TabRoute.Applicants]: Users,
     [TabRoute.Profile]: UserRound,
+    [TabRoute.Analytics]: PieChart,
 };
 
 const TabUiNavi = React.memo(

@@ -3,7 +3,12 @@ import { Pencil } from 'lucide-react-native';
 
 import Wrapper from '../../layouts/wraper/Wraper';
 import SubHeader from '../../components/header/SubHeader';
-import { ScrollView, Text, TouchableOpacity, View } from '../../lib/style/withTailwind';
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from '../../lib/style/withTailwind';
 import FullScreenImage from '../../components/ui/FullScreenImage';
 import BookingDetailSkeleton from '../../ui/Skeleton/BookingDetailSkeleton';
 import PendingUnitsBanner from '../../components/booking/detail/PendingUnitsBanner';
@@ -20,19 +25,9 @@ import useIsCeo from '../../hooks/role/useIsCeo';
 import { useAppSelector } from '../../hooks/redux/redux';
 import { BookingDetailPalette as P } from '../../const/theme/bookingDetailPalette';
 
-/**
- * Booking Details — ek hi screen par saara detail.
- *
- * Event/hall ki pehchaan (hero) hamesha dikhti hai; baaki detail 5 collapsible
- * sections me hai (numbered 1–5) jo tap karne par khulte hain — pehle sab kuch
- * khula rehta tha aur screen bhari hui lagti thi. Unit adhoori ho to upar
- * banner + Finalize section locked rehta hai.
- */
 const BookingDetailScreen = ({ navigation, route }: any) => {
   const user = useAppSelector(state => state.user.user);
   const bookingId = route?.params?.id;
-  // CEO ke paas sirf read-only view hai — Update (finance/event/units) ke saare
-  // entry points usse chhupe rehte hain.
   const isCeo = useIsCeo();
 
   const { isLoading, isError, booking } = useGetBookingById({

@@ -1,71 +1,318 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions } from 'react-native';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, RefreshControl } from '../../lib/style/withTailwind';
-import { BarChart, LineChart } from 'react-native-gifted-charts';
+import { BarChart } from 'react-native-gifted-charts';
 import {
-    BarChart3,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
+} from '../../lib/style/withTailwind';
+import {
+    BadgeIndianRupee,
     CalendarCheck,
     CalendarDays,
-    UserRound,
-    TrendingUp,
-    BadgeIndianRupee,
-    RefreshCw,
     ChevronRight,
-    ReceiptIndianRupee,
+    RefreshCw,
+    TriangleAlert,
+    UserRound,
     Wallet2,
 } from 'lucide-react-native';
-import { TabRoute, MainRoute } from '../../const/routes/route';
+
+import Wrapper from '../../layouts/wraper/Wraper';
+import MainDerder from '../../components/header/MainDerder';
+import { Theme } from '../../const/theme/Theme';
+import { MainRoute, TabRoute } from '../../const/routes/route';
 import { useAppSelector } from '../../hooks/redux/redux';
 import useGetDashboard from '../../api/booking/hooks/useGetDashboard';
-import { DashboardData } from '../../interface/api/dashboardInterface';
-import DashboardSkeleton from '../../ui/Skeleton/DashboardSkeleton';
-import DashHeader from '../../components/header/DashHeader';
-import HeroRevenueCard from '../../components/card/dashboard/HeroRevenueCard';
-import EventCard from '../../components/card/dashboard/EventCard';
-import BookingStatusStrip from '../../components/card/dashboard/BookingStatusStrip';
-import SectionTitle from '../../components/card/dashboard/SectionTitle';
-import DashboardPalette from '../../const/theme/dashboardPalette';
-
-const Colors = {
-    background: '#0F1115',
-    surface: '#1A1D24',
-    surfaceLight: '#232733',
-    border: '#2A2F3A',
-    textPrimary: '#FFFFFF',
-    textSecondary: '#9CA3AF',
-    textMuted: '#6B7280',
-    accent: '#F8EFCB',
-    accentSoft: 'rgba(248, 239, 203, 0.12)',
-    gold: '#D4AF37',
-    green: '#34D399',
-    greenSoft: 'rgba(52, 211, 153, 0.12)',
-    red: '#F87171',
-    redSoft: 'rgba(248, 113, 113, 0.12)',
-    blue: '#60A5FA',
-    blueSoft: 'rgba(96, 165, 250, 0.12)',
-    purple: '#A78BFA',
-    purpleSoft: 'rgba(167, 139, 250, 0.12)',
-};
+import { DashboardData, DashboardEventItem } from '../../interface/api/dashboardInterface';
+import { formatCompactINR } from '../../functions/formate/CurrencyFormate';
+import { formatDate, formatTime } from '../../functions/formate/DateTimeFormate';
+import { num } from '../../functions/booking/BookingDetailFunction';
 
 const CHART_WIDTH = Dimensions.get('window').width - 72;
 
-const formatCompactINR = (value: number): string => {
-    if (!value) return '₹0';
-    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
-    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
-    if (value >= 1000) return `₹${(value / 1000).toFixed(1)}k`;
-    return `₹${value}`;
+const eventTitle = (event: DashboardEventItem): string =>
+    event?.eventName?.trim() ? event.eventName : 'Untitled Event';
+
+/** Ek event row — dashboard ki saari lists isi shape me hain. */
+const EventRow = React.memo(
+    ({ event, onPress }: { event: DashboardEventItem; onPress: () => void }) => {
+        const isCancelled = event.status === 'Cancelled';
+        const isEnded = event.status === 'Ended';
+        const badgeColor = isCancelled
+            ? '#FF6B6B'
+            : isEnded
+              ? Theme.button.secondary
+              : Theme.button.primary;
+
+        return (
+            <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onPress}
+                className="rounded-2xl p-3.5 mb-2.5 flex-row items-center"
+                style={{
+                    backgroundColor: Theme.background.secondary,
+                    borderWidth: 1,
+                    borderColor: Theme.border.primary,
+                }}
+            >
+                <View className="flex-1 pr-2">
+                    <View className="flex-row items-center">
+                        <Text
+                            className="text-[14px] font-bold text-white flex-shrink"
+                            numberOfLines={1}
+                        >
+                            {eventTitle(event)}
+                        </Text>
+                        {event.status ? (
+                            <View
+                                className="px-2 py-0.5 rounded-full ml-2"
+                                style={{ backgroundColor: `${badgeColor}22` }}
+                            >
+                                <Text
+                                    className="text-[9px] font-bold"
+                                    style={{ color: badgeColor }}
+                                >
+                                    {event.status}
+                                </Text>
+                            </View>
+                        ) : null}
+                    </View>
+
+                    <Text
+                        className="text-[11px] mt-0.5"
+                        style={{ color: Theme.text.secondary }}
+                        numberOfLines={1}
+                    >
+                        {[
+                            event.hallName,
+                            event.date ? formatDate(event.date) : '',
+                            event.startTime ? formatTime(event.startTime) : '',
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </Text>
+
+                    {event.applicantName ? (
+                        <Text
+                            className="text-[10px] mt-0.5"
+                            style={{ color: Theme.text.tertiary }}
+                            numberOfLines={1}
+                        >
+                            {event.applicantName}
+                            {event.bookedBy ? ` · by ${event.bookedBy}` : ''}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View className="items-end">
+                    <Text className="text-[13px] font-extrabold text-white">
+                        {formatCompactINR(num(event.totalAmount))}
+                    </Text>
+                    {event.paymentStatus ? (
+                        <Text
+                            className="text-[10px] mt-0.5"
+                            style={{ color: Theme.text.tertiary }}
+                        >
+                            {event.paymentStatus}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <ChevronRight size={14} color={Theme.text.tertiary} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+        );
+    },
+);
+
+EventRow.displayName = 'EventRow';
+
+/** KPI card — baki screens ke dark cards jaisa. */
+const StatCard = ({
+    title,
+    value,
+    hint,
+    Icon,
+    tint,
+}: {
+    title: string;
+    value: string;
+    hint?: string;
+    Icon: any;
+    tint: string;
+}) => (
+    <View
+        className="flex-1 rounded-2xl p-3.5 mb-3"
+        style={{
+            backgroundColor: Theme.background.secondary,
+            borderWidth: 1,
+            borderColor: Theme.border.primary,
+        }}
+    >
+        <View
+            className="w-9 h-9 rounded-xl items-center justify-center"
+            style={{ backgroundColor: `${tint}22` }}
+        >
+            <Icon size={16} color={tint} />
+        </View>
+        <Text className="text-[11px] mt-2.5" style={{ color: Theme.text.secondary }}>
+            {title}
+        </Text>
+        <Text className="text-[17px] font-extrabold text-white mt-0.5" numberOfLines={1}>
+            {value}
+        </Text>
+        {hint ? (
+            <Text className="text-[10px] mt-0.5" style={{ color: Theme.text.tertiary }}>
+                {hint}
+            </Text>
+        ) : null}
+    </View>
+);
+
+const SectionHeader = ({
+    title,
+    sub,
+    actionLabel,
+    onAction,
+}: {
+    title: string;
+    sub?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+}) => (
+    <View className="flex-row items-end justify-between mb-3.5">
+        <View className="flex-1 pr-2">
+            <Text className="text-[16px] font-extrabold text-white">{title}</Text>
+            {sub ? (
+                <Text className="text-[11px] mt-0.5" style={{ color: Theme.text.secondary }}>
+                    {sub}
+                </Text>
+            ) : null}
+        </View>
+        {actionLabel && onAction ? (
+            <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onAction}
+                className="flex-row items-center"
+            >
+                <Text className="text-[12px] font-bold" style={{ color: Theme.button.primary }}>
+                    {actionLabel}
+                </Text>
+                <ChevronRight size={13} color={Theme.button.primary} />
+            </TouchableOpacity>
+        ) : null}
+    </View>
+);
+
+const cardStyle = {
+    backgroundColor: Theme.background.secondary,
+    borderWidth: 1,
+    borderColor: Theme.border.primary,
 };
 
+interface KpiItem {
+    key: string;
+    title: string;
+    value: string;
+    hint: string;
+    Icon: any;
+    tint: string;
+}
+
+/** KPI cards ko 2-2 ke rows me baantta hai — rows me `gap` se clean grid banta
+ *  hai (pehle `flex-wrap` + zero-width spacer cards ko shift kar dete the). */
+const chunkPairs = (items: KpiItem[]): KpiItem[][] => {
+    const rows: KpiItem[][] = [];
+    for (let index = 0; index < items.length; index += 2) {
+        rows.push(items.slice(index, index + 2));
+    }
+    return rows;
+};
+
+/**
+ * CEO Dashboard — sada aur saaf.
+ *
+ * Sirf wahi cheezein jo CEO ko turant chahiye: 6 KPIs, do charts, aaj ke
+ * events aur aage ke events. Poori reporting Business Analytics tab me hai,
+ * isliye yahan duplicacy nahi rakhi gayi.
+ */
 const CEODashboardScreen = ({ navigation }: any) => {
     const user = useAppSelector((state) => state.user.user);
     const { dashboard, isLoading, refetch } = useGetDashboard(user?.token);
+
+    const [refreshing, setRefreshing] = useState(false);
+    // Charts heavy hote hain — pehla render ke baad mount karte hain.
+    const [chartsReady, setChartsReady] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setChartsReady(true), 300);
+        return () => clearTimeout(timer);
+    }, []);
+
     const data: DashboardData | undefined = dashboard;
     const stats = data?.stats;
-    const [refreshing, setRefreshing] = useState(false);
+    const todayEvents = data?.todayEvents ?? [];
+    const upcomingEvents = (data?.upcomingEvents ?? []).slice(0, 5);
 
-    // Pull-to-refresh / refresh button — dashboard ke saare numbers, charts
-    // aur lists fresh hoke aate hain (e.g. event finalize karne ke baad).
+    const displayName = String(user?.name ?? '').trim().split(' ')[0] || 'CEO';
+
+    const kpis: KpiItem[] = [
+        {
+            key: 'todayEvents',
+            title: "Today's Events",
+            value: String(stats?.todayEvents ?? 0),
+            hint: `${stats?.activeBookings ?? 0} active bookings`,
+            Icon: CalendarCheck,
+            tint: '#34D399',
+        },
+        {
+            key: 'totalRevenue',
+            title: 'Total Revenue',
+            value: formatCompactINR(num(stats?.totalRevenue)),
+            hint: 'Collected so far',
+            Icon: BadgeIndianRupee,
+            tint: '#D4AF37',
+        },
+        {
+            key: 'pendingPayments',
+            title: 'Pending Payments',
+            value: formatCompactINR(num(stats?.pendingPaymentsAmount)),
+            hint: 'Yet to be collected',
+            Icon: Wallet2,
+            tint: '#F87171',
+        },
+        {
+            key: 'weekBookings',
+            title: "Week's Bookings",
+            value: String(stats?.weekBookings ?? 0),
+            hint: `${num(stats?.weeklyGrowth) >= 0 ? '+' : ''}${num(
+                stats?.weeklyGrowth,
+            )}% vs last week`,
+            Icon: CalendarDays,
+            tint: '#60A5FA',
+        },
+        {
+            key: 'totalBookings',
+            title: 'Total Bookings',
+            value: String(stats?.totalBookings ?? 0),
+            hint: 'All time',
+            Icon: UserRound,
+            tint: '#A78BFA',
+        },
+        {
+            key: 'cancelled',
+            title: 'Cancelled',
+            value: String(stats?.cancelledCount ?? 0),
+            hint: 'All time',
+            Icon: TriangleAlert,
+            tint: '#F87171',
+        },
+    ];
+
+    const kpiRows = chunkPairs(kpis);
+
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
@@ -75,467 +322,266 @@ const CEODashboardScreen = ({ navigation }: any) => {
         }
     }, [refetch]);
 
-    const navigateBooking = useCallback((id: string) => {
-        navigation.navigate(MainRoute.BookingDetail, { id });
-    }, [navigation]);
+    const openBooking = useCallback(
+        (id: string) => navigation.navigate(MainRoute.BookingDetail, { id }),
+        [navigation],
+    );
 
-    const navigateBookings = useCallback(() => {
-        navigation.navigate(TabRoute.Bookings);
-    }, [navigation]);
+    const openBookings = useCallback(
+        () => navigation.navigate(TabRoute.Bookings),
+        [navigation],
+    );
 
-    // Staff Activity calendar bottom tabs me nahi hai — CEO Dashboard ke card
-    // se hi khulta hai, isliye stack screen par navigate karte hain.
-    const openStaffActivity = useCallback(() => {
-        navigation.navigate(MainRoute.StaffActivity);
-    }, [navigation]);
+    const openStaffActivity = useCallback(
+        () => navigation.navigate(MainRoute.StaffActivity),
+        [navigation],
+    );
 
-    // Business Analytics — 7 sections (finance, venue, customers, staff…).
-    const openAnalytics = useCallback(() => {
-        navigation.navigate(MainRoute.CeoAnalytics);
-    }, [navigation]);
+    const weeklyChart = (data?.weeklyChart ?? []).map((point) => ({
+        label: point.label,
+        value: Math.max(0, num(point.value)),
+    }));
+    const weeklyMax = Math.max(4, ...weeklyChart.map((point) => point.value));
 
-    const statCards = stats ? [
-        {
-            title: "Today's Events",
-            value: String(stats.todayEvents),
-            icon: CalendarCheck,
-            accentColor: Colors.green,
-            softColor: Colors.greenSoft,
-        },
-        {
-            title: 'Total Revenue',
-            value: formatCompactINR(stats.totalRevenue),
-            icon: BadgeIndianRupee,
-            accentColor: Colors.gold,
-            softColor: Colors.accentSoft,
-        },
-        {
-            title: 'Pending Payments',
-            value: formatCompactINR(stats.pendingPaymentsAmount),
-            icon: Wallet2,
-            accentColor: Colors.red,
-            softColor: Colors.redSoft,
-        },
-        {
-            title: "Week's Bookings",
-            value: String(stats.weekBookings),
-            icon: CalendarDays,
-            accentColor: Colors.blue,
-            softColor: Colors.blueSoft,
-        },
-        {
-            title: 'Collected',
-            value: formatCompactINR(stats.collectedAmount),
-            icon: ReceiptIndianRupee,
-            accentColor: Colors.green,
-            softColor: Colors.greenSoft,
-        },
-        {
-            title: 'Total Bookings',
-            value: String(stats.totalBookings),
-            icon: UserRound,
-            accentColor: Colors.purple,
-            softColor: Colors.purpleSoft,
-        },
-    ] : [];
-
-    const maxRevenue = Math.max(...(data?.monthlyRevenue ?? []).map((m) => m.value), 1);
-    const revenueChartData = data?.monthlyRevenue.map((m) => ({
-        value: m.value,
-        label: m.label,
-    })) ?? [];
+    const monthlyChart = (data?.monthlyRevenue ?? []).map((point) => ({
+        label: point.label,
+        value: Math.max(0, num(point.value)),
+    }));
 
     return (
-        <SafeAreaView className="flex-1" style={{ backgroundColor: DashboardPalette.bg }} edges={['top']}>
-            <DashHeader navigation={navigation} name={user?.name} photo={user?.photo} />
-
-            <View className="flex-1">
-                {isLoading && !data ? (
-                    <DashboardSkeleton />
-                ) : (
-                    <ScrollView
-                        className="flex-1 rounded-t-[28px]"
-                        style={{ backgroundColor: DashboardPalette.sheet }}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 28 }}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                                tintColor={DashboardPalette.goldDeep}
-                                colors={[DashboardPalette.goldDeep]}
-                                progressBackgroundColor={DashboardPalette.card}
-                            />
-                        }
+        <Wrapper>
+            <MainDerder
+                navigation={navigation}
+                title={`Hello, ${displayName}`}
+                right={
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={onRefresh}
+                        className="w-9 h-9 rounded-xl items-center justify-center"
+                        style={cardStyle}
                     >
-                        {/* Revenue hero card (same as Home) */}
-                        <View>
-                            <HeroRevenueCard stats={stats} onPress={navigateBookings} />
-                        </View>
+                        <RefreshCw size={15} color={Theme.button.primary} />
+                    </TouchableOpacity>
+                }
+            />
 
-                        {/* Staff Activity calendar — bottom tab hata diya gaya hai,
-                            ab yahi card calendar kholne ka entry point hai. */}
-                        <View className="mt-4">
-                            <TouchableOpacity
-                                activeOpacity={0.85}
-                                onPress={openStaffActivity}
-                                className="flex-row items-center rounded-2xl p-4"
-                                style={{
-                                    backgroundColor: DashboardPalette.card,
-                                    borderWidth: 1,
-                                    borderColor: DashboardPalette.border,
-                                }}
-                            >
-                                <View
-                                    className="w-11 h-11 rounded-xl items-center justify-center"
-                                    style={{ backgroundColor: DashboardPalette.blueSoft }}
-                                >
-                                    <CalendarDays size={20} color={DashboardPalette.blue} />
-                                </View>
-                                <View className="flex-1 ml-3">
-                                    <Text className="text-[14px] font-extrabold" style={{ color: DashboardPalette.ink }}>
-                                        Staff Activity Calendar
-                                    </Text>
-                                    <Text className="text-[11px] font-medium mt-0.5" style={{ color: DashboardPalette.inkSoft }}>
-                                        Day-wise events, bookings & staff activity
-                                    </Text>
-                                </View>
-                                <ChevronRight size={16} color={DashboardPalette.inkMuted} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Business Analytics — reports ka poora hub */}
-                        <View className="mt-3">
-                            <TouchableOpacity
-                                activeOpacity={0.85}
-                                onPress={openAnalytics}
-                                className="flex-row items-center rounded-2xl p-4"
-                                style={{
-                                    backgroundColor: DashboardPalette.card,
-                                    borderWidth: 1,
-                                    borderColor: DashboardPalette.border,
-                                }}
-                            >
-                                <View
-                                    className="w-11 h-11 rounded-xl items-center justify-center"
-                                    style={{ backgroundColor: DashboardPalette.goldSoft }}
-                                >
-                                    <BarChart3 size={20} color={DashboardPalette.goldDeep} />
-                                </View>
-                                <View className="flex-1 ml-3">
-                                    <Text className="text-[14px] font-extrabold" style={{ color: DashboardPalette.ink }}>
-                                        Business Analytics
-                                    </Text>
-                                    <Text className="text-[11px] font-medium mt-0.5" style={{ color: DashboardPalette.inkSoft }}>
-                                        Finance, events, halls, customers, staff & reports
-                                    </Text>
-                                </View>
-                                <ChevronRight size={16} color={DashboardPalette.inkMuted} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Overview strip */}
-                        <View className="mt-5">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={TrendingUp} tint={DashboardPalette.gold} title="Overview" sub="Live hall overview" />
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    onPress={onRefresh}
-                                    className="w-9 h-9 rounded-xl items-center justify-center"
-                                    style={{ backgroundColor: DashboardPalette.goldSoft }}
-                                >
-                                    <RefreshCw size={15} color={DashboardPalette.goldDeep} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Stat cards */}
-                        <View className="mt-2">
-                            {/* Parent ScrollView me already paddingHorizontal 16 hai —
-                                yahan dobara padding dene se cards baaki sections se
-                                16px andar (misaligned) start ho jate the. */}
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{ paddingTop: 8, gap: 12 }}
-                            >
-                                {statCards.map((stat) => (
-                                    <TouchableOpacity
-                                        key={stat.title}
-                                        activeOpacity={0.7}
-                                        onPress={navigateBookings}
-                                        className="w-[158px] rounded-2xl p-4"
-                                        style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
-                                    >
-                                        <View className="flex-row items-center justify-between mb-3">
-                                            <View
-                                                className="w-10 h-10 rounded-xl items-center justify-center"
-                                                style={{ backgroundColor: stat.softColor }}
-                                            >
-                                                <stat.icon size={19} color={stat.accentColor} />
-                                            </View>
-                                            <ChevronRight size={14} color={DashboardPalette.inkMuted} />
-                                        </View>
-                                        <Text className="text-[11px] font-medium" style={{ color: DashboardPalette.inkSoft }}>{stat.title}</Text>
-                                        <Text className="text-xl font-bold mt-1" style={{ color: DashboardPalette.ink }}>{stat.value}</Text>
-                                    </TouchableOpacity>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                className="flex-1"
+                contentContainerStyle={{ paddingBottom: 28 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={Theme.button.primary}
+                        colors={[Theme.button.primary]}
+                    />
+                }
+            >
+                {isLoading && !data ? (
+                    <View className="py-24 items-center">
+                        <ActivityIndicator size="small" color={Theme.button.primary} />
+                    </View>
+                ) : (
+                    <>
+                        {/* KPI grid — 2 cards per row, equal width */}
+                        {kpiRows.map((pair, index) => (
+                            <View key={index} className="flex-row gap-3">
+                                {pair.map((item) => (
+                                    <StatCard
+                                        key={item.key}
+                                        title={item.title}
+                                        value={item.value}
+                                        hint={item.hint}
+                                        Icon={item.Icon}
+                                        tint={item.tint}
+                                    />
                                 ))}
-                            </ScrollView>
-                        </View>
+                                {/* Aakhri row me sirf ek card ho to jagah bhar do,
+                                    warna wo poori width le leta hai. */}
+                                {pair.length === 1 ? <View className="flex-1 mb-3" /> : null}
+                            </View>
+                        ))}
 
-                        {/* Booking status strip — Ended / Today / Confirmed */}
-                        <View className="mt-4">
-                            <BookingStatusStrip onPress={navigateBookings} />
-                        </View>
+                        {/* Quick link — Analytics tab me hai, isliye yahan card nahi. */}
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={openStaffActivity}
+                            className="mt-4 rounded-2xl p-3.5 flex-row items-center"
+                            style={cardStyle}
+                        >
+                            <CalendarDays size={15} color="#60A5FA" />
+                            <Text className="text-[12px] font-bold text-white ml-2">
+                                Staff Activity Calendar
+                            </Text>
+                            <View className="flex-1" />
+                            <ChevronRight size={14} color={Theme.text.tertiary} />
+                        </TouchableOpacity>
 
                         {/* Revenue trend */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={BadgeIndianRupee} tint={DashboardPalette.gold} title="Revenue Trend" sub="Monthly collections" />
-                                {stats && (
-                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.goldSoft }}>
-                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.goldDeep }}>
-                                            {formatCompactINR(stats.totalRevenue)}
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-                            <View
-                                className="rounded-2xl p-5"
-                                style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
-                            >
-                                <LineChart
-                                    data={revenueChartData}
-                                    color={Colors.gold}
-                                    thickness={3}
-                                    curved
-                                    areaChart
-                                    startFillColor={Colors.gold}
-                                    endFillColor={Colors.gold}
-                                    noOfSections={4}
-                                    maxValue={maxRevenue}
-                                    parentWidth={CHART_WIDTH}
-                                    yAxisThickness={0}
-                                    xAxisThickness={0}
-                                    xAxisColor={DashboardPalette.border}
-                                    yAxisTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    xAxisLabelTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    rulesColor={DashboardPalette.border}
-                                    rulesType="solid"
-                                    isAnimated
-                                    animationDuration={700}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Weekly bookings + growth */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={TrendingUp} tint={DashboardPalette.blue} title="Weekly Bookings" sub="Created in the last 7 days" />
-                                {stats && (
+                        <View className="mt-6">
+                            <SectionHeader
+                                title="Revenue Trend"
+                                sub="Collections in the last 6 months"
+                            />
+                            <View className="rounded-2xl p-4" style={cardStyle}>
+                                {chartsReady ? (
+                                    <BarChart
+                                        key="revenue-trend"
+                                        data={monthlyChart}
+                                        barWidth={22}
+                                        spacing={16}
+                                        initialSpacing={10}
+                                        endSpacing={10}
+                                        barBorderRadius={6}
+                                        frontColor="#D4AF37"
+                                        noOfSections={4}
+                                        maxValue={Math.max(
+                                            100,
+                                            ...monthlyChart.map((point) => point.value),
+                                        )}
+                                        parentWidth={CHART_WIDTH}
+                                        yAxisThickness={0}
+                                        xAxisThickness={0}
+                                        yAxisTextStyle={{
+                                            color: Theme.text.tertiary,
+                                            fontSize: 10,
+                                        }}
+                                        xAxisLabelTextStyle={{
+                                            color: Theme.text.tertiary,
+                                            fontSize: 10,
+                                        }}
+                                        rulesColor={Theme.border.primary}
+                                        rulesType="solid"
+                                        isAnimated
+                                        animationDuration={600}
+                                    />
+                                ) : (
+                                    // Chart mount hone tak khaali card ki jagah spinner
+                                    // (pehle khali box kart jaisa dikhta tha).
                                     <View
-                                        className="px-3 py-1.5 rounded-full"
-                                        style={{ backgroundColor: stats.weeklyGrowth >= 0 ? DashboardPalette.greenSoft : DashboardPalette.redSoft }}
+                                        className="items-center justify-center"
+                                        style={{ height: 180 }}
                                     >
-                                        <Text
-                                            className="text-xs font-semibold"
-                                            style={{ color: stats.weeklyGrowth >= 0 ? DashboardPalette.green : DashboardPalette.red }}
-                                        >
-                                            {stats.weeklyGrowth >= 0 ? '+' : ''}{stats.weeklyGrowth}%
-                                        </Text>
+                                        <ActivityIndicator
+                                            size="small"
+                                            color={Theme.button.primary}
+                                        />
                                     </View>
                                 )}
-                            </View>
-                            <View
-                                className="rounded-2xl p-5"
-                                style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
-                            >
-                                <BarChart
-                                    data={data?.weeklyChart ?? []}
-                                    barWidth={24}
-                                    spacing={14}
-                                    initialSpacing={10}
-                                    endSpacing={10}
-                                    barBorderRadius={6}
-                                    frontColor={Colors.gold}
-                                    gradientColor={Colors.gold}
-                                    noOfSections={4}
-                                    maxValue={Math.max(...(data?.weeklyChart ?? []).map((w) => w.value), 4)}
-                                    parentWidth={CHART_WIDTH}
-                                    yAxisThickness={0}
-                                    xAxisThickness={0}
-                                    xAxisColor={DashboardPalette.border}
-                                    yAxisTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    xAxisLabelTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    rulesColor={DashboardPalette.border}
-                                    rulesType="solid"
-                                    isAnimated
-                                    animationDuration={600}
-                                />
                             </View>
                         </View>
 
-                        {/* Weekly revenue */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={Wallet2} tint={DashboardPalette.gold} title="Weekly Revenue" sub="Revenue earned in the last 7 days" />
-                                {stats && (
-                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.goldSoft }}>
-                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.goldDeep }}>
-                                            ₹{(data?.weeklyRevenue ?? []).reduce((s, d) => s + d.value, 0).toLocaleString()}
-                                        </Text>
+                        {/* Weekly bookings */}
+                        <View className="mt-6">
+                            <SectionHeader
+                                title="Weekly Bookings"
+                                sub="Created in the last 7 days"
+                            />
+                            <View className="rounded-2xl p-4" style={cardStyle}>
+                                {chartsReady ? (
+                                    <BarChart
+                                        key="weekly-bookings"
+                                        data={weeklyChart}
+                                        barWidth={22}
+                                        spacing={14}
+                                        initialSpacing={10}
+                                        endSpacing={10}
+                                        barBorderRadius={6}
+                                        frontColor="#60A5FA"
+                                        noOfSections={4}
+                                        maxValue={weeklyMax}
+                                        parentWidth={CHART_WIDTH}
+                                        yAxisThickness={0}
+                                        xAxisThickness={0}
+                                        yAxisTextStyle={{
+                                            color: Theme.text.tertiary,
+                                            fontSize: 10,
+                                        }}
+                                        xAxisLabelTextStyle={{
+                                            color: Theme.text.tertiary,
+                                            fontSize: 10,
+                                        }}
+                                        rulesColor={Theme.border.primary}
+                                        rulesType="solid"
+                                        isAnimated
+                                        animationDuration={600}
+                                    />
+                                ) : (
+                                    // Chart mount hone tak khaali card ki jagah spinner
+                                    // (pehle khali box kart jaisa dikhta tha).
+                                    <View
+                                        className="items-center justify-center"
+                                        style={{ height: 180 }}
+                                    >
+                                        <ActivityIndicator
+                                            size="small"
+                                            color={Theme.button.primary}
+                                        />
                                     </View>
                                 )}
-                            </View>
-                            <View
-                                className="rounded-2xl p-5"
-                                style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
-                            >
-                                <BarChart
-                                    data={data?.weeklyRevenue ?? []}
-                                    barWidth={24}
-                                    spacing={14}
-                                    initialSpacing={10}
-                                    endSpacing={10}
-                                    barBorderRadius={6}
-                                    frontColor={DashboardPalette.gold}
-                                    gradientColor={DashboardPalette.gold}
-                                    noOfSections={4}
-                                    maxValue={Math.max(...(data?.weeklyRevenue ?? []).map((w) => w.value), 100)}
-                                    parentWidth={CHART_WIDTH}
-                                    yAxisThickness={0}
-                                    xAxisThickness={0}
-                                    xAxisColor={DashboardPalette.border}
-                                    yAxisTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    xAxisLabelTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    rulesColor={DashboardPalette.border}
-                                    rulesType="solid"
-                                    isAnimated
-                                    animationDuration={600}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Monthly revenue */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={ReceiptIndianRupee} tint={DashboardPalette.gold} title="Monthly Revenue" sub="Revenue earned in the last 6 months" />
-                                {stats && (
-                                    <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: DashboardPalette.goldSoft }}>
-                                        <Text className="text-xs font-semibold" style={{ color: DashboardPalette.goldDeep }}>
-                                            {formatCompactINR((data?.monthlyRevenue ?? []).reduce((s, d) => s + d.value, 0))}
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-                            <View
-                                className="rounded-2xl p-5"
-                                style={{ backgroundColor: DashboardPalette.card, borderWidth: 1, borderColor: DashboardPalette.border }}
-                            >
-                                <BarChart
-                                    data={data?.monthlyRevenue ?? []}
-                                    barWidth={30}
-                                    spacing={22}
-                                    initialSpacing={14}
-                                    endSpacing={14}
-                                    barBorderRadius={6}
-                                    frontColor={DashboardPalette.gold}
-                                    gradientColor={DashboardPalette.gold}
-                                    noOfSections={4}
-                                    maxValue={Math.max(...(data?.monthlyRevenue ?? []).map((w) => w.value), 100)}
-                                    parentWidth={CHART_WIDTH}
-                                    yAxisThickness={0}
-                                    xAxisThickness={0}
-                                    xAxisColor={DashboardPalette.border}
-                                    yAxisTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    xAxisLabelTextStyle={{ color: DashboardPalette.inkMuted, fontSize: 10 }}
-                                    rulesColor={DashboardPalette.border}
-                                    rulesType="solid"
-                                    isAnimated
-                                    animationDuration={600}
-                                />
                             </View>
                         </View>
 
                         {/* Today's events */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={CalendarCheck} tint={DashboardPalette.green} title="Today's Events" sub={`${data?.todayEvents?.length ?? 0} event(s) scheduled`} />
-                                <TouchableOpacity onPress={navigateBookings} className="flex-row items-center mb-1" activeOpacity={0.7}>
-                                    <Text className="text-xs font-black" style={{ color: DashboardPalette.goldDeep }}>View All</Text>
-                                    <ChevronRight size={14} color={DashboardPalette.goldDeep} />
-                                </TouchableOpacity>
-                            </View>
-                            {data?.todayEvents?.length ? (
-                                data.todayEvents.map((event) => (
-                                    <EventCard key={event.id} event={event} onPress={() => navigateBooking(event.id)} />
-                                ))
-                            ) : (
-                                <View className="items-center py-8">
-                                    <Text className="text-sm" style={{ color: DashboardPalette.inkSoft }}>
-                                        No events scheduled for today.
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-
-                        {/* Upcoming events */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={CalendarDays} tint={DashboardPalette.violet} title="Upcoming" sub="Next 7 days" />
-                                <TouchableOpacity onPress={navigateBookings} className="flex-row items-center mb-1" activeOpacity={0.7}>
-                                    <Text className="text-xs font-black" style={{ color: DashboardPalette.goldDeep }}>View All</Text>
-                                    <ChevronRight size={14} color={DashboardPalette.goldDeep} />
-                                </TouchableOpacity>
-                            </View>
-                            {data?.upcomingEvents?.length ? (
-                                data.upcomingEvents.map((event) => (
-                                    <EventCard
+                        <View className="mt-6">
+                            <SectionHeader
+                                title="Today's Events"
+                                sub={
+                                    todayEvents.length
+                                        ? `${todayEvents.length} event(s) scheduled`
+                                        : 'Nothing planned today'
+                                }
+                                actionLabel="All bookings"
+                                onAction={openBookings}
+                            />
+                            {todayEvents.length ? (
+                                todayEvents.map((event) => (
+                                    <EventRow
                                         key={event.id}
                                         event={event}
-                                        showDate
-                                        onPress={() => navigateBooking(event.id)}
+                                        onPress={() => openBooking(event.id)}
                                     />
                                 ))
                             ) : (
-                                <View className="items-center py-8">
-                                    <Text className="text-sm" style={{ color: DashboardPalette.inkSoft }}>
-                                        No upcoming events.
-                                    </Text>
-                                </View>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: Theme.text.secondary }}
+                                >
+                                    No events scheduled for today.
+                                </Text>
                             )}
                         </View>
 
-                        {/* Recent bookings */}
-                        <View className="mt-7">
-                            <View className="flex-row items-end justify-between mb-4">
-                                <SectionTitle icon={ReceiptIndianRupee} tint={DashboardPalette.blue} title="Recent Bookings" sub="Latest activity" />
-                                <TouchableOpacity onPress={navigateBookings} className="flex-row items-center mb-1" activeOpacity={0.7}>
-                                    <Text className="text-xs font-black" style={{ color: DashboardPalette.goldDeep }}>View All</Text>
-                                    <ChevronRight size={14} color={DashboardPalette.goldDeep} />
-                                </TouchableOpacity>
-                            </View>
-                            {data?.recentBookings?.length ? (
-                                data.recentBookings.map((event) => (
-                                    <EventCard
+                        {/* Upcoming */}
+                        <View className="mt-6">
+                            <SectionHeader
+                                title="Upcoming"
+                                sub="Next 7 days"
+                                actionLabel="All bookings"
+                                onAction={openBookings}
+                            />
+                            {upcomingEvents.length ? (
+                                upcomingEvents.map((event) => (
+                                    <EventRow
                                         key={event.id}
                                         event={event}
-                                        showDate
-                                        onPress={() => navigateBooking(event.id)}
+                                        onPress={() => openBooking(event.id)}
                                     />
                                 ))
                             ) : (
-                                <View className="items-center py-8">
-                                    <Text className="text-sm" style={{ color: DashboardPalette.inkSoft }}>
-                                        No bookings yet.
-                                    </Text>
-                                </View>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: Theme.text.secondary }}
+                                >
+                                    No upcoming events.
+                                </Text>
                             )}
                         </View>
-                    </ScrollView>
+                    </>
                 )}
-            </View>
-        </SafeAreaView>
+            </ScrollView>
+        </Wrapper>
     );
 };
 

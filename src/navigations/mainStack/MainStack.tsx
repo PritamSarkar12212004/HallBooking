@@ -63,8 +63,9 @@ const CEOTabs = () => {
         >
             <Tab.Screen name={TabRoute.Dashboard} component={CEODashboardScreen} />
             <Tab.Screen name={TabRoute.Bookings} component={BookingListScreen} />
-            {/* CEO ke side par Notification tab nahi chahiye. */}
-            <Tab.Screen name={TabRoute.Applicants} component={ApplicantListScreen} />
+            {/* CEO ke side par Notification aur Applicants tabs nahi chahiye —
+                applicants/customers ka poora picture Analytics tab me hai. */}
+            <Tab.Screen name={TabRoute.Analytics} component={CEOAnalyticsScreen} />
             <Tab.Screen name={TabRoute.Profile} component={ProfileScreen} />
         </Tab.Navigator>
     );
@@ -117,11 +118,6 @@ const MainStack = ({ userRole }: MainStackProps) => {
             <Stack.Screen
                 name={MainRoute.Reports}
                 component={ReportsScreen}
-            />
-            {/* CEO Business Analytics (7 sections + period filter) */}
-            <Stack.Screen
-                name={MainRoute.CeoAnalytics}
-                component={CEOAnalyticsScreen}
             />
             <Stack.Screen
                 name={MainRoute.Profile}

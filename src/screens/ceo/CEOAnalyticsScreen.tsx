@@ -10,7 +10,7 @@ import {
 } from '../../lib/style/withTailwind';
 import { RefreshCw, TriangleAlert } from 'lucide-react-native';
 
-import SubHeader from '../../components/header/SubHeader';
+import MainDerder from '../../components/header/MainDerder';
 import DashboardSkeleton from '../../ui/Skeleton/DashboardSkeleton';
 import DashboardPalette from '../../const/theme/dashboardPalette';
 import { MainRoute } from '../../const/routes/route';
@@ -23,6 +23,7 @@ import EventsPanel from '../../components/ceo/panels/EventsPanel';
 import VenuePanel from '../../components/ceo/panels/VenuePanel';
 import CustomersPanel from '../../components/ceo/panels/CustomersPanel';
 import StaffPanel from '../../components/ceo/panels/StaffPanel';
+import DocumentsPanel from '../../components/ceo/panels/DocumentsPanel';
 import ReportsPanel from '../../components/ceo/panels/ReportsPanel';
 
 import {
@@ -98,6 +99,8 @@ const CEOAnalyticsScreen = ({ navigation }: any) => {
                 return <CustomersPanel {...panelProps} />;
             case 'staff':
                 return <StaffPanel {...panelProps} />;
+            case 'documents':
+                return <DocumentsPanel {...panelProps} />;
             case 'reports':
                 return <ReportsPanel {...panelProps} />;
             case 'overview':
@@ -113,7 +116,27 @@ const CEOAnalyticsScreen = ({ navigation }: any) => {
             edges={['top']}
         >
             <View className="px-4">
-                <SubHeader navigation={navigation} title="Business Analytics" />
+                <MainDerder
+                    navigation={navigation}
+                    title="Business Analytics"
+                    right={
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={onRefresh}
+                            className="w-9 h-9 rounded-xl items-center justify-center"
+                            style={{ backgroundColor: DashboardPalette.card }}
+                        >
+                            {isFetching ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color={DashboardPalette.goldDeep}
+                                />
+                            ) : (
+                                <RefreshCw size={15} color={DashboardPalette.goldDeep} />
+                            )}
+                        </TouchableOpacity>
+                    }
+                />
 
                 {/* Period filter */}
                 <ScrollView
@@ -240,39 +263,21 @@ const CEOAnalyticsScreen = ({ navigation }: any) => {
                             />
                         }
                     >
-                        {/* Period range + refresh */}
-                        <View className="flex-row items-center justify-between mb-5">
-                            <View className="flex-1 pr-3">
-                                <Text
-                                    className="text-[13px] font-extrabold"
-                                    style={{ color: DashboardPalette.ink }}
-                                >
-                                    {activeSection?.label}
-                                </Text>
-                                <Text
-                                    className="text-[11px] mt-0.5"
-                                    style={{ color: DashboardPalette.inkSoft }}
-                                >
-                                    {activeSection?.sub}
-                                    {analytics ? ` · ${formatPeriodRange(analytics.period)}` : ''}
-                                </Text>
-                            </View>
-
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={onRefresh}
-                                className="w-9 h-9 rounded-xl items-center justify-center"
-                                style={{ backgroundColor: DashboardPalette.goldSoft }}
+                        {/* Section title + selected period */}
+                        <View className="mb-5">
+                            <Text
+                                className="text-[13px] font-extrabold"
+                                style={{ color: DashboardPalette.ink }}
                             >
-                                {isFetching ? (
-                                    <ActivityIndicator
-                                        size="small"
-                                        color={DashboardPalette.goldDeep}
-                                    />
-                                ) : (
-                                    <RefreshCw size={15} color={DashboardPalette.goldDeep} />
-                                )}
-                            </TouchableOpacity>
+                                {activeSection?.label}
+                            </Text>
+                            <Text
+                                className="text-[11px] mt-0.5"
+                                style={{ color: DashboardPalette.inkSoft }}
+                            >
+                                {activeSection?.sub}
+                                {analytics ? ` · ${formatPeriodRange(analytics.period)}` : ''}
+                            </Text>
                         </View>
 
                         {renderPanel()}
