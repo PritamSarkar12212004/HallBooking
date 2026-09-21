@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import {
-    ActivityIndicator,
     RefreshControl,
     ScrollView,
     Text,
@@ -22,6 +21,9 @@ import {
 
 import Wrapper from '../../layouts/wraper/Wraper';
 import MainDerder from '../../components/header/MainDerder';
+import CeoDashboardSkeleton, {
+    ChartBarsSkeleton,
+} from '../../ui/Skeleton/CeoDashboardSkeleton';
 import { Theme } from '../../const/theme/Theme';
 import { MainRoute, TabRoute } from '../../const/routes/route';
 import { useAppSelector } from '../../hooks/redux/redux';
@@ -379,9 +381,7 @@ const CEODashboardScreen = ({ navigation }: any) => {
                 }
             >
                 {isLoading && !data ? (
-                    <View className="py-24 items-center">
-                        <ActivityIndicator size="small" color={Theme.button.primary} />
-                    </View>
+                    <CeoDashboardSkeleton />
                 ) : (
                     <>
                         {/* KPI grid — 2 cards per row, equal width */}
@@ -457,17 +457,8 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                         animationDuration={600}
                                     />
                                 ) : (
-                                    // Chart mount hone tak khaali card ki jagah spinner
-                                    // (pehle khali box kart jaisa dikhta tha).
-                                    <View
-                                        className="items-center justify-center"
-                                        style={{ height: 180 }}
-                                    >
-                                        <ActivityIndicator
-                                            size="small"
-                                            color={Theme.button.primary}
-                                        />
-                                    </View>
+                                    // Chart mount hone tak chhota bar-skeleton
+                                    <ChartBarsSkeleton />
                                 )}
                             </View>
                         </View>
@@ -508,17 +499,8 @@ const CEODashboardScreen = ({ navigation }: any) => {
                                         animationDuration={600}
                                     />
                                 ) : (
-                                    // Chart mount hone tak khaali card ki jagah spinner
-                                    // (pehle khali box kart jaisa dikhta tha).
-                                    <View
-                                        className="items-center justify-center"
-                                        style={{ height: 180 }}
-                                    >
-                                        <ActivityIndicator
-                                            size="small"
-                                            color={Theme.button.primary}
-                                        />
-                                    </View>
+                                    // Chart mount hone tak chhota bar-skeleton
+                                    <ChartBarsSkeleton />
                                 )}
                             </View>
                         </View>
